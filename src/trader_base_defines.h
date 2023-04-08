@@ -779,9 +779,7 @@ struct String_Any {
   };
 };
 
-#define str8_lit(s)          {(u8*)(s), sizeof(s) - 1}
-#define string_litinit(s)    {(u8*)(s), sizeof(s) - 1}
-#define string_u8_litinit(s) {(u8*)(s), sizeof(s) - 1}
+#define string_literal_init(s) {(s), sizeof(s) - 1}
 
 #define string_from_c_string(type, s, capacity) {(type *) s, concat(get_length_c_string_, type)((type *) s), (capacity)}
 

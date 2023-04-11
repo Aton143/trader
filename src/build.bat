@@ -23,7 +23,7 @@ REM 64-bit build
 
 del *.pdb > NUL 2> NUL
 
-cl ..\src\platform_win32\win32_trader.cpp /nologo /Od /Oi /FC /Z7  /WX /W4 /wd4201 /MTd /Gm- /GR- /link /incremental:no /opt:ref 
+cl ..\src\platform_win32\win32_trader.cpp /nologo /Od /Oi /FC /Z7  /WX /W4 /MTd /Gm- /GR- /wd4201 /wd4505 /link /incremental:no /opt:ref 
 
 popd
 

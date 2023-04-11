@@ -783,5 +783,17 @@ struct String_Any {
 
 #define string_from_c_string(type, s, capacity) {(type *) s, concat(get_length_c_string_, type)((type *) s), (capacity)}
 
+// helpful functions
+u32 count_set_bits(u64 bits)
+{
+    u32 count = 0;
+    while (bits != 0)
+    {
+        bits = bits & (bits - 1);
+        count++;
+    }
+    return count;
+}
+
 #define TRADER_BASE_DEFINES_H
 #endif

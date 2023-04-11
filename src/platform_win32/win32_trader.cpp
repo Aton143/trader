@@ -2,6 +2,10 @@
 #define NO_MIN_MAX
 #define UNICODE
 #include <windows.h>
+#include <memoryapi.h>
+#include <sysinfoapi.h>
+#include <intrin.h>
+
 #include <d3d11_1.h>
 #include <d3dcompiler.h>
 
@@ -12,7 +16,7 @@
 
 #include "..\trader.h"
 
-global_const char _shader[] =
+global_const String_Const_char shader = string_literal_init(
 "struct Global_Data\n"
 "{\n"
 "  float2 resolution;\n"
@@ -97,12 +101,65 @@ global_const char _shader[] =
 "  float4 out_color = texture_sample * input.color;\n"
 "\n"
 "  return out_color;\n"
-"}";
-
-global_const String_Const_char shader = {(char *) _shader, array_count(_shader)};
+"}"
+);
 
 global b32 global_running = false;
 global b32 global_window_resized = false;
+
+global struct Win32_Global_State
+{
+  HWND window_handle;
+} win32_global_state = {};
+
+internal String_Const_utf8
+win32_read_clipboard_contents()
+{
+  String_Const_utf8 result = {};
+  if (OpenClipboard(win32_global_state.window_handle))
+  {
+    b32 got_result = false;
+
+    {
+      HANDLE clip_data = GetClipboardData(CF_UNICODETEXT);
+      if (clip_data != NULL)
+      {
+        utf16 *clip_data_utf16 = (utf16 *) GlobalLock(clip_data);
+        if (clip_data_utf16 != NULL)
+        {
+          String_Const_utf16 clip_utf16 = string_const_utf16(clip_data_utf16);
+
+          assert(!"unimplemented");
+
+          got_result = true;
+        }
+        GlobalUnlock(clip_data);
+      }
+    }
+
+    if (!got_result)
+    {
+      HANDLE clip_data = GetClipboardData(CF_TEXT);
+      if (clip_data != 0)
+      {
+        char *clip_data_char = (char *) GlobalLock(clip_data);
+        if (clip_data_char != 0)
+        {
+          String_Const_char clip_char = string_const_char(clip_data_char);
+
+          assert(!"unimplemented");
+
+          got_result = true;
+        }
+        GlobalUnlock(clip_data);
+      }
+    }
+
+    CloseClipboard();
+  }
+
+  return(result);
+}
 
 internal LRESULT
 win32_window_procedure(HWND window_handle, UINT message,
@@ -163,12 +220,11 @@ WinMain(HINSTANCE instance,
   wchar_t _exe_file_path[MAX_PATH] = {};
   GetModuleFileNameW(NULL, _exe_file_path, array_count(_exe_file_path));
 
-  String_utf16 exe_file_path = string_from_c_string(utf16, _exe_file_path, array_count(_exe_file_path));
+  String_Const_utf16 exe_file_path = string_const_utf16((utf16 *) _exe_file_path);
   unused(exe_file_path);
 
   SetCurrentDirectoryW((LPCWSTR) exe_file_path.str);
 
-  HWND window_handle;
   {
     WNDCLASSEXW window_class = {};
 
@@ -189,7 +245,7 @@ WinMain(HINSTANCE instance,
       return GetLastError();
     }
 
-    window_handle =
+    win32_global_state.window_handle =
       CreateWindowExW(WS_EX_OVERLAPPEDWINDOW,
                       window_class.lpszClassName,
                       L"Windows Prototype",
@@ -199,15 +255,16 @@ WinMain(HINSTANCE instance,
                       NULL, NULL,
                       instance, NULL);
 
-    if (!window_handle)
+    if (!win32_global_state.window_handle)
     {
       MessageBoxA(0, "CreateWindowEx failed", "Fatal Error", MB_OK);
       return GetLastError();
     }
   }
 
-  if (ShowWindow(window_handle, SW_NORMAL) && UpdateWindow(window_handle))
+  if (ShowWindow(win32_global_state.window_handle, SW_NORMAL) && UpdateWindow(win32_global_state.window_handle))
   {
+#if 0
     // NOTE(antonio): initializing Direct3D 11
     ID3D11Device1 *device = NULL;
     ID3D11DeviceContext1 *device_context = NULL;
@@ -302,9 +359,9 @@ WinMain(HINSTANCE instance,
       swap_chain_description.AlphaMode   = DXGI_ALPHA_MODE_UNSPECIFIED;
       swap_chain_description.Flags       = 0;
 
-      HRESULT result = dxgi_factory->CreateSwapChainForHwnd(device, window_handle,
-                                                           &swap_chain_description,
-                                                           0, 0, &swap_chain);
+      HRESULT result = dxgi_factory->CreateSwapChainForHwnd(device, win32_global_state.window_handle,
+                                                            &swap_chain_description,
+                                                            0, 0, &swap_chain);
       assert(SUCCEEDED(result));
 
       dxgi_factory->Release();
@@ -539,6 +596,7 @@ WinMain(HINSTANCE instance,
       HRESULT result = device->CreateDepthStencilState(&depth_stencil_state_description, &depth_stencil_state);
       assert(SUCCEEDED(result));
     }
+#endif
   }
 
   return(0);

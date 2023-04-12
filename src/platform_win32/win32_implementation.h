@@ -42,6 +42,8 @@ File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u6
               file_buffer.file_path.str  = file_path_copy;
               file_buffer.file_path.size = file_path_size;
               file_buffer.size           = file_size;
+
+              CloseHandle(file_handle);
             }
             else
             {

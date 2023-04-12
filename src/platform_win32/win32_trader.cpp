@@ -208,6 +208,7 @@ win32_window_procedure(HWND window_handle, UINT message,
 }
 
 global u8 temp_arena_data[mb(4)];
+global u8 default_font_data_static[mb(2)];
 
 int CALL_CONVENTION
 WinMain(HINSTANCE instance,
@@ -228,11 +229,15 @@ WinMain(HINSTANCE instance,
 
   SetCurrentDirectoryW((LPCWSTR) exe_file_path.str);
 
-  String_Const_utf8 file_name = string_literal_init_type("..\\src\\platform_win32\\win32_trader.cpp", utf8);
+  String_Const_utf8 default_font_path = string_literal_init_type("C:/windows/fonts/arial.ttf", utf8);
   Arena arena = {temp_arena_data, array_count(temp_arena_data), 0, 1};
-  {
-    platform_open_and_read_entire_file(&arena, file_name.str, file_name.size);
-  }
+
+  File_Buffer arial_font = platform_open_and_read_entire_file(&arena, default_font_path.str, default_font_path.size);
+
+  // NOTE(antonio): default font on Windows is Arial
+  default_font = platform_open_and_read_entire_file(&arena, default_font_path.str, default_font_path.size);
+
+  trader_font_initialize(&arena, &arial_font, 12.0f);
 
   {
     WNDCLASSEXW window_class = {};

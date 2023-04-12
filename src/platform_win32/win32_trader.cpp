@@ -4,6 +4,7 @@
 #include <windows.h>
 #include <memoryapi.h>
 #include <sysinfoapi.h>
+#include <fileapi.h>
 #include <intrin.h>
 
 #include <d3d11_1.h>
@@ -206,6 +207,8 @@ win32_window_procedure(HWND window_handle, UINT message,
   return(result);
 }
 
+global u8 temp_arena_data[mb(4)];
+
 int CALL_CONVENTION
 WinMain(HINSTANCE instance,
         HINSTANCE previous_instance,
@@ -224,6 +227,12 @@ WinMain(HINSTANCE instance,
   unused(exe_file_path);
 
   SetCurrentDirectoryW((LPCWSTR) exe_file_path.str);
+
+  String_Const_utf8 file_name = string_literal_init((u8 *) __FILE__);
+  Arena arena = {temp_arena_data, array_count(temp_arena_data), 0, 1};
+  {
+    platform_open_and_read_entire_file(&arena, file_name.str, file_name.size);
+  }
 
   {
     WNDCLASSEXW window_class = {};

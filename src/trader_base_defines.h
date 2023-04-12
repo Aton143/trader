@@ -779,9 +779,26 @@ struct String_Any {
   };
 };
 
-#define string_literal_init(s) {(s), sizeof(s) - 1}
-
+#define string_literal_init(s) {(s), sizeof(s) - sizeof(*s)}
 #define string_from_c_string(type, s, capacity) {(type *) s, concat(get_length_c_string_, type)((type *) s), (capacity)}
+
+struct Buffer
+{
+  u8  *data;
+
+  u64  size;
+  u64  used;
+};
+
+struct File_Buffer
+{
+  u8  *data;
+
+  String_Const_utf8 file_path;
+
+  u64 size;
+  u64 used;
+};
 
 // helpful functions
 u32 count_set_bits(u64 bits)
@@ -794,6 +811,8 @@ u32 count_set_bits(u64 bits)
     }
     return count;
 }
+
+#define align(val, alignment) ((((val) + (alignment) - 1) / (alignment)) * (alignment))
 
 #define TRADER_BASE_DEFINES_H
 #endif

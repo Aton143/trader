@@ -2,16 +2,13 @@
 
 struct Arena
 {
-  Arena *next;
-  Arena *prev;
-
-  void *start;
+  u8   *start;
   u64   used;
   u64   size;
   u64   alignment;
 };
 
-Arena *arena_alloc(void);
+Arena *arena_alloc(u64 size, u64 alignment);
 void arena_release(Arena *arena);
 
 void *arena_push(Arena *arena, u64 size);
@@ -59,7 +56,7 @@ i64 copy_memory_block(void *dest, void *source, i64 byte_count)
 
   return(byte_index);
 }
-
+#define copy_string(dest, string) copy_memory_block((dest), (string).str, (string).size)
 #define copy_struct(dest, copy) copy_memory_block(dest, sizeof(*(copy)))
 
 i64 set_memory_block(void *dest, u8 val, i64 byte_count)
@@ -80,67 +77,30 @@ i64 set_memory_block(void *dest, u8 val, i64 byte_count)
 #define zero_memory_block(dest, byte_count) set_memory_block((dest), 0, (byte_count))
 #define zero_struct(dest) zero_memory_block((dest), sizeof(*(dest)))
 
-Arena *arena_alloc(void)
+void *arena_push(Arena *arena, u64 size)
 {
-  Arena *new_arena = NULL;
+  void *memory_given_back = NULL;
 
-  if (global_memory_pool.arena_free_list_head != NULL)
+  size = align(size, arena->alignment);
+  if ((arena->used + size) < arena->size)
   {
-    Arena *head = NULL;
-    Arena *tail = NULL;
-
-    new_arena = global_memory_pool.arena_free_list_head;
-
-    if (global_memory_pool.arena_list_head != NULL)
-    {
-      head = global_memory_pool.arena_list_head;
-      tail = head->prev;
-
-      new_arena->next = head;
-      new_arena->prev = tail;
-    }
-    else
-    {
-      global_memory_pool.arena_list_head = new_arena;
-
-      head = new_arena;
-      tail = new_arena;
-    }
-
-    tail->next = new_arena;
-    head->prev = new_arena;
-
-    {
-      Arena *old_head = global_memory_pool.arena_free_list_head;
-      Arena *tent_head = old_head->next;
-
-      assert_message_always("was not expecting this!");
-
-      if (old_head == tent_head)
-      {
-        global_memory_pool.arena_free_list_head = NULL;
-      }
-      else
-      {
-        global_memory_pool.arena_free_list_head = tent_head;
-      }
-    }
-  }
-  // TODO(antonio): what if we run out of arenas?
-  else
-  {
-    assert_message_always("was not expecting you to run out of arenas");
+    memory_given_back = (void *) (arena->start + arena->used);
+    arena->used += size;
   }
 
-  return(new_arena);
+  return(memory_given_back);
 }
 
-void arena_release(Arena *arena)
+void *arena_push_zero(Arena *arena, u64 size)
 {
-  zero_struct(arena);
+  void *memory_given_back = arena_push(arena, size);
 
-  arena->next = global_memory_pool.arena_free_list_head;
-  global_memory_pool.arena_free_list_head = arena;
+  if (memory_given_back)
+  {
+    zero_memory_block(memory_given_back, size);
+  }
+
+  return(memory_given_back);
 }
 
 #define TRADER_MEMORY_H

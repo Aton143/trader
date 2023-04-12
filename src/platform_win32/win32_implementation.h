@@ -6,21 +6,15 @@ File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u6
   File_Buffer file_buffer = {};
 
   utf8 *file_path_copy = (utf8 *) arena_push_zero(arena, file_path_size);
-
   if (file_path_copy != NULL)
   {
     copy_memory_block(file_path_copy, file_path, file_path_size);
 
     utf16 file_path_utf16[512] = {};
 
-    String_Const_utf16 win32_file_prepend = string_literal_init((u16 *) L"\\\\?\\");
-    u32 file_path_utf16_position =
-      (u32) copy_string(file_path_utf16, win32_file_prepend) / sizeof(*win32_file_prepend.str);
-
     u32 bytes_written = (u32) MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED,
                                                   (LPCCH) file_path, (int) file_path_size,
-                                                  (wchar_t *) (&file_path_utf16[file_path_utf16_position]),
-                                                  array_count(file_path_utf16) - file_path_utf16_position);
+                                                  (wchar_t *) file_path_utf16, array_count(file_path_utf16));
 
     if (bytes_written == file_path_size)
     {

@@ -228,7 +228,7 @@ WinMain(HINSTANCE instance,
 
   SetCurrentDirectoryW((LPCWSTR) exe_file_path.str);
 
-  String_Const_utf8 file_name = string_literal_init((u8 *) __FILE__);
+  String_Const_utf8 file_name = string_literal_init_type("..\\src\\platform_win32\\win32_trader.cpp", utf8);
   Arena arena = {temp_arena_data, array_count(temp_arena_data), 0, 1};
   {
     platform_open_and_read_entire_file(&arena, file_name.str, file_name.size);

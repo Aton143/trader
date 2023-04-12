@@ -3,8 +3,8 @@
 struct Arena
 {
   u8   *start;
-  u64   used;
   u64   size;
+  u64   used;
   u64   alignment;
 };
 
@@ -66,7 +66,7 @@ i64 set_memory_block(void *dest, u8 val, i64 byte_count)
   i64 byte_index;
   for (byte_index = 0;
        byte_index < byte_count;
-       ++byte_count)
+       ++byte_index)
   {
     dest_bytes[byte_index] = val;
   }

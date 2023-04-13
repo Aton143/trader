@@ -1,6 +1,13 @@
 #ifndef WIN32_IMPLEMENTATION_H
 #include <malloc.h>
 
+struct Render_Context
+{
+  IDXGISwapChain1     *swap_chain;
+  ID3D11Device        *device;
+  ID3D11DeviceContext *device_context;
+};
+
 File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u64 file_path_size)
 {
   File_Buffer file_buffer = {};

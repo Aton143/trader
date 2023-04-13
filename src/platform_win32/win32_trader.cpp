@@ -242,16 +242,6 @@ WinMain(HINSTANCE instance,
 
   font_initialize(&arena, &font_data, &arial_font, default_font_heights, array_count(default_font_heights));
 
-  utf8 text[] = "Hello, world!";
-  utf8 *c = text;
-
-  Quad text_quad;
-  f32 x = 0.0f, y = 0.0f;
-  while (*c) 
-  {
-    font_get_char_quad_and_advance(&font_data, &text_quad, &x, &y, *c++);
-  }
-
   {
     WNDCLASSEXW window_class = {};
 
@@ -291,7 +281,6 @@ WinMain(HINSTANCE instance,
 
   if (ShowWindow(win32_global_state.window_handle, SW_NORMAL) && UpdateWindow(win32_global_state.window_handle))
   {
-#if 0
     // NOTE(antonio): initializing Direct3D 11
     ID3D11Device1 *device = NULL;
     ID3D11DeviceContext1 *device_context = NULL;
@@ -373,7 +362,7 @@ WinMain(HINSTANCE instance,
 
       swap_chain_description.Width  = 0;  // use window width
       swap_chain_description.Height = 0;  // use window height
-      swap_chain_description.Format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+      swap_chain_description.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
 
       swap_chain_description.SampleDesc.Count   = 1;
       swap_chain_description.SampleDesc.Quality = 0;
@@ -382,7 +371,7 @@ WinMain(HINSTANCE instance,
       swap_chain_description.BufferCount = 2;
 
       swap_chain_description.Scaling     = DXGI_SCALING_STRETCH;
-      swap_chain_description.SwapEffect  = DXGI_SWAP_EFFECT_DISCARD;
+      swap_chain_description.SwapEffect  = DXGI_SWAP_EFFECT_FLIP_DISCARD;
       swap_chain_description.AlphaMode   = DXGI_ALPHA_MODE_UNSPECIFIED;
       swap_chain_description.Flags       = 0;
 
@@ -478,8 +467,8 @@ WinMain(HINSTANCE instance,
       };
 
       HRESULT result = device->CreateInputLayout(input_element_description, array_count(input_element_description),
-                                                         vertex_shader_blob->GetBufferPointer(), vertex_shader_blob->GetBufferSize(),
-                                                         &input_layout);
+                                                 vertex_shader_blob->GetBufferPointer(), vertex_shader_blob->GetBufferSize(),
+                                                 &input_layout);
       assert(SUCCEEDED(result));
       vertex_shader_blob->Release();
     }
@@ -549,30 +538,25 @@ WinMain(HINSTANCE instance,
       assert(SUCCEEDED(result));
     }
 
-
     ID3D11ShaderResourceView *texture_view = NULL;
     {
       D3D11_TEXTURE2D_DESC texture_description = {};
 
-#if 0
-      texture_description.Width            = ;
-      texture_description.Height           = ;
+      texture_description.Width            = font_data.bitmap.height;
+      texture_description.Height           = font_data.bitmap.width;
       texture_description.MipLevels        = 1;
       texture_description.ArraySize        = 1;
-      texture_description.Format           = DXGI_FORMAT_R8G8B8A8_UNORM;
+      texture_description.Format           = DXGI_FORMAT_R8_UNORM;
       texture_description.SampleDesc.Count = 1;
       texture_description.Usage            = D3D11_USAGE_DEFAULT;
       texture_description.BindFlags        = D3D11_BIND_SHADER_RESOURCE;
       texture_description.CPUAccessFlags   = 0;
-#endif
 
       D3D11_SUBRESOURCE_DATA subresource = {};
 
-#if 0
-      subresource.pSysMem = ;
-      subresource.SysMemPitch = texture_description.Width * 4;
+      subresource.pSysMem = font_data.bitmap.alpha;
+      subresource.SysMemPitch = texture_description.Width * 1;
       subresource.SysMemSlicePitch = 0;
-#endif
 
       ID3D11Texture2D *texture_2d = NULL;
       HRESULT result = device->CreateTexture2D(&texture_description, &subresource, &texture_2d);
@@ -581,7 +565,7 @@ WinMain(HINSTANCE instance,
 
       D3D11_SHADER_RESOURCE_VIEW_DESC shader_resource_view_description = {};
 
-      shader_resource_view_description.Format                    = DXGI_FORMAT_R8G8B8A8_UNORM;
+      shader_resource_view_description.Format                    = DXGI_FORMAT_R8_UNORM;
       shader_resource_view_description.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
       shader_resource_view_description.Texture2D.MipLevels       = texture_description.MipLevels;
       shader_resource_view_description.Texture2D.MostDetailedMip = 0;
@@ -623,7 +607,26 @@ WinMain(HINSTANCE instance,
       HRESULT result = device->CreateDepthStencilState(&depth_stencil_state_description, &depth_stencil_state);
       assert(SUCCEEDED(result));
     }
-#endif
+
+    global_running = true;
+    global_window_resized = true;
+
+    while (global_running)
+    {
+      MSG message;
+
+      while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE))
+      {
+        TranslateMessage(&message);
+        DispatchMessage(&message);
+      }
+
+      FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+      device_context->ClearRenderTargetView(frame_buffer_view, background_color);
+      device_context->OMSetRenderTargets(1, &frame_buffer_view, NULL);
+
+      swap_chain->Present(1, 0);
+    }
   }
 
   return(0);

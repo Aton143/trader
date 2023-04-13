@@ -28,29 +28,29 @@ global File_Buffer default_font = {};
 global_const utf32 starting_code_point = 32;  // ' '
 global_const utf32 ending_code_point   = 126; // '~'
 
-b32 font_initialize(Arena *arena,
-                           Font_Data *font_data,
-                           File_Buffer *font_buffer,
-                           f32 *font_heights,
-                           u32 font_height_count,
-                           u32 bitmap_width = 512,
-                           u32 bitmap_height = 512);
+b32 font_initialize(Arena       *arena,
+                    Font_Data   *font_data,
+                    File_Buffer *font_buffer,
+                    f32         *font_heights,
+                    u32          font_height_count,
+                    u32          bitmap_width = 512,
+                    u32          bitmap_height = 512);
 
 b32 font_get_char_quad_and_advance(Font_Data *font_data,
-                                   Quad *out_quad,
-                                   f32 *in_out_x,
-                                   f32 *in_out_y,
-                                   utf32 code_point,
-                                   u32 font_choice = 0);
+                                   Quad      *out_quad,
+                                   f32       *in_out_x,
+                                   f32       *in_out_y,
+                                   utf32      code_point,
+                                   u32        font_choice = 0);
 
 // implementation
-b32 font_initialize(Arena *arena,
-                    Font_Data *font_data,
+b32 font_initialize(Arena       *arena,
+                    Font_Data   *font_data,
                     File_Buffer *font_buffer,
-                    f32 *font_heights,
-                    u32 font_height_count,
-                    u32 bitmap_width,
-                    u32 bitmap_height)
+                    f32         *font_heights,
+                    u32          font_height_count,
+                    u32          bitmap_width,
+                    u32          bitmap_height)
 {
   b32 result = false;
   stbtt_fontinfo font_info = {};

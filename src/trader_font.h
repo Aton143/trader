@@ -36,7 +36,12 @@ b32 font_initialize(Arena *arena,
                            u32 bitmap_width = 512,
                            u32 bitmap_height = 512);
 
-b32 font_get_char_data(Font_Data *font_data, Quad *out_quad, utf32 code_point);
+b32 font_get_char_quad_and_advance(Font_Data *font_data,
+                                   Quad *out_quad,
+                                   f32 *in_out_x,
+                                   f32 *in_out_y,
+                                   utf32 code_point,
+                                   u32 font_choice = 0);
 
 // implementation
 b32 font_initialize(Arena *arena,
@@ -138,7 +143,7 @@ b32 font_initialize(Arena *arena,
   return(result);
 }
 
-b32 font_get_char_data(Font_Data *font_data, Quad *out_quad, utf32 code_point, f32 x, f32 y)
+b32 font_get_char_quad_and_advance(Font_Data *font_data, Quad *out_quad, f32 *x, f32 *y, utf32 code_point, u32 font_choice)
 {
   b32 result = false;
   assert(out_quad != NULL);
@@ -149,13 +154,21 @@ b32 font_get_char_data(Font_Data *font_data, Quad *out_quad, utf32 code_point, f
     stbtt_aligned_quad temp_quad = {};
 
     utf32 converted_code_point = code_point - starting_code_point;
+    stbtt_packedchar *char_data = font_data->char_data;
+
+    for (u32 set_index = 0;
+         set_index < font_choice;
+         ++set_index)
+    {
+      char_data += font_data->char_data_set_counts[set_index];
+    }
 
     // TODO(antonio): integer align?
-    stbtt_GetPackedQuad(font_data->char_data,
+    stbtt_GetPackedQuad(char_data,
                         font_data->bitmap.width,
                         font_data->bitmap.height,
                         converted_code_point,
-                        &x, &y, 
+                        x, y, 
                         &temp_quad, 0);
 
     {

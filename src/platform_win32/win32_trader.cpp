@@ -242,6 +242,16 @@ WinMain(HINSTANCE instance,
 
   font_initialize(&arena, &font_data, &arial_font, default_font_heights, array_count(default_font_heights));
 
+  utf8 text[] = "Hello, world!";
+  utf8 *c = text;
+
+  Quad text_quad;
+  f32 x = 0.0f, y = 0.0f;
+  while (*c) 
+  {
+    font_get_char_quad_and_advance(&font_data, &text_quad, &x, &y, *c++);
+  }
+
   {
     WNDCLASSEXW window_class = {};
 

@@ -237,7 +237,10 @@ WinMain(HINSTANCE instance,
   // NOTE(antonio): default font on Windows is Arial
   default_font = platform_open_and_read_entire_file(&arena, default_font_path.str, default_font_path.size);
 
-  trader_font_initialize(&arena, &arial_font, 12.0f);
+  f32 default_font_heights[] = {14.0f, 24.0f};
+  Font_Data font_data;
+
+  trader_font_initialize(&arena, &font_data, &arial_font, default_font_heights, array_count(default_font_heights));
 
   {
     WNDCLASSEXW window_class = {};

@@ -26,19 +26,6 @@ u64 arena_get_pos(Arena *arena);
 void arena_set_pos_back(Arena *arena, u64 pos);
 void arena_clear(Arena *arena);
 
-struct Memory_Pool
-{
-  u8 *start;
-  u64 size;
-  u64 used;
-
-  Arena *arena_free_list_head;
-  Arena *arena_list_head;
-};
-
-static Arena global_arena_list[128]   = {};
-static Memory_Pool global_memory_pool = {};
-
 i64 copy_memory_block(void *dest, void *source, i64 byte_count);
 i64 set_memory_block(void *dest, u8 val, i64 byte_count);
 
@@ -84,7 +71,9 @@ void *arena_push(Arena *arena, u64 size)
   size = align(size, arena->alignment);
   if ((arena->used + size) < arena->size)
   {
-    memory_given_back = (void *) (arena->start + arena->used);
+    void *aligned_ptr = (void *) align((ptr_val) (arena->start + arena->used), arena->alignment);
+    memory_given_back = aligned_ptr;
+
     arena->used += size;
   }
 
@@ -102,6 +91,7 @@ void *arena_push_zero(Arena *arena, u64 size)
 
   return(memory_given_back);
 }
+#define arena_push_buffer(arena, size) {(u8 * ) arena_push(arena, size), size}
 
 #define TRADER_MEMORY_H
 #endif

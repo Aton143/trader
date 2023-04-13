@@ -240,7 +240,7 @@ WinMain(HINSTANCE instance,
   f32 default_font_heights[] = {14.0f, 24.0f};
   Font_Data font_data;
 
-  trader_font_initialize(&arena, &font_data, &arial_font, default_font_heights, array_count(default_font_heights));
+  font_initialize(&arena, &font_data, &arial_font, default_font_heights, array_count(default_font_heights));
 
   {
     WNDCLASSEXW window_class = {};

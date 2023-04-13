@@ -7,28 +7,28 @@
 #define stbtt_uint32 u32
 #define stbtt_int32  i32
 
-struct Font_Bitmap
-{
+struct Font_Bitmap {
   u8 *alpha;
 
   u32 width;
   u32 height;
 };
 
-struct Font_Data
-{
+struct Font_Data {
   Font_Bitmap       bitmap;
   stbtt_packedchar *char_data;
 
   f32               heights[4];
+  u32               char_data_set_counts[4];
   u32               height_count;
-  u32               char_data_set_count;
 };
 
 global File_Buffer default_font = {};
 
-// NOTE(antonio): expects font heights to be increasing
-b32 trader_font_initialize(Arena *arena,
+global_const utf32 starting_code_point = 32;  // ' '
+global_const utf32 ending_code_point   = 126; // '~'
+
+b32 font_initialize(Arena *arena,
                            Font_Data *font_data,
                            File_Buffer *font_buffer,
                            f32 *font_heights,
@@ -36,14 +36,16 @@ b32 trader_font_initialize(Arena *arena,
                            u32 bitmap_width = 512,
                            u32 bitmap_height = 512);
 
+b32 font_get_char_data(Font_Data *font_data, Quad *out_quad, utf32 code_point);
+
 // implementation
-b32 trader_font_initialize(Arena *arena,
-                           Font_Data *font_data,
-                           File_Buffer *font_buffer,
-                           f32 *font_heights,
-                           u32 font_height_count,
-                           u32 bitmap_width,
-                           u32 bitmap_height)
+b32 font_initialize(Arena *arena,
+                    Font_Data *font_data,
+                    File_Buffer *font_buffer,
+                    f32 *font_heights,
+                    u32 font_height_count,
+                    u32 bitmap_width,
+                    u32 bitmap_height)
 {
   b32 result = false;
   stbtt_fontinfo font_info = {};
@@ -78,8 +80,6 @@ b32 trader_font_initialize(Arena *arena,
     stbtt_pack_context pack_context;
     stbtt_PackBegin(&pack_context, bitmap_data, bitmap_width, bitmap_height, 0, 1, NULL);
 
-    utf32 starting_code_point = 32;  // NOTE(antonio): represents space
-    utf32 ending_code_point   = 126; // NOTE(antonio): represents tilde
     u32 code_point_count      = (ending_code_point - starting_code_point) + 1;
 
     stbtt_packedchar *packed_chars =
@@ -113,18 +113,66 @@ b32 trader_font_initialize(Arena *arena,
 
     if (font_data != NULL)
     {
+      zero_struct(font_data);
+
       font_data->bitmap.alpha        = bitmap_data;
       font_data->bitmap.width        = bitmap_width;
       font_data->bitmap.height       = bitmap_height;
 
       font_data->char_data           = packed_chars;
       font_data->height_count        = font_height_count;
-      font_data->char_data_set_count = code_point_count;
 
       copy_memory_block(font_data->heights, font_heights, font_height_count);
 
+      for (u32 set_index = 0;
+           set_index < font_height_count;
+           ++set_index)
+      {
+        font_data->char_data_set_counts[set_index] = code_point_count;
+      }
+
       result = true;
     }
+  }
+
+  return(result);
+}
+
+b32 font_get_char_data(Font_Data *font_data, Quad *out_quad, utf32 code_point, f32 x, f32 y)
+{
+  b32 result = false;
+  assert(out_quad != NULL);
+  assert(font_data != NULL);
+
+  if ((starting_code_point <= code_point) && (code_point <= ending_code_point))
+  {
+    stbtt_aligned_quad temp_quad = {};
+
+    utf32 converted_code_point = code_point - starting_code_point;
+
+    // TODO(antonio): integer align?
+    stbtt_GetPackedQuad(font_data->char_data,
+                        font_data->bitmap.width,
+                        font_data->bitmap.height,
+                        converted_code_point,
+                        &x, &y, 
+                        &temp_quad, 0);
+
+    {
+      *out_quad = {};
+
+      out_quad->pos.x0 = temp_quad.x0;
+      out_quad->pos.y0 = temp_quad.y0;
+      out_quad->pos.x1 = temp_quad.x1;
+      out_quad->pos.y1 = temp_quad.y1;
+
+      out_quad->uv.x0  = temp_quad.s0;
+      out_quad->uv.y0  = temp_quad.t0;
+      out_quad->uv.x1  = temp_quad.s1;
+      out_quad->uv.y1  = temp_quad.t1;
+    }
+
+    result = true;
   }
 
   return(result);

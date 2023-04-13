@@ -641,10 +641,15 @@ union Rect_f32_Pair {
     Rect_f32 max;
   };
   struct {
+    Rect_f32 pos;
+    Rect_f32 uv;
+  };
+  struct {
     Rect_f32 e[2];
   };
 };
 
+typedef Rect_f32_Pair Quad;
 typedef u32 ARGB_Color;
 
 struct Array_i8 {

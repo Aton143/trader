@@ -6,6 +6,7 @@
 #include <sysinfoapi.h>
 #include <fileapi.h>
 #include <intrin.h>
+#include <winhttp.h>
 
 #include <d3d11_1.h>
 #include <d3dcompiler.h>
@@ -14,6 +15,7 @@
 #pragma comment(lib, "User32.lib")
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "d3dcompiler.lib")
+#pragma comment(lib, "winhttp.lib")
 
 #include "..\trader.h"
 
@@ -157,6 +159,53 @@ win32_read_clipboard_contents()
   return(result);
 }
 
+internal void web_socket_startup_thread(LPVOID arg)
+{
+  unused(arg);
+
+  const u32 default_delay = 1000;
+  const u32 max_delay     = 60 * 1000;
+
+  u32 delay = default_delay;
+  unused(delay);
+
+  while (true)
+  {
+    HINTERNET https_connection =
+      WinHttpConnect(win32_global_state.session_handle, L"pubsub-edge.twitch.tv", INTERNET_DEFAULT_HTTPS_PORT, 0);
+
+    if (https_connection != NULL)
+    {
+      // NOTE(antonio): inseconds
+      DWORD connection_timeout = 10;
+
+      WinHttpSetOption(https_connection, WINHTTP_OPTION_CONNECT_TIMEOUT, &connection_timeout, sizeof(connection_timeout));
+      HINTERNET request = WinHttpOpenRequest(https_connection, L"GET", L"/v1", NULL, NULL, NULL, WINHTTP_FLAG_SECURE);
+
+      if (request != NULL)
+      {
+        WinHttpSetOption(request, WINHTTP_OPTION_UPGRADE_TO_WEB_SOCKET, NULL, 0);
+
+        BOOL send_request_result =
+          WinHttpSendRequest(request, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0);
+        BOOL request_received = WinHttpReceiveResponse(request, 0);
+        if (send_request_result && request_received)
+        {
+          HINTERNET web_socket_handle = WinHttpWebSocketCompleteUpgrade(request, 0);
+          if (web_socket_handle != NULL)
+          {
+            WinHttpCloseHandle(request);
+            request = NULL;
+            delay = default_delay;
+
+            break;
+          }
+        }
+      }
+    }
+  }
+}
+
 internal LRESULT
 win32_window_procedure(HWND window_handle, UINT message,
                        WPARAM wparam, LPARAM lparam)
@@ -272,6 +321,15 @@ WinMain(HINSTANCE instance,
       MessageBoxA(0, "CreateWindowEx failed", "Fatal Error", MB_OK);
       return GetLastError();
     }
+
+  }
+
+  {
+    // NOTE(antonio): initializing WinHttp
+    // TODO(antonio): user agent?
+    win32_global_state.session_handle =
+      WinHttpOpen(NULL, WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
+    web_socket_startup_thread(NULL);
   }
 
   if (ShowWindow(win32_global_state.window_handle, SW_NORMAL) && UpdateWindow(win32_global_state.window_handle))

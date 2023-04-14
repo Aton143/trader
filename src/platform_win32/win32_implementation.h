@@ -3,7 +3,8 @@
 
 struct Global_Platform_State
 {
-  HWND window_handle;
+  HWND      window_handle;
+  HINTERNET session_handle;
 };
 
 global Global_Platform_State win32_global_state = {};

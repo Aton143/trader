@@ -207,6 +207,9 @@ typedef i64      b64;
 #define line_number_as_string stringify(__LINE__)
 #define file_name_line_number __FILE__ ":" line_number_as_string ":"
 
+#define is_between_exclusive(a,x,b) (((a) <  (x)) && ((x) < (b)))
+#define is_between_inclusive(a,x,b) (((a) <= (x)) && ((x) <= (b)))
+
 global_const u8  max_u8      =  0xFF;
 global_const u16 max_u16     =  0xFFFF;
 global_const u32 max_u32     =  0xFFFFFFFF;

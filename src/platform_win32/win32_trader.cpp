@@ -105,13 +105,8 @@ global_const String_Const_char shader = string_literal_init(
 "}"
 );
 
-global b32 global_running = false;
+global b32 global_running        = false;
 global b32 global_window_resized = false;
-
-global struct Win32_Global_State
-{
-  HWND window_handle;
-} win32_global_state = {};
 
 internal String_Const_utf8
 win32_read_clipboard_contents()
@@ -581,7 +576,7 @@ WinMain(HINSTANCE instance,
       D3D11_BUFFER_DESC constant_buffer_description = {};
 
       // NOTE(antonio): ByteWidth must be a multiple of 16, per the docs
-      constant_buffer_description.ByteWidth      = sizeof(f32) + 0xf & 0xfffffff0;
+      constant_buffer_description.ByteWidth      = (sizeof(f32) + 0xf) & 0xfffffff0;
       constant_buffer_description.Usage          = D3D11_USAGE_DYNAMIC;
       constant_buffer_description.BindFlags      = D3D11_BIND_CONSTANT_BUFFER;
       constant_buffer_description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -608,6 +603,13 @@ WinMain(HINSTANCE instance,
       assert(SUCCEEDED(result));
     }
 
+    Render_Context render_context = {};
+    {
+      render_context.swap_chain     = swap_chain;
+      render_context.device         = device;
+      render_context.device_context = device_context;
+    };
+
     global_running = true;
     global_window_resized = true;
 
@@ -624,6 +626,41 @@ WinMain(HINSTANCE instance,
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
       device_context->ClearRenderTargetView(frame_buffer_view, background_color);
       device_context->OMSetRenderTargets(1, &frame_buffer_view, NULL);
+
+      Rect_f32 client_rect = render_get_client_rect();
+
+      D3D11_VIEWPORT viewport =
+      {
+        0.0f, 0.0f,
+        client_rect.x1, client_rect.y1,
+        0.0f, 1.0f
+      };
+
+      device_context->RSSetViewports(1, &viewport);
+
+      device_context->IASetInputLayout(input_layout);
+      device_context->IASetVertexBuffers(0, 1, &instance_buffer, 0, 0);
+      device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+      device_context->VSSetShader(vertex_shader, NULL, 0);
+      // device_context->VSSetConstantBuffers(0, 1, vertex_constant_buffer);
+
+      device_context->PSSetShader(pixel_shader, NULL, 0);
+      device_context->PSSetShaderResources(0, 1, &texture_view);
+      device_context->PSSetSamplers(0, 1, &sampler_state);
+
+      device_context->GSSetShader(NULL, NULL, 0);
+      device_context->HSSetShader(NULL, NULL, 0);
+      device_context->DSSetShader(NULL, NULL, 0);
+      device_context->CSSetShader(NULL, NULL, 0);
+
+      f32 blend_factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+      device_context->OMSetBlendState(transparent_blend_state, blend_factor, 0xffffffff);
+      device_context->OMSetDepthStencilState(depth_stencil_state, 0);
+      device_context->RSSetState(rasterizer_state);
+
+      D3D11_RECT scissor_rectangle = {(LONG) 0, (LONG) 0, (LONG) client_rect.x1, (LONG) client_rect.y1};
+      device_context->RSSetScissorRects(1, &scissor_rectangle);
 
       swap_chain->Present(1, 0);
     }

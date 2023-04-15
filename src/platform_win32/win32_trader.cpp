@@ -1,6 +1,7 @@
 #define WIN32_LEAN_AND_MEAN
 #define NO_MIN_MAX
 #define UNICODE
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <windows.h>
 
 #include <memoryapi.h>
@@ -10,9 +11,16 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
+#define SECURITY_WIN32
+#include <security.h>
+#include <schannel.h>
+
+#define TLS_MAX_PACKET_SIZE (16384 + 512)
+
 #include <d3d11_1.h>
 #include <d3dcompiler.h>
 
+#pragma comment (lib, "secur32.lib")
 #pragma comment(lib, "Kernel32.lib")
 #pragma comment(lib, "User32.lib")
 #pragma comment(lib, "d3d11.lib")
@@ -284,16 +292,18 @@ WinMain(HINSTANCE instance,
 
   }
 
-  // NOTE(antonio): initializing WinSock
+  // NOTE(antonio): initializing WinSock and TLS
+  Socket tls_socket = {};
   {
     WSADATA winsock_metadata = {};
-    SOCKET win32_socket = INVALID_SOCKET;
-
-    addrinfo *addr_start = NULL; 
 
     i32 winsock_result = WSAStartup(MAKEWORD(2, 2), &winsock_metadata);
     assert((winsock_result == 0) && "expected winsock dll to load");
 
+    u8 host_name[] = "finnhub.io";
+    u16 port = 443;
+
+#if 0
     addrinfo hints = {};
     {
       hints.ai_flags    = 0;
@@ -327,14 +337,223 @@ WinMain(HINSTANCE instance,
       }
       else
       {
-        connected = true;
         // TODO(antonio): log the addrinfo?
+        connected = true;
       }
     }
 
     assert(connected && "expected to be connected here");
     freeaddrinfo(addr_start);
+#endif
 
+    tls_socket.socket = socket(AF_INET, SOCK_STREAM, 0);
+
+    u8 port_name[64] = {};
+    stbsp_snprintf((char *) port_name, sizeof(port_name), "%u", port);
+
+    // TODO(antonio): ansi versions are deprecated
+    b32 connected = WSAConnectByNameA(tls_socket.socket,
+                                      (char *) host_name,
+                                      (char *) port_name,
+                                      NULL, NULL, NULL, NULL, NULL, NULL);
+    assert(connected && "expected connection");
+
+    // NOTE(antonio): initialize schannel
+    {
+      SCHANNEL_CRED cred = {};
+      {
+          cred.dwVersion               = SCHANNEL_CRED_VERSION;
+          cred.cCreds                  = 0;
+          cred.paCred                  = NULL;
+          cred.hRootStore              = NULL;
+          cred.cSupportedAlgs          = 0;
+          cred.palgSupportedAlgs       = NULL;
+          cred.grbitEnabledProtocols   = SP_PROT_TLS1_2;
+          cred.dwMinimumCipherStrength = 0;
+          cred.dwMaximumCipherStrength = 0;
+          // TODO(antonio): need to manage SCHANNEL sessions too :(
+          //                this only lasts 10 hours
+          cred.dwSessionLifespan       = 0;
+          cred.dwFlags                 = SCH_CRED_AUTO_CRED_VALIDATION | SCH_CRED_NO_DEFAULT_CREDS | SCH_USE_STRONG_CRYPTO;
+          cred.dwCredFormat            = 0;
+      };
+
+      SECURITY_STATUS acquire_result =
+        AcquireCredentialsHandleA(NULL,
+                                  UNISP_NAME_A,
+                                  SECPKG_CRED_OUTBOUND,
+                                  NULL,
+                                  &cred,
+                                  NULL,
+                                  NULL,
+                                  &tls_socket.cred_handle,
+                                  NULL);
+
+      assert((acquire_result == SEC_E_OK) && "expected to get a credential handle");
+    }
+
+    // NOTE(antonio): perform tls handshake
+    //                1) call InitializeSecurityContext to create/update schannel context
+    //                2) when it returns SEC_E_OK - tls handshake completed
+    //                3) when it returns SEC_I_INCOMPLETE_CREDENTIALS - server requests client certificate (TODO)
+    //                4) when it returns SEC_I_CONTINUE_NEEDED - send token to server and read data
+    //                5) when it returns SEC_E_INCOMPLETE_MESSAGE - need to read more data from server
+    //                6) otherwise read data from server and go to step 1
+
+    CtxtHandle* security_context = NULL;
+    i32 result = 0;
+
+    unused(result);
+
+    for (;;)
+    {
+      SecBuffer in_buffers[2] = {};
+      {
+        in_buffers[0].BufferType = SECBUFFER_TOKEN;
+        in_buffers[0].pvBuffer   = tls_socket.incoming;
+        in_buffers[0].cbBuffer   = tls_socket.received;
+
+        in_buffers[1].BufferType = SECBUFFER_EMPTY;
+      }
+
+      SecBuffer out_buffers[1] = {};
+      {
+        out_buffers[0].BufferType = SECBUFFER_TOKEN;
+      }
+
+      SecBufferDesc in_desc  = {SECBUFFER_VERSION, array_count(in_buffers),  in_buffers};
+      SecBufferDesc out_desc = {SECBUFFER_VERSION, array_count(out_buffers), out_buffers};
+
+      DWORD security_init_flags = ISC_REQ_ALLOCATE_MEMORY    |
+                                  ISC_REQ_CONFIDENTIALITY    |
+                                  ISC_REQ_USE_SUPPLIED_CREDS |
+                                  ISC_REQ_REPLAY_DETECT      |
+                                  ISC_REQ_SEQUENCE_DETECT    |
+                                  ISC_REQ_STREAM;
+
+      SECURITY_STATUS sec = InitializeSecurityContextA(&tls_socket.cred_handle,
+                                                       security_context,
+                                                       security_context ? NULL : (SEC_CHAR *) host_name,
+                                                       security_init_flags,
+                                                       0,
+                                                       0,
+                                                       security_context ? &in_desc : NULL,
+                                                       0,
+                                                       security_context ? NULL : &tls_socket.security_context,
+                                                       &out_desc,
+                                                       &security_init_flags,
+                                                       NULL);
+
+      unused(sec);
+
+      // NOTE(antonio): after first call to InitializeSecurityContextA, context will be available and can be reused 
+      security_context = &tls_socket.security_context;
+
+      // NOTE(antonio):
+      // used to indicated unprocessed byte count
+      // moving memory from buffer that still needs to be processed to incoming
+      //
+      // 0                         received
+      // <.............************            >
+      // . - processed
+      // * - unprocessed
+      //   - unused
+      //
+      // post-operation
+      // <************                         >
+      if (in_buffers[1].BufferType == SECBUFFER_EXTRA)
+      {
+        move_memory_block(tls_socket.incoming,
+                          tls_socket.incoming + (tls_socket.received - in_buffers[1].cbBuffer),
+                          in_buffers[1].cbBuffer);
+        tls_socket.received = in_buffers[1].cbBuffer;
+      }
+      else
+      {
+        tls_socket.received = 0;
+      }
+
+      if (sec == SEC_E_OK)
+      {
+        // NOTE(antonio): tls handshake completed
+        break;
+      }
+      else if (sec == SEC_I_INCOMPLETE_CREDENTIALS)
+      {
+        // NOTE(antonio): server asked for client certificate, not supported here
+        result = -1;
+        assert(!"unimplemented");
+        break;
+      }
+      else if (sec == SEC_I_CONTINUE_NEEDED)
+      {
+        // NOTE(antonio): need to send output token to server
+        u8 *output_token = (u8 *) out_buffers[0].pvBuffer;
+        i32 token_size = out_buffers[0].cbBuffer;
+
+        while (token_size != 0)
+        {
+          i32 bytes_sent = send(tls_socket.socket, (char *) output_token, token_size, 0);
+
+          if (bytes_sent <= 0)
+          {
+            break;
+          }
+
+          token_size   -= bytes_sent;
+          output_token += bytes_sent;
+        }
+
+        FreeContextBuffer(out_buffers[0].pvBuffer);
+
+        if (token_size != 0)
+        {
+          result = -1;
+          assert(!"failed to fully send data to server");
+          break;
+        }
+      }
+      else if (sec != SEC_E_INCOMPLETE_MESSAGE)
+      {
+        // NOTE(antonio):
+        // SEC_E_CERT_EXPIRED    - certificate expired or revoked
+        // SEC_E_WRONG_PRINCIPAL - bad hostname
+        // SEC_E_UNTRUSTED_ROOT  - cannot vertify CA chain
+        // SEC_E_ILLEGAL_MESSAGE / SEC_E_ALGORITHM_MISMATCH - cannot negotiate crypto algorithms
+        result = -1;
+          assert(!"unimplemented");
+        break;
+      }
+
+      // read more data from server when possible
+      if (tls_socket.received == sizeof(tls_socket.incoming))
+      {
+        // server is sending too much data instead of proper handshake?
+        result = -1;
+        break;
+      }
+
+      i32 bytes_received = recv(tls_socket.socket,
+                                (char *) (tls_socket.incoming + tls_socket.received),
+                                sizeof(tls_socket.incoming) - tls_socket.received,
+                                0);
+      if (bytes_received == 0)
+      {
+        // server disconnected socket
+        result = 0;
+        break;
+      }
+      else if (bytes_received < 0)
+      {
+        // socket error
+        result = -1;
+        break;
+      }
+
+      tls_socket.received += bytes_received;
+    }
+
+#if 0
     // NOTE(antonio): connection has been established
     //                sending websocket handshake
     {
@@ -388,6 +607,7 @@ WinMain(HINSTANCE instance,
 
       OutputDebugStringA((char *) receive_buffer);
     }
+#endif
   }
 
   if (ShowWindow(win32_global_state.window_handle, SW_NORMAL) && UpdateWindow(win32_global_state.window_handle))

@@ -28,6 +28,7 @@ void arena_clear(Arena *arena);
 
 i64 copy_memory_block(void *dest, void *source, i64 byte_count);
 i64 set_memory_block(void *dest, u8 val, i64 byte_count);
+i64 move_memory_block(void *dest, void *source, i64 byte_count);
 
 // implementation
 i64 copy_memory_block(void *dest, void *source, i64 byte_count)
@@ -60,9 +61,49 @@ i64 set_memory_block(void *dest, u8 val, i64 byte_count)
 
   return(byte_index);
 }
-
 #define zero_memory_block(dest, byte_count) set_memory_block((dest), 0, (byte_count))
 #define zero_struct(dest) zero_memory_block((dest), sizeof(*(dest)))
+
+i64 move_memory_block(void *dest, void *source, i64 byte_count)
+{
+  u8 *from = (u8 *) source;
+  u8 *to   = (u8 *) dest;
+
+  if ((from == to) || (byte_count == 0))
+  {
+  }
+  else if ((to > from) && ((to - from) < (i32) byte_count))
+  {
+    /* to overlaps with from */
+    /*  <from......>         */
+    /*         <to........>  */
+    /* copy in reverse, to avoid overwriting from */
+    i64 i;
+    for (i = byte_count - 1;
+         i >= 0;
+         i--)
+    {
+      to[i] = from[i];
+    }
+  }
+  else if ((from > to) && ((from - to) < (i32) byte_count))
+  {
+    /* to overlaps with from */
+    /*        <from......>   */
+    /*  <to........>         */
+    /* copy forwards, to avoid overwriting from */
+    i64 i;
+    for (i = 0;
+         i < byte_count;
+         i++)
+    {
+      to[i] = from[i];
+    }
+  }
+
+	copy_memory_block(dest, source, byte_count);
+  return(byte_count);
+}
 
 void *arena_push(Arena *arena, u64 size)
 {

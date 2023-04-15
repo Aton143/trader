@@ -18,6 +18,19 @@ struct Render_Context
   f32                  render_height;
 };
 
+struct Socket
+{
+  SOCKET     socket;
+  CredHandle cred_handle;
+  CtxtHandle security_context;
+  SecPkgContext_StreamSizes sizes;
+  i32 received;    // byte count in incoming buffer (ciphertext)
+  i32 used;        // byte count used from incoming buffer to decrypt current packet
+  i32 available;   // byte count available for decrypted bytes
+  u8 *decrypted;   // points to incoming buffer where data is decrypted inplace
+  u8  incoming[TLS_MAX_PACKET_SIZE];
+};
+
 Global_Platform_State *get_global_platform_state()
 {
   Global_Platform_State *state = &win32_global_state;

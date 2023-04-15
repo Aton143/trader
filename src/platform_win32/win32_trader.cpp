@@ -403,8 +403,6 @@ WinMain(HINSTANCE instance,
     CtxtHandle* security_context = NULL;
     i32 result = 0;
 
-    unused(result);
-
     for (;;)
     {
       SecBuffer in_buffers[2] = {};
@@ -443,8 +441,6 @@ WinMain(HINSTANCE instance,
                                                        &out_desc,
                                                        &security_init_flags,
                                                        NULL);
-
-      unused(sec);
 
       // NOTE(antonio): after first call to InitializeSecurityContextA, context will be available and can be reused 
       security_context = &tls_socket.security_context;
@@ -521,7 +517,7 @@ WinMain(HINSTANCE instance,
         // SEC_E_UNTRUSTED_ROOT  - cannot vertify CA chain
         // SEC_E_ILLEGAL_MESSAGE / SEC_E_ALGORITHM_MISMATCH - cannot negotiate crypto algorithms
         result = -1;
-          assert(!"unimplemented");
+        assert(!"unimplemented");
         break;
       }
 
@@ -547,6 +543,11 @@ WinMain(HINSTANCE instance,
       {
         // socket error
         result = -1;
+
+        assert("is this consistent?");
+        int error = WSAGetLastError();  
+        unused(error);
+
         break;
       }
 

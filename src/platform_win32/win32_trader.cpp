@@ -302,7 +302,7 @@ WinMain(HINSTANCE instance,
       hints.ai_protocol = IPPROTO_TCP;
     }
 
-    u8 host_name[] = "postman-echo.com";
+    u8 host_name[] = "finnhub.io";
     u8 service[] = "http";
 
     winsock_result = getaddrinfo((PCSTR) host_name, (PCSTR) service, &hints, &addr_start);
@@ -346,28 +346,31 @@ WinMain(HINSTANCE instance,
       u8 header_key[32] = {};
       base64_encode(header_bytes, sizeof(header_bytes), header_key);
 
-      u8 path[]  = "raw";
+      u8 path[]  = "";
       u8 query[] = "";
 
       u8 origin_name[] = "localhost:8000";
+      u8 api_key[] = "cgtgdupr01qoiqvp24t0cgtgdupr01qoiqvp24tg"; 
 
       i32 header_length =
         stbsp_snprintf((char *) header, array_count(header),
-                       "GET ws://ws.%s/%s%s HTTP/1.1\r\n"
-                       "Host: %s\r\n"
+                       "GET https://ws.%s/%s%s HTTP/1.1\r\n"
+                       "Host: ws.%s\r\n"
                        "Upgrade: websocket\r\n"
                        "Connection: keep-alive, Upgrade\r\n"
                        "Sec-WebSocket-Key: %s\r\n"
-                       "Origin: http://%s\r\n"
+                       "Origin: %s\r\n"
                        "Sec-WebSocket-Protocol: chat, superchat\r\n"
-                       "Sec-WebSocket-Version: 13"
+                       "Sec-WebSocket-Version: 13\r\n"
+                       "X-Finnhub-Token: %s\r\n"
                        "\r\n\r\n",
                        (char *) host_name,
                        (char *) path,
                        (char *) query,
                        (char *) host_name,
                        (char *) header_key,
-                       (char *) origin_name);
+                       (char *) origin_name,
+                       (char *) api_key);
 
       i32 bytes_sent = send(win32_socket, (const char *) header, header_length, 0);
       assert((bytes_sent != SOCKET_ERROR) && (bytes_sent == header_length) && "did not send the expected number of bytes");

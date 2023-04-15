@@ -17,6 +17,9 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "./foreign/stb_truetype.h"
 
+#define STB_SPRINTF_IMPLEMENTATION
+#include "./foreign/stb_sprintf.h"
+
 #include "trader_font.h"
 #include "trader_render.h"
 

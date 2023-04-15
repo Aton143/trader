@@ -2,11 +2,13 @@
 #define NO_MIN_MAX
 #define UNICODE
 #include <windows.h>
+
 #include <memoryapi.h>
 #include <sysinfoapi.h>
 #include <fileapi.h>
 #include <intrin.h>
-#include <winhttp.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
 
 #include <d3d11_1.h>
 #include <d3dcompiler.h>
@@ -16,6 +18,9 @@
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "winhttp.lib")
+#pragma comment (lib, "Ws2_32.lib")
+#pragma comment (lib, "Mswsock.lib")
+#pragma comment (lib, "AdvApi32.lib")
 
 #include "..\trader.h"
 
@@ -159,53 +164,6 @@ win32_read_clipboard_contents()
   return(result);
 }
 
-internal void web_socket_startup_thread(LPVOID arg)
-{
-  unused(arg);
-
-  const u32 default_delay = 1000;
-  const u32 max_delay     = 60 * 1000;
-
-  u32 delay = default_delay;
-  unused(delay);
-
-  while (true)
-  {
-    HINTERNET https_connection =
-      WinHttpConnect(win32_global_state.session_handle, L"pubsub-edge.twitch.tv", INTERNET_DEFAULT_HTTPS_PORT, 0);
-
-    if (https_connection != NULL)
-    {
-      // NOTE(antonio): inseconds
-      DWORD connection_timeout = 10;
-
-      WinHttpSetOption(https_connection, WINHTTP_OPTION_CONNECT_TIMEOUT, &connection_timeout, sizeof(connection_timeout));
-      HINTERNET request = WinHttpOpenRequest(https_connection, L"GET", L"/v1", NULL, NULL, NULL, WINHTTP_FLAG_SECURE);
-
-      if (request != NULL)
-      {
-        WinHttpSetOption(request, WINHTTP_OPTION_UPGRADE_TO_WEB_SOCKET, NULL, 0);
-
-        BOOL send_request_result =
-          WinHttpSendRequest(request, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0);
-        BOOL request_received = WinHttpReceiveResponse(request, 0);
-        if (send_request_result && request_received)
-        {
-          HINTERNET web_socket_handle = WinHttpWebSocketCompleteUpgrade(request, 0);
-          if (web_socket_handle != NULL)
-          {
-            WinHttpCloseHandle(request);
-            request = NULL;
-            delay = default_delay;
-
-            break;
-          }
-        }
-      }
-    }
-  }
-}
-
 internal LRESULT
 win32_window_procedure(HWND window_handle, UINT message,
                        WPARAM wparam, LPARAM lparam)
@@ -264,6 +222,8 @@ WinMain(HINSTANCE instance,
   unused(previous_instance);
   unused(command_line);
   unused(show_command);
+
+  rng_init();
 
   wchar_t _exe_file_path[MAX_PATH] = {};
   GetModuleFileNameW(NULL, _exe_file_path, array_count(_exe_file_path));
@@ -324,12 +284,107 @@ WinMain(HINSTANCE instance,
 
   }
 
+  // NOTE(antonio): initializing WinSock
   {
-    // NOTE(antonio): initializing WinHttp
-    // TODO(antonio): user agent?
-    win32_global_state.session_handle =
-      WinHttpOpen(NULL, WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
-    web_socket_startup_thread(NULL);
+    WSADATA winsock_metadata = {};
+    SOCKET win32_socket = INVALID_SOCKET;
+
+    addrinfo *addr_start = NULL; 
+
+    i32 winsock_result = WSAStartup(MAKEWORD(2, 2), &winsock_metadata);
+    assert((winsock_result == 0) && "expected winsock dll to load");
+
+    addrinfo hints = {};
+    {
+      hints.ai_flags    = 0;
+      hints.ai_family   = AF_UNSPEC;
+      hints.ai_socktype = SOCK_STREAM;
+      hints.ai_protocol = IPPROTO_TCP;
+    }
+
+    u8 host_name[] = "postman-echo.com";
+    u8 service[] = "http";
+
+    winsock_result = getaddrinfo((PCSTR) host_name, (PCSTR) service, &hints, &addr_start);
+    assert((winsock_result == 0) && "expected to get address info");
+
+    addrinfo *cur_addr = NULL;
+    b32 connected = false;
+
+    for (cur_addr = addr_start;
+         !connected && (cur_addr != NULL);
+         cur_addr = cur_addr->ai_next)
+    {
+      win32_socket = socket(cur_addr->ai_family, cur_addr->ai_socktype, cur_addr->ai_protocol);
+
+      assert((win32_socket != INVALID_SOCKET) && "expected to get valid socket");
+
+      winsock_result = connect(win32_socket, cur_addr->ai_addr, (int) cur_addr->ai_addrlen);
+      if (winsock_result == SOCKET_ERROR)
+      {
+        closesocket(win32_socket);
+        win32_socket = INVALID_SOCKET;
+      }
+      else
+      {
+        connected = true;
+        // TODO(antonio): log the addrinfo?
+      }
+    }
+
+    assert(connected && "expected to be connected here");
+    freeaddrinfo(addr_start);
+
+    // NOTE(antonio): connection has been established
+    //                sending websocket handshake
+    {
+      u8 header[512]  = {};
+
+      u8 header_bytes[16] = {};
+      rng_fill_buffer(header_bytes, sizeof(header_bytes));
+
+      u8 header_key[32] = {};
+      base64_encode(header_bytes, sizeof(header_bytes), header_key);
+
+      u8 path[]  = "raw";
+      u8 query[] = "";
+
+      u8 origin_name[] = "localhost:8000";
+
+      i32 header_length =
+        stbsp_snprintf((char *) header, array_count(header),
+                       "GET ws://ws.%s/%s%s HTTP/1.1\r\n"
+                       "Host: %s\r\n"
+                       "Upgrade: websocket\r\n"
+                       "Connection: keep-alive, Upgrade\r\n"
+                       "Sec-WebSocket-Key: %s\r\n"
+                       "Origin: http://%s\r\n"
+                       "Sec-WebSocket-Protocol: chat, superchat\r\n"
+                       "Sec-WebSocket-Version: 13"
+                       "\r\n\r\n",
+                       (char *) host_name,
+                       (char *) path,
+                       (char *) query,
+                       (char *) host_name,
+                       (char *) header_key,
+                       (char *) origin_name);
+
+      i32 bytes_sent = send(win32_socket, (const char *) header, header_length, 0);
+      assert((bytes_sent != SOCKET_ERROR) && (bytes_sent == header_length) && "did not send the expected number of bytes");
+    }
+
+    // NOTE(antonio): receiving response
+    {
+      u8 receive_buffer[1024] = {};
+      i32 receive_length = 0;
+
+      do {
+        receive_length = recv(win32_socket, (char *) receive_buffer, array_count(receive_buffer) - 1, 0);
+      }
+      while (receive_length > 0);
+
+      OutputDebugStringA((char *) receive_buffer);
+    }
   }
 
   if (ShowWindow(win32_global_state.window_handle, SW_NORMAL) && UpdateWindow(win32_global_state.window_handle))

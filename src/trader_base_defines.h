@@ -825,5 +825,84 @@ u32 count_set_bits(u64 bits)
 
 #define align(val, alignment) ((((val) + (alignment) - 1) / (alignment)) * (alignment))
 
+// WELL512 rng, Chris Lomont, www.lomont.org
+
+// initialize state to random bits
+static u32 rng_state[16] = 
+{
+  0b10000101000010000101010101110010,
+  0b10111110011111001111100010010110,
+  0b11111100000010010011100000111001,
+  0b11011000000001011100001000000101,
+  0b10011100011101111001101101111101,
+  0b11111010001101010001011101010011,
+  0b10101001110010011111011111000001,
+  0b01000011001011000000101100110111,
+  0b01010111010101110110001110101010,
+  0b11011011010111000110100010100100,
+  0b11001010111101010000101010110000,
+  0b00011001101000010011101011100000,
+  0b01111010111010100110000001111111,
+  0b01000100101010010010101100111100,
+  0b00101000001010110011011011101101,
+  0b00001111100000101110011010101011,
+};
+
+// init should also reset this to 0
+static u32 rng_index = 0;
+
+// return 32 bit random number
+u32 WELLRNG512(void)
+{
+  u32 a, b, c, d;
+  a = rng_state[rng_index];
+  c = rng_state[(rng_index + 13) & 15];
+  b = a ^ c ^ (a << 16) ^ (c << 15);
+  c = rng_state[(rng_index + 9) & 15];
+  c ^= (c >> 11);
+  a = rng_state[rng_index] = b ^ c;
+  d = a^((a << 5) & 0xDA442D24UL);
+  rng_index = (rng_index + 15) & 15;
+  a = rng_state[rng_index];
+  rng_state[rng_index] = a ^ b ^ d ^ (a << 2) ^ (b << 18) ^ (c << 28);
+  return rng_state[rng_index];
+}
+
+void rng_init(void)
+{
+  rng_index = 0;
+}
+
+u32 rng_get_random32(void)
+{
+  u32 result = WELLRNG512();
+  return(result);
+}
+
+u64 rng_fill_buffer(u8 *buffer, u64 buffer_length)
+{
+  u32 *buffer32 = (u32 *) buffer;
+  u64 length32 = buffer_length / sizeof(*buffer32);
+
+  for (u64 index32 = 0;
+       index32 < length32;
+       ++index32)
+  {
+    buffer32[index32] = rng_get_random32();
+  }
+
+  u64 remaining = buffer_length % sizeof(*buffer32);
+
+  buffer += length32 * sizeof(*buffer32);
+  for (u64 remaining_index = 0;
+       remaining_index < remaining;
+       ++remaining_index)
+  {
+    buffer[remaining_index] = (u8) rng_get_random32();
+  }
+
+  return(buffer_length);
+}
+
 #define TRADER_BASE_DEFINES_H
 #endif

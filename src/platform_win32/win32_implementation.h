@@ -20,15 +20,18 @@ struct Render_Context
 
 struct Socket
 {
-  SOCKET     socket;
-  CredHandle cred_handle;
-  CtxtHandle security_context;
+  SOCKET                    socket;
+
+  CredHandle                cred_handle;
+  CtxtHandle                security_context;
+
   SecPkgContext_StreamSizes sizes;
-  i32 received;    // byte count in incoming buffer (ciphertext)
-  i32 used;        // byte count used from incoming buffer to decrypt current packet
-  i32 available;   // byte count available for decrypted bytes
-  u8 *decrypted;   // points to incoming buffer where data is decrypted inplace
-  u8  incoming[TLS_MAX_PACKET_SIZE];
+
+  i32                       received;    // byte count in incoming buffer (ciphertext)
+  i32                       used;        // byte count used from incoming buffer to decrypt current packet
+  i32                       available;   // byte count available for decrypted bytes
+  u8                       *decrypted;   // points to incoming buffer where data is decrypted inplace
+  u8                        incoming[TLS_MAX_PACKET_SIZE];
 };
 
 Global_Platform_State *get_global_platform_state()

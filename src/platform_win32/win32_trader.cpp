@@ -289,62 +289,18 @@ WinMain(HINSTANCE instance,
       MessageBoxA(0, "CreateWindowEx failed", "Fatal Error", MB_OK);
       return GetLastError();
     }
-
   }
 
-  // NOTE(antonio): initializing WinSock and TLS
+  u8 host_name[] = "finnhub.io";
+  u16 port = 443;
+
   Socket tls_socket = {};
   {
+    // NOTE(antonio): initializing WinSock and TLS
     WSADATA winsock_metadata = {};
 
     i32 winsock_result = WSAStartup(MAKEWORD(2, 2), &winsock_metadata);
     assert((winsock_result == 0) && "expected winsock dll to load");
-
-    u8 host_name[] = "finnhub.io";
-    u16 port = 443;
-
-#if 0
-    addrinfo hints = {};
-    {
-      hints.ai_flags    = 0;
-      hints.ai_family   = AF_UNSPEC;
-      hints.ai_socktype = SOCK_STREAM;
-      hints.ai_protocol = IPPROTO_TCP;
-    }
-
-    u8 host_name[] = "finnhub.io";
-    u8 service[] = "http";
-
-    winsock_result = getaddrinfo((PCSTR) host_name, (PCSTR) service, &hints, &addr_start);
-    assert((winsock_result == 0) && "expected to get address info");
-
-    addrinfo *cur_addr = NULL;
-    b32 connected = false;
-
-    for (cur_addr = addr_start;
-         !connected && (cur_addr != NULL);
-         cur_addr = cur_addr->ai_next)
-    {
-      win32_socket = socket(cur_addr->ai_family, cur_addr->ai_socktype, cur_addr->ai_protocol);
-
-      assert((win32_socket != INVALID_SOCKET) && "expected to get valid socket");
-
-      winsock_result = connect(win32_socket, cur_addr->ai_addr, (int) cur_addr->ai_addrlen);
-      if (winsock_result == SOCKET_ERROR)
-      {
-        closesocket(win32_socket);
-        win32_socket = INVALID_SOCKET;
-      }
-      else
-      {
-        // TODO(antonio): log the addrinfo?
-        connected = true;
-      }
-    }
-
-    assert(connected && "expected to be connected here");
-    freeaddrinfo(addr_start);
-#endif
 
     tls_socket.socket = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -362,20 +318,20 @@ WinMain(HINSTANCE instance,
     {
       SCHANNEL_CRED cred = {};
       {
-          cred.dwVersion               = SCHANNEL_CRED_VERSION;
-          cred.cCreds                  = 0;
-          cred.paCred                  = NULL;
-          cred.hRootStore              = NULL;
-          cred.cSupportedAlgs          = 0;
-          cred.palgSupportedAlgs       = NULL;
-          cred.grbitEnabledProtocols   = SP_PROT_TLS1_2;
-          cred.dwMinimumCipherStrength = 0;
-          cred.dwMaximumCipherStrength = 0;
-          // TODO(antonio): need to manage SCHANNEL sessions too :(
-          //                this only lasts 10 hours
-          cred.dwSessionLifespan       = 0;
-          cred.dwFlags                 = SCH_CRED_AUTO_CRED_VALIDATION | SCH_CRED_NO_DEFAULT_CREDS | SCH_USE_STRONG_CRYPTO;
-          cred.dwCredFormat            = 0;
+        cred.dwVersion               = SCHANNEL_CRED_VERSION;
+        cred.cCreds                  = 0;
+        cred.paCred                  = NULL;
+        cred.hRootStore              = NULL;
+        cred.cSupportedAlgs          = 0;
+        cred.palgSupportedAlgs       = NULL;
+        cred.grbitEnabledProtocols   = SP_PROT_TLS1_2;
+        cred.dwMinimumCipherStrength = 0;
+        cred.dwMaximumCipherStrength = 0;
+        // TODO(antonio): need to manage SCHANNEL sessions too :(
+        //                this only lasts 10 hours
+        cred.dwSessionLifespan       = 0;
+        cred.dwFlags                 = SCH_CRED_AUTO_CRED_VALIDATION | SCH_CRED_NO_DEFAULT_CREDS | SCH_USE_STRONG_CRYPTO;
+        cred.dwCredFormat            = 0;
       };
 
       SECURITY_STATUS acquire_result =
@@ -423,11 +379,11 @@ WinMain(HINSTANCE instance,
       SecBufferDesc out_desc = {SECBUFFER_VERSION, array_count(out_buffers), out_buffers};
 
       DWORD security_init_flags = ISC_REQ_ALLOCATE_MEMORY    |
-                                  ISC_REQ_CONFIDENTIALITY    |
-                                  ISC_REQ_USE_SUPPLIED_CREDS |
-                                  ISC_REQ_REPLAY_DETECT      |
-                                  ISC_REQ_SEQUENCE_DETECT    |
-                                  ISC_REQ_STREAM;
+        ISC_REQ_CONFIDENTIALITY    |
+        ISC_REQ_USE_SUPPLIED_CREDS |
+        ISC_REQ_REPLAY_DETECT      |
+        ISC_REQ_SEQUENCE_DETECT    |
+        ISC_REQ_STREAM;
 
       SECURITY_STATUS sec = InitializeSecurityContextA(&tls_socket.cred_handle,
                                                        security_context,
@@ -554,61 +510,219 @@ WinMain(HINSTANCE instance,
       tls_socket.received += bytes_received;
     }
 
-#if 0
-    // NOTE(antonio): connection has been established
-    //                sending websocket handshake
+    if (result != 0)
     {
-      u8 header[512]  = {};
+      DeleteSecurityContext(security_context);
+      FreeCredentialsHandle(&tls_socket.cred_handle);
 
-      u8 header_bytes[16] = {};
-      rng_fill_buffer(header_bytes, sizeof(header_bytes));
-
-      u8 header_key[32] = {};
-      base64_encode(header_bytes, sizeof(header_bytes), header_key);
-
-      u8 path[]  = "";
-      u8 query[] = "";
-
-      u8 origin_name[] = "localhost:8000";
-      u8 api_key[] = "cgtgdupr01qoiqvp24t0cgtgdupr01qoiqvp24tg"; 
-
-      i32 header_length =
-        stbsp_snprintf((char *) header, array_count(header),
-                       "GET https://ws.%s/%s%s HTTP/1.1\r\n"
-                       "Host: ws.%s\r\n"
-                       "Upgrade: websocket\r\n"
-                       "Connection: keep-alive, Upgrade\r\n"
-                       "Sec-WebSocket-Key: %s\r\n"
-                       "Origin: %s\r\n"
-                       "Sec-WebSocket-Protocol: chat, superchat\r\n"
-                       "Sec-WebSocket-Version: 13\r\n"
-                       "X-Finnhub-Token: %s\r\n"
-                       "\r\n\r\n",
-                       (char *) host_name,
-                       (char *) path,
-                       (char *) query,
-                       (char *) host_name,
-                       (char *) header_key,
-                       (char *) origin_name,
-                       (char *) api_key);
-
-      i32 bytes_sent = send(win32_socket, (const char *) header, header_length, 0);
-      assert((bytes_sent != SOCKET_ERROR) && (bytes_sent == header_length) && "did not send the expected number of bytes");
+      closesocket(tls_socket.socket);
+      WSACleanup();
     }
 
-    // NOTE(antonio): receiving response
-    {
-      u8 receive_buffer[1024] = {};
-      i32 receive_length = 0;
+    QueryContextAttributes(security_context, SECPKG_ATTR_STREAM_SIZES, &tls_socket.sizes);
 
-      do {
-        receive_length = recv(win32_socket, (char *) receive_buffer, array_count(receive_buffer) - 1, 0);
+    utf8 _header[1024];
+    String_char header = string_from_fixed_size(char, _header);
+
+    header.size =
+      stbsp_snprintf((char *) header.str, (int) header.cap,
+                     "GET / HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n",
+                     host_name);
+    {
+      u64 send_size = (u64) header.size;
+
+      // NOTE(antonio): encrypt and send
+      while (send_size != 0)
+      {
+        u32 use = (u32) min(send_size, tls_socket.sizes.cbMaximumMessage);
+
+        char _wbuffer[TLS_MAX_PACKET_SIZE];
+        Buffer wbuffer = buffer_from_fixed_size(_wbuffer);
+
+        u64 max_size = tls_socket.sizes.cbHeader +
+          tls_socket.sizes.cbMaximumMessage +
+          tls_socket.sizes.cbTrailer;
+
+        assert(max_size <= wbuffer.size);
+
+        SecBuffer sec_buffers[3];
+        {
+          sec_buffers[0].BufferType = SECBUFFER_STREAM_HEADER;
+          sec_buffers[0].pvBuffer   = wbuffer.data;
+          sec_buffers[0].cbBuffer   = tls_socket.sizes.cbHeader;
+
+          sec_buffers[1].BufferType = SECBUFFER_DATA;
+          sec_buffers[1].pvBuffer   = wbuffer.data + tls_socket.sizes.cbHeader;
+          sec_buffers[1].cbBuffer   = use;
+
+          sec_buffers[2].BufferType = SECBUFFER_STREAM_TRAILER;
+          sec_buffers[2].pvBuffer   = wbuffer.data + tls_socket.sizes.cbHeader + use;
+          sec_buffers[2].cbBuffer   = tls_socket.sizes.cbTrailer;
+        }
+
+        copy_memory_block(sec_buffers[1].pvBuffer, header.str, use);
+
+        SecBufferDesc sec_buffer_description = {SECBUFFER_VERSION, array_count(sec_buffers), sec_buffers};
+        SECURITY_STATUS sec = EncryptMessage(&tls_socket.security_context, 0, &sec_buffer_description, 0);
+        if (sec != SEC_E_OK)
+        {
+          // this should not happen, but just in case check it
+          return -1;
+        }
+
+        i32 total_buffer_size = sec_buffers[0].cbBuffer + sec_buffers[1].cbBuffer + sec_buffers[2].cbBuffer;
+        i32 sent = 0;
+        while (sent != total_buffer_size)
+        {
+          i32 bytes_left_to_send = total_buffer_size - sent;
+          u8 *buffer_start = wbuffer.data + sent;
+
+          i32 bytes_sent = send(tls_socket.socket, (char *) buffer_start, bytes_left_to_send, 0);
+          if (bytes_sent <= 0)
+          {
+            // NOTE(antonio): error sending data to socket, or server disconnected
+            return -1;
+          }
+
+          sent += bytes_sent;
+        }
+
+        header.str = (char *) header.str + use;
+        send_size -= use;
       }
-      while (receive_length > 0);
-
-      OutputDebugStringA((char *) receive_buffer);
     }
-#endif
+
+    // NOTE(antonio): tls read
+    u8 _receive_buffer[kb(512)] = {};
+    Buffer receive_buffer = buffer_from_fixed_size(_receive_buffer);
+
+    i64 read_result = 0;
+    while (receive_buffer.used < receive_buffer.size)
+    {
+      if (tls_socket.decrypted != NULL)
+      {
+        // NOTE(antonio): if there is decrypted data available, then use it as much as possible
+        i32 use = (i32) min(receive_buffer.size, tls_socket.available);
+
+        copy_memory_block(&receive_buffer.data[receive_buffer.used], tls_socket.decrypted, use);
+
+        receive_buffer.used += use;
+        read_result += use;
+
+        if (use == tls_socket.available)
+        {
+          // NOTE(antonio):
+          // all decrypted data is used, remove ciphertext from
+          // incoming buffer so next time it starts from beginning
+          move_memory_block(tls_socket.incoming,
+                            tls_socket.incoming + tls_socket.used,
+                            tls_socket.received - tls_socket.used);
+
+          tls_socket.received  -= tls_socket.used;
+          tls_socket.used       = 0;
+          tls_socket.available  = 0;
+          tls_socket.decrypted  = NULL;
+        }
+        else
+        {
+          tls_socket.available -= use;
+          tls_socket.decrypted += use;
+        }
+      }
+      else
+      {
+        // NOTE(antonio): if any ciphertext data available then try to decrypt it
+        if (tls_socket.received != 0)
+        {
+          SecBuffer sec_buffers[4];
+          {
+            assert(tls_socket.sizes.cBuffers == array_count(sec_buffers));
+
+            sec_buffers[0].BufferType = SECBUFFER_DATA;
+            sec_buffers[0].pvBuffer = tls_socket.incoming;
+            sec_buffers[0].cbBuffer = tls_socket.received;
+
+            sec_buffers[1].BufferType = SECBUFFER_EMPTY;
+            sec_buffers[2].BufferType = SECBUFFER_EMPTY;
+            sec_buffers[3].BufferType = SECBUFFER_EMPTY;
+          }
+
+          SecBufferDesc sec_buffer_description = {SECBUFFER_VERSION, array_count(sec_buffers), sec_buffers};
+
+          SECURITY_STATUS sec = DecryptMessage(&tls_socket.security_context,
+                                               &sec_buffer_description,
+                                               0, NULL);
+          if (sec == SEC_E_OK)
+          {
+            assert(sec_buffers[0].BufferType == SECBUFFER_STREAM_HEADER);
+            assert(sec_buffers[1].BufferType == SECBUFFER_DATA);
+            assert(sec_buffers[2].BufferType == SECBUFFER_STREAM_TRAILER);
+
+            u64 used = tls_socket.received -
+                       (sec_buffers[3].BufferType == SECBUFFER_EXTRA ?
+                        sec_buffers[3].cbBuffer : 0);
+
+            tls_socket.decrypted = (u8 *) sec_buffers[1].pvBuffer;
+            tls_socket.available = sec_buffers[1].cbBuffer;
+            tls_socket.used      = (i32) used;
+
+            // NOTE(antonio):
+            // data is now decrypted, go back to beginning
+            // of loop to copy memory to output buffer
+            continue;
+          }
+          else if (sec == SEC_I_CONTEXT_EXPIRED)
+          {
+            // NOTE(antonio): server closed TLS connection (but socket is still open)
+            tls_socket.received = 0;
+          }
+          else if (sec == SEC_I_RENEGOTIATE)
+          {
+            // TODO(antonio): server wants to renegotiate TLS connection, not implemented here
+            assert(!"unimplemented");
+          }
+          else if (sec != SEC_E_INCOMPLETE_MESSAGE)
+          {
+            // NOTE(antonio): some other schannel or TLS protocol error
+          }
+          // NOTE(antonio): otherwise sec == SEC_E_INCOMPLETE_MESSAGE which means need to read more data
+        }
+      }
+      // otherwise not enough data received to decrypt
+
+      if (read_result != 0)
+      {
+        // some data is already copied to output buffer, so return that before blocking with recv
+        break;
+      }
+
+      if (tls_socket.received == sizeof(tls_socket.incoming))
+      {
+        assert(!"server is sending too much garbage data instead of proper TLS packet");
+      }
+
+      // wait for more ciphertext data from server
+      i32 bytes_received = recv(tls_socket.socket,
+                                (char *) (tls_socket.incoming + tls_socket.received),
+                                sizeof(tls_socket.incoming) - tls_socket.received,
+                                0);
+      if (bytes_received == 0)
+      {
+        // NOTE(antonio): server disconnected socket
+        return 0;
+      }
+      else if (bytes_received < 0)
+      {
+        // error receiving data from socket
+        result = -1;
+        break;
+      }
+
+      tls_socket.received += bytes_received;
+    }
+
+    int i = 0;
+    i++;
   }
 
   if (ShowWindow(win32_global_state.window_handle, SW_NORMAL) && UpdateWindow(win32_global_state.window_handle))

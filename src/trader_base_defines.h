@@ -792,13 +792,15 @@ struct String_Any {
 #define string_literal_init(s) {(s), sizeof(s) - sizeof(*s)}
 #define string_literal_init_type(s, t) {(t *) (s), sizeof(s) - 1}
 #define string_from_c_string(type, s, capacity) {(type *) s, concat(get_length_c_string_, type)((type *) s), (capacity)}
+#define string_from_fixed_size(type, buffer) {(type *) (buffer), 0, sizeof(buffer) - sizeof(type)}
+#define buffer_from_fixed_size(buffer) {(u8 *) (buffer), 0, sizeof(buffer)}
 
 struct Buffer
 {
   u8  *data;
 
-  u64  size;
   u64  used;
+  u64  size;
 };
 
 struct File_Buffer

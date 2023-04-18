@@ -23,7 +23,6 @@ enum
 typedef i32 Network_Return_Code; 
 
 external struct Socket;
-
 external Socket nil_socket;
 
 internal Network_Return_Code network_startup();

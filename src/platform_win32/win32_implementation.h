@@ -33,6 +33,7 @@ struct Socket
   u8                       *decrypted;   // points to incoming buffer where data is decrypted inplace
   u8                        incoming[TLS_MAX_PACKET_SIZE];
 };
+Socket nil_socket = {INVALID_SOCKET, NULL, NULL, {}, 0, 0, 0, NULL};
 
 Global_Platform_State *get_global_platform_state()
 {
@@ -189,6 +190,319 @@ File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u6
   }
 
   return(file_buffer);
+}
+
+Network_Return_Code network_open(String_Const_utf8 host_name, u16 port, Socket *out_socket)
+{
+  Network_Return_Code result = network_ok;
+
+  assert(out_socket    != NULL);
+  assert(host_name.str != NULL);
+
+  copy_struct(out_socket, &nil_socket);
+
+  CtxtHandle* security_context = NULL;
+
+  // NOTE(antonio): initializing WinSock and TLS
+  WSADATA winsock_metadata = {};
+
+  i32 winsock_result = WSAStartup(MAKEWORD(2, 2), &winsock_metadata);
+  assert((winsock_result == 0) && "expected winsock dll to load");
+
+  out_socket->socket = socket(AF_INET, SOCK_STREAM, 0);
+
+  u8 port_name[64] = {};
+  stbsp_snprintf((char *) port_name, sizeof(port_name), "%u", port);
+
+  // TODO(antonio): ansi versions are deprecated
+  b32 connected = WSAConnectByNameA(out_socket->socket,
+                                    (char *) host_name.str,
+                                    (char *) port_name,
+                                    NULL, NULL, NULL, NULL, NULL, NULL);
+
+  assert(connected && "expected connection");
+
+  // NOTE(antonio): initialize schannel
+  {
+    SCHANNEL_CRED cred = {};
+    {
+      cred.dwVersion               = SCHANNEL_CRED_VERSION;
+      cred.cCreds                  = 0;
+      cred.paCred                  = NULL;
+      cred.hRootStore              = NULL;
+      cred.cSupportedAlgs          = 0;
+      cred.palgSupportedAlgs       = NULL;
+      cred.grbitEnabledProtocols   = SP_PROT_TLS1_2;
+      cred.dwMinimumCipherStrength = 0;
+      cred.dwMaximumCipherStrength = 0;
+      // TODO(antonio): need to manage SCHANNEL sessions too :(
+      //                this only lasts 10 hours
+      cred.dwSessionLifespan       = 0;
+      cred.dwFlags                 = SCH_CRED_AUTO_CRED_VALIDATION | SCH_CRED_NO_DEFAULT_CREDS | SCH_USE_STRONG_CRYPTO;
+      cred.dwCredFormat            = 0;
+    };
+
+    SECURITY_STATUS acquire_result =
+      AcquireCredentialsHandleA(NULL,
+                                UNISP_NAME_A,
+                                SECPKG_CRED_OUTBOUND,
+                                NULL,
+                                &cred,
+                                NULL,
+                                NULL,
+                                &out_socket->cred_handle,
+                                NULL);
+
+    assert((acquire_result == SEC_E_OK) && "expected to get a credential handle");
+  }
+
+  // NOTE(antonio): perform tls handshake
+  //                1) call InitializeSecurityContext to create/update schannel context
+  //                2) when it returns SEC_E_OK - tls handshake completed
+  //                3) when it returns SEC_I_INCOMPLETE_CREDENTIALS - server requests client certificate (TODO)
+  //                4) when it returns SEC_I_CONTINUE_NEEDED - send token to server and read data
+  //                5) when it returns SEC_E_INCOMPLETE_MESSAGE - need to read more data from server
+  //                6) otherwise read data from server and go to step 1
+
+  for (;;)
+  {
+    SecBuffer in_buffers[2] = {};
+    {
+      in_buffers[0].BufferType = SECBUFFER_TOKEN;
+      in_buffers[0].pvBuffer   = out_socket->incoming;
+      in_buffers[0].cbBuffer   = out_socket->received;
+
+      in_buffers[1].BufferType = SECBUFFER_EMPTY;
+    }
+
+    SecBuffer out_buffers[1] = {};
+    {
+      out_buffers[0].BufferType = SECBUFFER_TOKEN;
+    }
+
+    SecBufferDesc in_desc  = {SECBUFFER_VERSION, array_count(in_buffers),  in_buffers};
+    SecBufferDesc out_desc = {SECBUFFER_VERSION, array_count(out_buffers), out_buffers};
+
+    DWORD security_init_flags = ISC_REQ_ALLOCATE_MEMORY    |
+                                ISC_REQ_CONFIDENTIALITY    |
+                                ISC_REQ_USE_SUPPLIED_CREDS |
+                                ISC_REQ_REPLAY_DETECT      |
+                                ISC_REQ_SEQUENCE_DETECT    |
+                                ISC_REQ_STREAM;
+
+    SECURITY_STATUS sec = InitializeSecurityContextA(&out_socket->cred_handle,
+                                                     security_context,
+                                                     security_context ? NULL : (SEC_CHAR *) host_name.str,
+                                                     security_init_flags,
+                                                     0,
+                                                     0,
+                                                     security_context ? &in_desc : NULL,
+                                                     0,
+                                                     security_context ? NULL : &out_socket->security_context,
+                                                     &out_desc,
+                                                     &security_init_flags,
+                                                     NULL);
+
+    // NOTE(antonio): after first call to InitializeSecurityContextA, context will be available and can be reused 
+    security_context = &out_socket->security_context;
+
+    // NOTE(antonio):
+    // used to indicated unprocessed byte count
+    // moving memory from buffer that still needs to be processed to incoming
+    //
+    // 0                         received
+    // <.............************            >
+    // . - processed
+    // * - unprocessed
+    //   - unused
+    //
+    // post-operation
+    // <************                         >
+    if (in_buffers[1].BufferType == SECBUFFER_EXTRA)
+    {
+      move_memory_block(out_socket->incoming,
+                        out_socket->incoming + (out_socket->received - in_buffers[1].cbBuffer),
+                        in_buffers[1].cbBuffer);
+      out_socket->received = in_buffers[1].cbBuffer;
+    }
+    else
+    {
+      out_socket->received = 0;
+    }
+
+    if (sec == SEC_E_OK)
+    {
+      // NOTE(antonio): tls handshake completed
+      break;
+    }
+    else if (sec == SEC_I_INCOMPLETE_CREDENTIALS)
+    {
+      // NOTE(antonio): server asked for client certificate, not supported yet
+      result = network_error_client_certificate_needed;
+      assert(!"unimplemented");
+      break;
+    }
+    else if (sec == SEC_I_CONTINUE_NEEDED)
+    {
+      // NOTE(antonio): need to send output token to server
+      u8 *output_token = (u8 *) out_buffers[0].pvBuffer;
+      i32 token_size = out_buffers[0].cbBuffer;
+
+      while (token_size != 0)
+      {
+        i32 bytes_sent = send(out_socket->socket, (char *) output_token, token_size, 0);
+
+        if (bytes_sent <= 0)
+        {
+          break;
+        }
+
+        token_size   -= bytes_sent;
+        output_token += bytes_sent;
+      }
+
+      FreeContextBuffer(out_buffers[0].pvBuffer);
+
+      if (token_size != 0)
+      {
+        result = network_error_send_failure;
+        assert(!"failed to send data to server");
+        break;
+      }
+    }
+    else if (sec != SEC_E_INCOMPLETE_MESSAGE)
+    {
+      // NOTE(antonio):
+      // SEC_E_CERT_EXPIRED    - certificate expired or revoked
+      // SEC_E_WRONG_PRINCIPAL - bad hostname
+      // SEC_E_UNTRUSTED_ROOT  - cannot vertify CA chain
+      // SEC_E_ILLEGAL_MESSAGE / SEC_E_ALGORITHM_MISMATCH - cannot negotiate crypto algorithms
+      result = network_error_unknown;
+      assert(!"unimplemented");
+      break;
+    }
+
+    // read more data from server when possible
+    if (out_socket->received == sizeof(out_socket->incoming))
+    {
+      result = network_error_unknown;
+      copy_struct(out_socket, &nil_socket);
+      break;
+    }
+
+    i32 bytes_received = recv(out_socket->socket,
+                              (char *) (out_socket->incoming + out_socket->received),
+                              sizeof(out_socket->incoming) - out_socket->received,
+                              0);
+    if (bytes_received == 0)
+    {
+      result = network_error_socket_disconnected;
+
+      // TODO(antonio): is this what we want?
+      copy_struct(out_socket, &nil_socket);
+      break;
+    }
+    else if (bytes_received < 0)
+    {
+      result = network_error_socket_error;
+
+      assert("is this consistent?");
+      int error = WSAGetLastError();  
+      unused(error);
+
+      break;
+    }
+
+    if (result != 0)
+    {
+      DeleteSecurityContext(security_context);
+      FreeCredentialsHandle(&out_socket->cred_handle);
+
+      closesocket(out_socket->socket);
+      WSACleanup();
+    }
+    else
+    {
+      QueryContextAttributes(security_context, SECPKG_ATTR_STREAM_SIZES, &out_socket->sizes);
+    }
+
+    out_socket->received += bytes_received;
+  }
+
+  return(result);
+}
+
+Network_Return_Code network_send(Socket *in_socket, Buffer to_send)
+{
+  Network_Return_Code result = network_ok;
+
+  assert(to_send.data != NULL);
+
+  u64 send_size = (u64) to_send.size;
+
+  // NOTE(antonio): encrypt and send
+  while (send_size != 0)
+  {
+    u32 use = (u32) min(send_size, in_socket->sizes.cbMaximumMessage);
+
+    char _wbuffer[TLS_MAX_PACKET_SIZE];
+    Buffer wbuffer = buffer_from_fixed_size(_wbuffer);
+
+    u64 max_size = in_socket->sizes.cbHeader +
+      in_socket->sizes.cbMaximumMessage +
+      in_socket->sizes.cbTrailer;
+
+    assert(max_size <= wbuffer.size);
+
+    SecBuffer sec_buffers[3];
+    {
+      sec_buffers[0].BufferType = SECBUFFER_STREAM_HEADER;
+      sec_buffers[0].pvBuffer   = wbuffer.data;
+      sec_buffers[0].cbBuffer   = in_socket->sizes.cbHeader;
+
+      sec_buffers[1].BufferType = SECBUFFER_DATA;
+      sec_buffers[1].pvBuffer   = wbuffer.data + in_socket->sizes.cbHeader;
+      sec_buffers[1].cbBuffer   = use;
+
+      sec_buffers[2].BufferType = SECBUFFER_STREAM_TRAILER;
+      sec_buffers[2].pvBuffer   = wbuffer.data + in_socket->sizes.cbHeader + use;
+      sec_buffers[2].cbBuffer   = in_socket->sizes.cbTrailer;
+    }
+
+    copy_memory_block(sec_buffers[1].pvBuffer, to_send.data, use);
+
+    SecBufferDesc sec_buffer_description = {SECBUFFER_VERSION, array_count(sec_buffers), sec_buffers};
+    SECURITY_STATUS sec = EncryptMessage(&in_socket->security_context, 0, &sec_buffer_description, 0);
+    if (sec != SEC_E_OK)
+    {
+      // this should not happen, but just in case check it
+      result = network_error_unknown; 
+      break;
+    }
+
+    i32 total_buffer_size = sec_buffers[0].cbBuffer + sec_buffers[1].cbBuffer + sec_buffers[2].cbBuffer;
+    i32 sent = 0;
+    while (sent != total_buffer_size)
+    {
+      i32 bytes_left_to_send = total_buffer_size - sent;
+      u8 *buffer_start = wbuffer.data + sent;
+
+      i32 bytes_sent = send(in_socket->socket, (char *) buffer_start, bytes_left_to_send, 0);
+      if (bytes_sent <= 0)
+      {
+        // NOTE(antonio): error sending data to socket, or server disconnected
+        result = network_error_socket_error;
+        break;
+      }
+
+      sent += bytes_sent;
+    }
+
+    to_send.data = to_send.data + use;
+    send_size -= use;
+  }
+
+  return(result);
 }
 
 #define WIN32_IMPLEMENTATION_H

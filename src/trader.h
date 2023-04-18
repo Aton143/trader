@@ -22,6 +22,7 @@
 
 #include "trader_font.h"
 #include "trader_render.h"
+#include "trader_network.h"
 
 #if OS_WINDOWS
 #include "platform_win32/win32_implementation.h"

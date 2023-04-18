@@ -29,6 +29,7 @@ void arena_clear(Arena *arena);
 i64 copy_memory_block(void *dest, void *source, i64 byte_count);
 i64 set_memory_block(void *dest, u8 val, i64 byte_count);
 i64 move_memory_block(void *dest, void *source, i64 byte_count);
+i64 compare_memory_block(void *a, void *b, i64 byte_count);
 
 // implementation
 i64 copy_memory_block(void *dest, void *source, i64 byte_count)
@@ -45,7 +46,7 @@ i64 copy_memory_block(void *dest, void *source, i64 byte_count)
   return(byte_index);
 }
 #define copy_string(dest, string) copy_memory_block((dest), (string).str, (string).size)
-#define copy_struct(dest, copy) copy_memory_block(dest, sizeof(*(copy)))
+#define copy_struct(dest, copy) copy_memory_block(dest, copy, sizeof(*(copy)))
 
 i64 set_memory_block(void *dest, u8 val, i64 byte_count)
 {
@@ -133,6 +134,30 @@ void *arena_push_zero(Arena *arena, u64 size)
   return(memory_given_back);
 }
 #define arena_push_buffer(arena, size) {(u8 * ) arena_push(arena, size), size}
+
+i64 compare_memory_block(void *a, void *b, i64 byte_count)
+{
+  i64 result = 0;
+
+  u8 *a_bytes = (u8 *) a;
+  u8 *b_bytes = (u8 *) b;
+
+  assert(a_bytes != NULL);
+  assert(b_bytes != NULL);
+
+  for (i64 byte_index = 0;
+       byte_index < byte_count;
+       ++byte_index)
+  {
+    if (a_bytes[byte_index] != b_bytes[byte_index]) 
+    {
+      result = 1;
+    }
+  }
+
+  return(result);
+}
+#define compare_struct_shallow(a, b) compare_memory_block(a, b, sizeof(*a))
 
 #define TRADER_MEMORY_H
 #endif

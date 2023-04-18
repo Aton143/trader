@@ -11,6 +11,10 @@ enum
 
   network_error_socket_disconnected,
   network_error_socket_error,
+  network_error_nil_socket,
+
+  network_error_receive_failure,
+  network_error_receive_unknown,
 
   network_error_unknown,
 
@@ -22,8 +26,12 @@ external struct Socket;
 
 external Socket nil_socket;
 
-Network_Return_Code network_open(String_Const_utf8 host_name, u16 port, Socket *out_socket);
-Network_Return_Code network_send(Socket *in_socket, Buffer to_send);
+internal Network_Return_Code network_startup();
+internal Network_Return_Code network_connect(String_Const_utf8 host_name, u16 port, Socket *out_socket);
+internal Network_Return_Code network_send(Socket *in_socket, Buffer to_send);
+internal Network_Return_Code network_receive(Socket *in_socket, Buffer *in_receive);
+internal Network_Return_Code network_disconnect(Socket *in_out_socket);
+internal Network_Return_Code network_cleanup();
 
 #define TRADER_NETWORK_H
 #endif

@@ -192,7 +192,18 @@ File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u6
   return(file_buffer);
 }
 
-Network_Return_Code network_open(String_Const_utf8 host_name, u16 port, Socket *out_socket)
+internal Network_Return_Code network_startup()
+{
+  Network_Return_Code result = network_ok;
+
+  WSADATA winsock_metadata = {};
+  i32 winsock_result = WSAStartup(MAKEWORD(2, 2), &winsock_metadata);
+  assert((winsock_result == 0) && "expected winsock dll to load");
+
+  return(result);
+}
+
+Network_Return_Code network_connect(String_Const_utf8 host_name, u16 port, Socket *out_socket)
 {
   Network_Return_Code result = network_ok;
 
@@ -202,12 +213,6 @@ Network_Return_Code network_open(String_Const_utf8 host_name, u16 port, Socket *
   copy_struct(out_socket, &nil_socket);
 
   CtxtHandle* security_context = NULL;
-
-  // NOTE(antonio): initializing WinSock and TLS
-  WSADATA winsock_metadata = {};
-
-  i32 winsock_result = WSAStartup(MAKEWORD(2, 2), &winsock_metadata);
-  assert((winsock_result == 0) && "expected winsock dll to load");
 
   out_socket->socket = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -386,7 +391,10 @@ Network_Return_Code network_open(String_Const_utf8 host_name, u16 port, Socket *
     if (out_socket->received == sizeof(out_socket->incoming))
     {
       result = network_error_unknown;
+
+      network_disconnect(out_socket);
       copy_struct(out_socket, &nil_socket);
+
       break;
     }
 
@@ -398,8 +406,9 @@ Network_Return_Code network_open(String_Const_utf8 host_name, u16 port, Socket *
     {
       result = network_error_socket_disconnected;
 
-      // TODO(antonio): is this what we want?
+      network_disconnect(out_socket);
       copy_struct(out_socket, &nil_socket);
+
       break;
     }
     else if (bytes_received < 0)
@@ -419,7 +428,6 @@ Network_Return_Code network_open(String_Const_utf8 host_name, u16 port, Socket *
       FreeCredentialsHandle(&out_socket->cred_handle);
 
       closesocket(out_socket->socket);
-      WSACleanup();
     }
     else
     {
@@ -438,69 +446,285 @@ Network_Return_Code network_send(Socket *in_socket, Buffer to_send)
 
   assert(to_send.data != NULL);
 
-  u64 send_size = (u64) to_send.size;
+  u64 send_size = (u64) to_send.used;
 
-  // NOTE(antonio): encrypt and send
-  while (send_size != 0)
+  if (compare_struct_shallow(in_socket, &nil_socket) != 0)
   {
-    u32 use = (u32) min(send_size, in_socket->sizes.cbMaximumMessage);
-
-    char _wbuffer[TLS_MAX_PACKET_SIZE];
-    Buffer wbuffer = buffer_from_fixed_size(_wbuffer);
-
-    u64 max_size = in_socket->sizes.cbHeader +
-      in_socket->sizes.cbMaximumMessage +
-      in_socket->sizes.cbTrailer;
-
-    assert(max_size <= wbuffer.size);
-
-    SecBuffer sec_buffers[3];
+    // NOTE(antonio): encrypt and send
+    while (send_size != 0)
     {
-      sec_buffers[0].BufferType = SECBUFFER_STREAM_HEADER;
-      sec_buffers[0].pvBuffer   = wbuffer.data;
-      sec_buffers[0].cbBuffer   = in_socket->sizes.cbHeader;
+      u32 use = (u32) min(send_size, in_socket->sizes.cbMaximumMessage);
 
-      sec_buffers[1].BufferType = SECBUFFER_DATA;
-      sec_buffers[1].pvBuffer   = wbuffer.data + in_socket->sizes.cbHeader;
-      sec_buffers[1].cbBuffer   = use;
+      char _wbuffer[TLS_MAX_PACKET_SIZE];
+      Buffer wbuffer = buffer_from_fixed_size(_wbuffer);
 
-      sec_buffers[2].BufferType = SECBUFFER_STREAM_TRAILER;
-      sec_buffers[2].pvBuffer   = wbuffer.data + in_socket->sizes.cbHeader + use;
-      sec_buffers[2].cbBuffer   = in_socket->sizes.cbTrailer;
-    }
+      u64 max_size = in_socket->sizes.cbHeader +
+        in_socket->sizes.cbMaximumMessage +
+        in_socket->sizes.cbTrailer;
 
-    copy_memory_block(sec_buffers[1].pvBuffer, to_send.data, use);
+      assert(max_size <= wbuffer.size);
 
-    SecBufferDesc sec_buffer_description = {SECBUFFER_VERSION, array_count(sec_buffers), sec_buffers};
-    SECURITY_STATUS sec = EncryptMessage(&in_socket->security_context, 0, &sec_buffer_description, 0);
-    if (sec != SEC_E_OK)
-    {
-      // this should not happen, but just in case check it
-      result = network_error_unknown; 
-      break;
-    }
-
-    i32 total_buffer_size = sec_buffers[0].cbBuffer + sec_buffers[1].cbBuffer + sec_buffers[2].cbBuffer;
-    i32 sent = 0;
-    while (sent != total_buffer_size)
-    {
-      i32 bytes_left_to_send = total_buffer_size - sent;
-      u8 *buffer_start = wbuffer.data + sent;
-
-      i32 bytes_sent = send(in_socket->socket, (char *) buffer_start, bytes_left_to_send, 0);
-      if (bytes_sent <= 0)
+      SecBuffer sec_buffers[3];
       {
-        // NOTE(antonio): error sending data to socket, or server disconnected
-        result = network_error_socket_error;
+        sec_buffers[0].BufferType = SECBUFFER_STREAM_HEADER;
+        sec_buffers[0].pvBuffer   = wbuffer.data;
+        sec_buffers[0].cbBuffer   = in_socket->sizes.cbHeader;
+
+        sec_buffers[1].BufferType = SECBUFFER_DATA;
+        sec_buffers[1].pvBuffer   = wbuffer.data + in_socket->sizes.cbHeader;
+        sec_buffers[1].cbBuffer   = use;
+
+        sec_buffers[2].BufferType = SECBUFFER_STREAM_TRAILER;
+        sec_buffers[2].pvBuffer   = wbuffer.data + in_socket->sizes.cbHeader + use;
+        sec_buffers[2].cbBuffer   = in_socket->sizes.cbTrailer;
+      }
+
+      copy_memory_block(sec_buffers[1].pvBuffer, to_send.data, use);
+
+      SecBufferDesc sec_buffer_description = {SECBUFFER_VERSION, array_count(sec_buffers), sec_buffers};
+      SECURITY_STATUS sec = EncryptMessage(&in_socket->security_context, 0, &sec_buffer_description, 0);
+      if (sec != SEC_E_OK)
+      {
+        // this should not happen, but just in case check it
+        result = network_error_unknown; 
         break;
       }
 
-      sent += bytes_sent;
+      i32 total_buffer_size = sec_buffers[0].cbBuffer + sec_buffers[1].cbBuffer + sec_buffers[2].cbBuffer;
+      i32 sent = 0;
+      while (sent != total_buffer_size)
+      {
+        i32 bytes_left_to_send = total_buffer_size - sent;
+        u8 *buffer_start = wbuffer.data + sent;
+
+        i32 bytes_sent = send(in_socket->socket, (char *) buffer_start, bytes_left_to_send, 0);
+        if (bytes_sent <= 0)
+        {
+          // NOTE(antonio): error sending data to socket, or server disconnected
+          result = network_error_socket_error;
+          break;
+        }
+
+        sent += bytes_sent;
+      }
+
+      to_send.data = to_send.data + use;
+      send_size -= use;
+    }
+  }
+
+  return(result);
+}
+
+internal Network_Return_Code network_receive(Socket *in_socket, Buffer *out_receive_buffer)
+{
+  Network_Return_Code result = network_ok;
+
+  assert(in_socket          != NULL);
+  assert(out_receive_buffer != NULL);
+
+  if (compare_struct_shallow(in_socket, &nil_socket) != 0)
+  {
+    i64 read_result = 0;
+    while (out_receive_buffer->used < out_receive_buffer->size)
+    {
+      if (in_socket->decrypted != NULL)
+      {
+        // NOTE(antonio): if there is decrypted data available, then use it as much as possible
+        i32 use = (i32) min(out_receive_buffer->size, in_socket->available);
+
+        copy_memory_block(&out_receive_buffer->data[out_receive_buffer->used], in_socket->decrypted, use);
+
+        out_receive_buffer->used += use;
+        read_result += use;
+
+        if (use == in_socket->available)
+        {
+          // NOTE(antonio):
+          // all decrypted data is used, remove ciphertext from
+          // incoming buffer so next time it starts from beginning
+          move_memory_block(in_socket->incoming,
+                            in_socket->incoming + in_socket->used,
+                            in_socket->received - in_socket->used);
+
+          in_socket->received  -= in_socket->used;
+          in_socket->used       = 0;
+          in_socket->available  = 0;
+          in_socket->decrypted  = NULL;
+        }
+        else
+        {
+          in_socket->available -= use;
+          in_socket->decrypted += use;
+        }
+      }
+      else
+      {
+        // NOTE(antonio): if any ciphertext data available then try to decrypt it
+        if (in_socket->received != 0)
+        {
+          SecBuffer sec_buffers[4];
+          {
+            assert(in_socket->sizes.cBuffers == array_count(sec_buffers));
+
+            sec_buffers[0].BufferType = SECBUFFER_DATA;
+            sec_buffers[0].pvBuffer = in_socket->incoming;
+            sec_buffers[0].cbBuffer = in_socket->received;
+
+            sec_buffers[1].BufferType = SECBUFFER_EMPTY;
+            sec_buffers[2].BufferType = SECBUFFER_EMPTY;
+            sec_buffers[3].BufferType = SECBUFFER_EMPTY;
+          }
+
+          SecBufferDesc sec_buffer_description = {SECBUFFER_VERSION, array_count(sec_buffers), sec_buffers};
+
+          SECURITY_STATUS sec = DecryptMessage(&in_socket->security_context,
+                                               &sec_buffer_description,
+                                               0, NULL);
+          if (sec == SEC_E_OK)
+          {
+            assert(sec_buffers[0].BufferType == SECBUFFER_STREAM_HEADER);
+            assert(sec_buffers[1].BufferType == SECBUFFER_DATA);
+            assert(sec_buffers[2].BufferType == SECBUFFER_STREAM_TRAILER);
+
+            u64 used = in_socket->received -
+              (sec_buffers[3].BufferType == SECBUFFER_EXTRA ?
+               sec_buffers[3].cbBuffer : 0);
+
+            in_socket->decrypted = (u8 *) sec_buffers[1].pvBuffer;
+            in_socket->available = sec_buffers[1].cbBuffer;
+            in_socket->used      = (i32) used;
+
+            // NOTE(antonio):
+            // data is now decrypted, go back to beginning
+            // of loop to copy memory to output buffer
+            continue;
+          }
+          else if (sec == SEC_I_CONTEXT_EXPIRED)
+          {
+            // NOTE(antonio): server closed TLS connection (but socket is still open)
+            result = network_error_socket_disconnected;
+            in_socket->received = 0;
+          }
+          else if (sec == SEC_I_RENEGOTIATE)
+          {
+            // TODO(antonio): server wants to renegotiate TLS connection, not implemented here
+            assert(!"unimplemented");
+          }
+          else if (sec != SEC_E_INCOMPLETE_MESSAGE)
+          {
+            // NOTE(antonio): some other schannel or TLS protocol error
+            result = network_error_unknown;
+            break;
+          }
+          // NOTE(antonio): otherwise sec == SEC_E_INCOMPLETE_MESSAGE which means need to read more data
+        }
+      }
+      // otherwise not enough data received to decrypt
+
+      if (read_result != 0)
+      {
+        // some data is already copied to output buffer, so return that before blocking with recv
+        break;
+      }
+
+      if (in_socket->received == sizeof(in_socket->incoming))
+      {
+        assert(!"server is sending too much garbage data instead of proper TLS packet");
+      }
+
+      // wait for more ciphertext data from server
+      i32 bytes_received = recv(in_socket->socket,
+                                (char *) (in_socket->incoming + in_socket->received),
+                                sizeof(in_socket->incoming) - in_socket->received,
+                                0);
+      if (bytes_received == 0)
+      {
+        result = network_error_socket_disconnected;
+        break;
+      }
+      else if (bytes_received < 0)
+      {
+        result = network_error_receive_failure;
+        break;
+      }
+
+      in_socket->received += bytes_received;
+    }
+  }
+
+  return(result);
+}
+
+internal Network_Return_Code network_disconnect(Socket *in_out_socket)
+{
+  Network_Return_Code result = network_ok;
+
+  assert(in_out_socket != NULL);
+
+  DWORD shutdown_type = SCHANNEL_SHUTDOWN;
+
+  SecBuffer in_buffers[1];
+  {
+    in_buffers[0].BufferType = SECBUFFER_TOKEN;
+    in_buffers[0].pvBuffer   = &shutdown_type;
+    in_buffers[0].cbBuffer   = sizeof(shutdown_type);
+  }
+
+  SecBufferDesc desc = {SECBUFFER_VERSION, array_count(in_buffers), in_buffers};
+  ApplyControlToken(&in_out_socket->security_context, &desc);
+
+  SecBuffer out_buffers[1];
+  {
+    out_buffers[0].BufferType = SECBUFFER_TOKEN;
+  }
+
+  desc = {SECBUFFER_VERSION, array_count(out_buffers), out_buffers};
+  DWORD flags = ISC_REQ_ALLOCATE_MEMORY |
+                ISC_REQ_CONFIDENTIALITY |
+                ISC_REQ_REPLAY_DETECT |
+                ISC_REQ_SEQUENCE_DETECT |
+                ISC_REQ_STREAM;
+
+  SECURITY_STATUS status =
+    InitializeSecurityContextA(&in_out_socket->cred_handle, &in_out_socket->security_context,
+                               NULL, flags, 0, 0, &desc, 0, NULL, &desc, &flags, NULL);
+  if (status == SEC_E_OK)
+  {
+    char *buffer = (char *) out_buffers[0].pvBuffer;
+    i32 size = out_buffers[0].cbBuffer;
+    while (size != 0)
+    {
+      i32 synthetic_bytes_sent = send(in_out_socket->socket, buffer, size, 0);
+      if (synthetic_bytes_sent <= 0)
+      {
+        // ignore any failures socket will be closed anyway
+        break;
+      }
+
+      buffer += synthetic_bytes_sent;
+      size -= synthetic_bytes_sent;
     }
 
-    to_send.data = to_send.data + use;
-    send_size -= use;
+    FreeContextBuffer(out_buffers[0].pvBuffer);
   }
+
+  shutdown(in_out_socket->socket, SD_BOTH);
+
+  DeleteSecurityContext(&in_out_socket->security_context);
+  FreeCredentialsHandle(&in_out_socket->cred_handle);
+  closesocket(in_out_socket->socket);
+
+  copy_struct(in_out_socket, &nil_socket);
+
+  return(result);
+}
+
+internal Network_Return_Code network_cleanup()
+{
+  Network_Return_Code result = network_ok;
+
+  WSACleanup();
 
   return(result);
 }

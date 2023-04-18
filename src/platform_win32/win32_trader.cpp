@@ -291,6 +291,8 @@ WinMain(HINSTANCE instance,
     }
   }
 
+  network_startup();
+
   u8 _host_name[] = "finnhub.io";
   String_Const_utf8 host_name = string_literal_init(_host_name);
 
@@ -298,149 +300,22 @@ WinMain(HINSTANCE instance,
 
   Socket tls_socket = {};
   {
-    network_open(host_name, port, &tls_socket);
+    network_connect(host_name, port, &tls_socket);
 
     utf8 _header[1024];
     Buffer header = buffer_from_fixed_size(_header);
-    header.size = stbsp_snprintf((char *) header.data,
+    header.used = stbsp_snprintf((char *) header.data,
                                  (int) header.size,
                                  "GET / HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n",
                                  host_name);
 
     network_send(&tls_socket, header);
 
-    // NOTE(antonio): tls read
+    // NOTE(antonio): tls receive
     u8 _receive_buffer[kb(512)] = {};
     Buffer receive_buffer = buffer_from_fixed_size(_receive_buffer);
 
-    i32 result = 0;
-    i64 read_result = 0;
-    while (receive_buffer.used < receive_buffer.size)
-    {
-      if (tls_socket.decrypted != NULL)
-      {
-        // NOTE(antonio): if there is decrypted data available, then use it as much as possible
-        i32 use = (i32) min(receive_buffer.size, tls_socket.available);
-
-        copy_memory_block(&receive_buffer.data[receive_buffer.used], tls_socket.decrypted, use);
-
-        receive_buffer.used += use;
-        read_result += use;
-
-        if (use == tls_socket.available)
-        {
-          // NOTE(antonio):
-          // all decrypted data is used, remove ciphertext from
-          // incoming buffer so next time it starts from beginning
-          move_memory_block(tls_socket.incoming,
-                            tls_socket.incoming + tls_socket.used,
-                            tls_socket.received - tls_socket.used);
-
-          tls_socket.received  -= tls_socket.used;
-          tls_socket.used       = 0;
-          tls_socket.available  = 0;
-          tls_socket.decrypted  = NULL;
-        }
-        else
-        {
-          tls_socket.available -= use;
-          tls_socket.decrypted += use;
-        }
-      }
-      else
-      {
-        // NOTE(antonio): if any ciphertext data available then try to decrypt it
-        if (tls_socket.received != 0)
-        {
-          SecBuffer sec_buffers[4];
-          {
-            assert(tls_socket.sizes.cBuffers == array_count(sec_buffers));
-
-            sec_buffers[0].BufferType = SECBUFFER_DATA;
-            sec_buffers[0].pvBuffer = tls_socket.incoming;
-            sec_buffers[0].cbBuffer = tls_socket.received;
-
-            sec_buffers[1].BufferType = SECBUFFER_EMPTY;
-            sec_buffers[2].BufferType = SECBUFFER_EMPTY;
-            sec_buffers[3].BufferType = SECBUFFER_EMPTY;
-          }
-
-          SecBufferDesc sec_buffer_description = {SECBUFFER_VERSION, array_count(sec_buffers), sec_buffers};
-
-          SECURITY_STATUS sec = DecryptMessage(&tls_socket.security_context,
-                                               &sec_buffer_description,
-                                               0, NULL);
-          if (sec == SEC_E_OK)
-          {
-            assert(sec_buffers[0].BufferType == SECBUFFER_STREAM_HEADER);
-            assert(sec_buffers[1].BufferType == SECBUFFER_DATA);
-            assert(sec_buffers[2].BufferType == SECBUFFER_STREAM_TRAILER);
-
-            u64 used = tls_socket.received -
-                       (sec_buffers[3].BufferType == SECBUFFER_EXTRA ?
-                        sec_buffers[3].cbBuffer : 0);
-
-            tls_socket.decrypted = (u8 *) sec_buffers[1].pvBuffer;
-            tls_socket.available = sec_buffers[1].cbBuffer;
-            tls_socket.used      = (i32) used;
-
-            // NOTE(antonio):
-            // data is now decrypted, go back to beginning
-            // of loop to copy memory to output buffer
-            continue;
-          }
-          else if (sec == SEC_I_CONTEXT_EXPIRED)
-          {
-            // NOTE(antonio): server closed TLS connection (but socket is still open)
-            tls_socket.received = 0;
-          }
-          else if (sec == SEC_I_RENEGOTIATE)
-          {
-            // TODO(antonio): server wants to renegotiate TLS connection, not implemented here
-            assert(!"unimplemented");
-          }
-          else if (sec != SEC_E_INCOMPLETE_MESSAGE)
-          {
-            // NOTE(antonio): some other schannel or TLS protocol error
-          }
-          // NOTE(antonio): otherwise sec == SEC_E_INCOMPLETE_MESSAGE which means need to read more data
-        }
-      }
-      // otherwise not enough data received to decrypt
-
-      if (read_result != 0)
-      {
-        // some data is already copied to output buffer, so return that before blocking with recv
-        break;
-      }
-
-      if (tls_socket.received == sizeof(tls_socket.incoming))
-      {
-        assert(!"server is sending too much garbage data instead of proper TLS packet");
-      }
-
-      // wait for more ciphertext data from server
-      i32 bytes_received = recv(tls_socket.socket,
-                                (char *) (tls_socket.incoming + tls_socket.received),
-                                sizeof(tls_socket.incoming) - tls_socket.received,
-                                0);
-      if (bytes_received == 0)
-      {
-        // NOTE(antonio): server disconnected socket
-        return 0;
-      }
-      else if (bytes_received < 0)
-      {
-        // error receiving data from socket
-        result = -1;
-        break;
-      }
-
-      tls_socket.received += bytes_received;
-    }
-
-    int i = 0;
-    i++;
+    network_receive(&tls_socket, &receive_buffer);
   }
 
   if (ShowWindow(win32_global_state.window_handle, SW_NORMAL) && UpdateWindow(win32_global_state.window_handle))

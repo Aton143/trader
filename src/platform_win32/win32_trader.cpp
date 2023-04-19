@@ -664,7 +664,15 @@ WinMain(HINSTANCE instance,
         DispatchMessage(&message);
       }
 
-      FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+      static FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+
+      background_color[0] += 0.005f;
+
+      if (background_color[0] > 1.0f)
+      {
+        background_color[0] = 0.0f;
+      }
+
       device_context->ClearRenderTargetView(frame_buffer_view, background_color);
       device_context->OMSetRenderTargets(1, &frame_buffer_view, NULL);
 
@@ -680,7 +688,13 @@ WinMain(HINSTANCE instance,
       device_context->RSSetViewports(1, &viewport);
 
       device_context->IASetInputLayout(input_layout);
-      device_context->IASetVertexBuffers(0, 1, &instance_buffer, 0, 0);
+
+      u32 instance_buffer_strides[] = {0};
+      u32 instance_buffer_offsets[] = {0};
+      device_context->IASetVertexBuffers(0, 1, &instance_buffer,
+                                         (UINT *) instance_buffer_strides,
+                                         (UINT *) instance_buffer_offsets);
+
       device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
       device_context->VSSetShader(vertex_shader, NULL, 0);

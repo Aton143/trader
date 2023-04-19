@@ -219,12 +219,41 @@ Network_Return_Code network_connect(String_Const_utf8 host_name, u16 port, Socke
   u8 port_name[64] = {};
   stbsp_snprintf((char *) port_name, sizeof(port_name), "%u", port);
 
-  // TODO(antonio): ansi versions are deprecated
-  b32 connected = WSAConnectByNameA(out_socket->socket,
-                                    (char *) host_name.str,
-                                    (char *) port_name,
-                                    NULL, NULL, NULL, NULL, NULL, NULL);
+  addrinfo *addr_found;
+  addrinfo  addr_hints = {};
+  {
+    addr_hints.ai_flags    = AI_PASSIVE;
+    addr_hints.ai_family   = AF_INET;
+    addr_hints.ai_socktype = SOCK_STREAM;
+    addr_hints.ai_protocol = IPPROTO_TCP;
+  }
 
+  i32 found_addr = getaddrinfo((char *) host_name.str, (char *) port_name, &addr_hints, &addr_found);
+  assert((found_addr == 0) && (addr_found != NULL) && "could not get address info for the given host name");
+
+  out_socket->socket = WSASocket(addr_found->ai_family,
+                                 addr_found->ai_socktype,
+                                 addr_found->ai_protocol,
+                                 NULL,
+                                 0,
+                                 WSA_FLAG_OVERLAPPED); 
+
+  assert((out_socket->socket != INVALID_SOCKET) && "expected connection");
+
+  // TODO(antonio): investigate how the following may change the performance of the socket
+#if 0
+  BOOL send_no_buffering = 0;
+  i32 set_result = setsockopt(out_socket->socket,
+                              SOL_SOCKET,
+                              SO_SNDBUF,
+                              (char *) &send_no_buffering,
+                              sizeof(send_no_buffering));
+  assert((set_result == 0) && "could not disable send buffering");
+#endif
+
+  b32 connected = WSAConnectByNameA(out_socket->socket,
+                                   (char *) host_name.str, (char *) port_name,
+                                   0, NULL, 0, NULL, NULL, NULL);
   assert(connected && "expected connection");
 
   // NOTE(antonio): initialize schannel
@@ -353,13 +382,31 @@ Network_Return_Code network_connect(String_Const_utf8 host_name, u16 port, Socke
       u8 *output_token = (u8 *) out_buffers[0].pvBuffer;
       i32 token_size = out_buffers[0].cbBuffer;
 
+      WSABUF token_buffer = {};
+      {
+        token_buffer.len = token_size;
+        token_buffer.buf = (CHAR *) output_token;
+      }
+
       while (token_size != 0)
       {
-        i32 bytes_sent = send(out_socket->socket, (char *) output_token, token_size, 0);
+        // NOTE(antonio): system owns buffers sent in WSASend???
+        i32 bytes_sent = 0;
+        WSAOVERLAPPED overlapped = {};
+        {
+          overlapped.hEvent = WSACreateEvent();
+        }
+
+        i32 send_result = WSASend(out_socket->socket, &token_buffer, 1, (LPDWORD) &bytes_sent, 0, &overlapped, NULL);
 
         if (bytes_sent <= 0)
         {
           break;
+        }
+
+        if (send_result == WSA_IO_PENDING)
+        {
+          assert("iocp - unimplemented");
         }
 
         token_size   -= bytes_sent;
@@ -370,6 +417,9 @@ Network_Return_Code network_connect(String_Const_utf8 host_name, u16 port, Socke
 
       if (token_size != 0)
       {
+        DWORD send_error = WSAGetLastError();
+        (void) send_error;
+
         result = network_error_send_failure;
         assert(!"failed to send data to server");
         break;
@@ -398,10 +448,32 @@ Network_Return_Code network_connect(String_Const_utf8 host_name, u16 port, Socke
       break;
     }
 
-    i32 bytes_received = recv(out_socket->socket,
-                              (char *) (out_socket->incoming + out_socket->received),
-                              sizeof(out_socket->incoming) - out_socket->received,
-                              0);
+    WSABUF receive_buffer = {};
+    {
+      receive_buffer.len = sizeof(out_socket->incoming) - out_socket->received;
+      receive_buffer.buf = (char *) (out_socket->incoming + out_socket->received);
+    }
+
+    WSAOVERLAPPED overlapped = {};
+    {
+      overlapped.hEvent = WSACreateEvent();
+    }
+
+    i32 bytes_received = 0;
+    i32 flags = 0;
+
+    i32 receive_result = WSARecv(out_socket->socket,
+                                 &receive_buffer, 1,
+                                 (LPDWORD) &bytes_received,
+                                 (LPDWORD) &flags,
+                                 &overlapped,
+                                 NULL);
+
+    if (receive_result == WSA_IO_PENDING)
+    {
+      assert("iocp - unimplemented");
+    }
+
     if (bytes_received == 0)
     {
       result = network_error_socket_disconnected;
@@ -422,19 +494,19 @@ Network_Return_Code network_connect(String_Const_utf8 host_name, u16 port, Socke
       break;
     }
 
-    if (result != 0)
-    {
-      DeleteSecurityContext(security_context);
-      FreeCredentialsHandle(&out_socket->cred_handle);
-
-      closesocket(out_socket->socket);
-    }
-    else
-    {
-      QueryContextAttributes(security_context, SECPKG_ATTR_STREAM_SIZES, &out_socket->sizes);
-    }
-
     out_socket->received += bytes_received;
+  }
+
+  if (result != 0)
+  {
+    DeleteSecurityContext(security_context);
+    FreeCredentialsHandle(&out_socket->cred_handle);
+
+    closesocket(out_socket->socket);
+  }
+  else
+  {
+    QueryContextAttributes(security_context, SECPKG_ATTR_STREAM_SIZES, &out_socket->sizes);
   }
 
   return(result);
@@ -725,6 +797,16 @@ internal Network_Return_Code network_cleanup()
   Network_Return_Code result = network_ok;
 
   WSACleanup();
+
+  return(result);
+}
+
+internal DWORD iocp_thread_proc(LPVOID _iocp_handle)
+{
+  DWORD result = 0;
+
+  HANDLE iocp_handle = (HANDLE) _iocp_handle;
+  unused(iocp_handle);
 
   return(result);
 }

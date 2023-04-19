@@ -10,6 +10,7 @@
 #include <intrin.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <mswsock.h>
 
 #define SECURITY_WIN32
 #include <security.h>
@@ -298,25 +299,21 @@ WinMain(HINSTANCE instance,
 
   u16 port = 443;
 
-  Socket tls_socket = {};
+  HANDLE iocp_handle = INVALID_HANDLE_VALUE;
   {
-    network_connect(host_name, port, &tls_socket);
+    // TODO(antonio): use completion key to distinguish handles?
+    iocp_handle = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 0);
+    if (iocp_handle == INVALID_HANDLE_VALUE)
+    {
+      assert(!"could not create an I/O completion port");
+    }
 
-    utf8 _header[1024];
-    Buffer header = buffer_from_fixed_size(_header);
-    header.used = stbsp_snprintf((char *) header.data,
-                                 (int) header.size,
-                                 "GET / HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n",
-                                 host_name);
-
-    network_send(&tls_socket, header);
-
-    // NOTE(antonio): tls receive
-    u8 _receive_buffer[kb(512)] = {};
-    Buffer receive_buffer = buffer_from_fixed_size(_receive_buffer);
-
-    network_receive(&tls_socket, &receive_buffer);
+    // TODO(antonio): completion key
+    // iocp_handle = CreateIoCompletionPort((HANDLE) tls_socket.socket, iocp_handle, (ULONG_PTR) NULL, 0);
   }
+
+  Socket tls_socket;
+  network_connect(host_name, port, &tls_socket);
 
   if (ShowWindow(win32_global_state.window_handle, SW_NORMAL) && UpdateWindow(win32_global_state.window_handle))
   {

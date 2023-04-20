@@ -2,6 +2,7 @@
 #define NO_MIN_MAX
 #define UNICODE
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
 #include <windows.h>
 
 #include <memoryapi.h>
@@ -11,6 +12,8 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <mswsock.h>
+
+#include <stdio.h>
 
 #define SECURITY_WIN32
 #include <security.h>
@@ -292,12 +295,14 @@ WinMain(HINSTANCE instance,
     }
   }
 
+#if 0
   network_startup();
 
   u8 _host_name[] = "finnhub.io";
   String_Const_utf8 host_name = string_literal_init(_host_name);
 
   u16 port = 443;
+#endif
 
   HANDLE iocp_handle = INVALID_HANDLE_VALUE;
   {
@@ -312,8 +317,48 @@ WinMain(HINSTANCE instance,
     // iocp_handle = CreateIoCompletionPort((HANDLE) tls_socket.socket, iocp_handle, (ULONG_PTR) NULL, 0);
   }
 
+#if 0
   Socket tls_socket;
   network_connect(host_name, port, &tls_socket);
+
+  u8 _request_header[1024];
+  Buffer request_header = buffer_from_fixed_size(_request_header);
+
+  request_header.used =
+    (u64) stbsp_snprintf((char *) request_header.data,
+                         (int) request_header.size,
+                         "GET / HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n",
+                         (char *) host_name.str);
+
+  network_send(&tls_socket, request_header);
+
+  FILE *response = fopen("response.txt", "wb");
+  i64 received = 0;
+
+  while (true)
+  {
+    char _receive_buf[65536] = {};
+    Buffer receive_buffer = buffer_from_fixed_size(_receive_buf);
+
+    Network_Return_Code receive_code = network_receive(&tls_socket, &receive_buffer);
+
+    /*
+    if (receive_buffer.used == 0)
+    {
+      break;
+    }
+    */
+
+    if (receive_code == network_ok)
+    {
+      fwrite(receive_buffer.data, 1, receive_buffer.used, response);
+      fflush(response);
+      received += receive_buffer.used;
+    }
+  }
+
+  fclose(response);
+#endif
 
   if (ShowWindow(win32_global_state.window_handle, SW_NORMAL) && UpdateWindow(win32_global_state.window_handle))
   {
@@ -664,15 +709,7 @@ WinMain(HINSTANCE instance,
         DispatchMessage(&message);
       }
 
-      static FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-
-      background_color[0] += 0.005f;
-
-      if (background_color[0] > 1.0f)
-      {
-        background_color[0] = 0.0f;
-      }
-
+      FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
       device_context->ClearRenderTargetView(frame_buffer_view, background_color);
       device_context->OMSetRenderTargets(1, &frame_buffer_view, NULL);
 

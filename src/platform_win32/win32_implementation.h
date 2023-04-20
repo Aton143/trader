@@ -192,6 +192,12 @@ File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u6
   return(file_buffer);
 }
 
+internal b32 is_nil_socket(Socket *check)
+{
+  b32 result = (check->socket == nil_socket.socket);
+  return(result);
+}
+
 internal Network_Return_Code network_startup()
 {
   Network_Return_Code result = network_ok;
@@ -276,6 +282,7 @@ Network_Return_Code network_connect(String_Const_utf8 host_name, u16 port, Socke
       cred.dwCredFormat            = 0;
     };
 
+
     SECURITY_STATUS acquire_result =
       AcquireCredentialsHandleA(NULL,
                                 UNISP_NAME_A,
@@ -336,6 +343,10 @@ Network_Return_Code network_connect(String_Const_utf8 host_name, u16 port, Socke
                                                      &out_desc,
                                                      &security_init_flags,
                                                      NULL);
+
+    int i = sizeof(sec);
+    unused(i);
+    assert((sec >= 0) && "expected to get security context");
 
     // NOTE(antonio): after first call to InitializeSecurityContextA, context will be available and can be reused 
     security_context = &out_socket->security_context;
@@ -441,10 +452,7 @@ Network_Return_Code network_connect(String_Const_utf8 host_name, u16 port, Socke
     if (out_socket->received == sizeof(out_socket->incoming))
     {
       result = network_error_unknown;
-
       network_disconnect(out_socket);
-      copy_struct(out_socket, &nil_socket);
-
       break;
     }
 
@@ -466,21 +474,22 @@ Network_Return_Code network_connect(String_Const_utf8 host_name, u16 port, Socke
                                  &receive_buffer, 1,
                                  (LPDWORD) &bytes_received,
                                  (LPDWORD) &flags,
-                                 &overlapped,
+                                 NULL,// &overlapped,
                                  NULL);
 
-    if (receive_result == WSA_IO_PENDING)
+    if ((receive_result == WSA_IO_PENDING) || 
+        (WSAGetLastError() == ERROR_IO_PENDING))
     {
       assert("iocp - unimplemented");
     }
 
     if (bytes_received == 0)
     {
+      DWORD error;
+      error = WSAGetLastError();
+
       result = network_error_socket_disconnected;
-
       network_disconnect(out_socket);
-      copy_struct(out_socket, &nil_socket);
-
       break;
     }
     else if (bytes_received < 0)
@@ -503,6 +512,7 @@ Network_Return_Code network_connect(String_Const_utf8 host_name, u16 port, Socke
     FreeCredentialsHandle(&out_socket->cred_handle);
 
     closesocket(out_socket->socket);
+    copy_struct(out_socket, &nil_socket);
   }
   else
   {
@@ -520,7 +530,7 @@ Network_Return_Code network_send(Socket *in_socket, Buffer to_send)
 
   u64 send_size = (u64) to_send.used;
 
-  if (compare_struct_shallow(in_socket, &nil_socket) != 0)
+  if (!is_nil_socket(in_socket))
   {
     // NOTE(antonio): encrypt and send
     while (send_size != 0)
@@ -569,7 +579,28 @@ Network_Return_Code network_send(Socket *in_socket, Buffer to_send)
         i32 bytes_left_to_send = total_buffer_size - sent;
         u8 *buffer_start = wbuffer.data + sent;
 
-        i32 bytes_sent = send(in_socket->socket, (char *) buffer_start, bytes_left_to_send, 0);
+        WSABUF send_buffers[1] = {};
+        {
+          send_buffers[0].len = bytes_left_to_send;
+          send_buffers[0].buf = (CHAR *) buffer_start;
+        }
+
+        WSAOVERLAPPED overlapped = {};
+        {
+          overlapped.hEvent = WSACreateEvent();
+        }
+
+        i32 bytes_sent = 0;
+        i32 send_result = WSASend(in_socket->socket,
+                                  send_buffers, 1,
+                                  (LPDWORD) &bytes_sent, 0,
+                                  &overlapped, NULL);
+
+        if (send_result == WSA_IO_PENDING)
+        {
+          assert("unimplemented - iocp");
+        }
+
         if (bytes_sent <= 0)
         {
           // NOTE(antonio): error sending data to socket, or server disconnected
@@ -595,7 +626,7 @@ internal Network_Return_Code network_receive(Socket *in_socket, Buffer *out_rece
   assert(in_socket          != NULL);
   assert(out_receive_buffer != NULL);
 
-  if (compare_struct_shallow(in_socket, &nil_socket) != 0)
+  if (!is_nil_socket(in_socket))
   {
     i64 read_result = 0;
     while (out_receive_buffer->used < out_receive_buffer->size)
@@ -640,8 +671,8 @@ internal Network_Return_Code network_receive(Socket *in_socket, Buffer *out_rece
             assert(in_socket->sizes.cBuffers == array_count(sec_buffers));
 
             sec_buffers[0].BufferType = SECBUFFER_DATA;
-            sec_buffers[0].pvBuffer = in_socket->incoming;
-            sec_buffers[0].cbBuffer = in_socket->received;
+            sec_buffers[0].pvBuffer   = in_socket->incoming;
+            sec_buffers[0].cbBuffer   = in_socket->received;
 
             sec_buffers[1].BufferType = SECBUFFER_EMPTY;
             sec_buffers[2].BufferType = SECBUFFER_EMPTY;
@@ -686,8 +717,11 @@ internal Network_Return_Code network_receive(Socket *in_socket, Buffer *out_rece
           else if (sec != SEC_E_INCOMPLETE_MESSAGE)
           {
             // NOTE(antonio): some other schannel or TLS protocol error
-            result = network_error_unknown;
-            break;
+            DWORD error;
+            error = WSAGetLastError();
+
+            // result = network_error_unknown;
+            // break;
           }
           // NOTE(antonio): otherwise sec == SEC_E_INCOMPLETE_MESSAGE which means need to read more data
         }
@@ -705,13 +739,38 @@ internal Network_Return_Code network_receive(Socket *in_socket, Buffer *out_rece
         assert(!"server is sending too much garbage data instead of proper TLS packet");
       }
 
+      WSABUF receive_buffers[1] = {};
+      {
+        receive_buffers[0].len = sizeof(in_socket->incoming) - in_socket->received;
+        receive_buffers[0].buf = (CHAR *) (in_socket->incoming - in_socket->received);
+      }
+
+      WSAOVERLAPPED overlapped = {};
+      {
+        overlapped.hEvent = WSACreateEvent();
+      }
+
       // wait for more ciphertext data from server
-      i32 bytes_received = recv(in_socket->socket,
-                                (char *) (in_socket->incoming + in_socket->received),
-                                sizeof(in_socket->incoming) - in_socket->received,
-                                0);
+      i32 flags = 0;
+      i32 bytes_received = 0;
+      i32 receive_result = WSARecv(in_socket->socket,
+                                   receive_buffers, 1,
+                                   (LPDWORD) &bytes_received,
+                                   (LPDWORD) &flags,
+                                   NULL,//&overlapped,
+                                   NULL);
+
+      if ((receive_result == WSA_IO_PENDING) ||
+          (WSAGetLastError() == ERROR_IO_PENDING))
+      {
+        assert("unimplemented - iocp");
+      }
+
       if (bytes_received == 0)
       {
+        DWORD error;
+        error = WSAGetLastError();
+
         result = network_error_socket_disconnected;
         break;
       }

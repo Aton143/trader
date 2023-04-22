@@ -25,7 +25,8 @@ typedef i32 Network_Return_Code;
 external struct Socket;
 external Socket nil_socket;
 
-internal b32 is_nil_socket(Socket *check);
+internal void make_nil(Socket *check);
+internal b32 is_nil(Socket *check);
 
 internal Network_Return_Code network_startup();
 internal Network_Return_Code network_connect(String_Const_utf8 host_name, u16 port, Socket *out_socket);

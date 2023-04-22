@@ -15,21 +15,15 @@
 
 #include <stdio.h>
 
-#define SECURITY_WIN32
-#include <security.h>
-#include <schannel.h>
-
 #define TLS_MAX_PACKET_SIZE (16384 + 512)
 
 #include <d3d11_1.h>
 #include <d3dcompiler.h>
 
-#pragma comment (lib, "secur32.lib")
 #pragma comment(lib, "Kernel32.lib")
 #pragma comment(lib, "User32.lib")
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "d3dcompiler.lib")
-#pragma comment(lib, "winhttp.lib")
 #pragma comment (lib, "Ws2_32.lib")
 #pragma comment (lib, "Mswsock.lib")
 #pragma comment (lib, "AdvApi32.lib")
@@ -619,25 +613,27 @@ WinMain(HINSTANCE instance,
       assert(SUCCEEDED(result));
     }
 
-    ID3D11ShaderResourceView *texture_view = NULL;
+    ID3D11ShaderResourceView *font_texture_view = NULL;
     {
       D3D11_TEXTURE2D_DESC texture_description = {};
-
-      texture_description.Width            = font_data.bitmap.height;
-      texture_description.Height           = font_data.bitmap.width;
-      texture_description.MipLevels        = 1;
-      texture_description.ArraySize        = 1;
-      texture_description.Format           = DXGI_FORMAT_R8_UNORM;
-      texture_description.SampleDesc.Count = 1;
-      texture_description.Usage            = D3D11_USAGE_DEFAULT;
-      texture_description.BindFlags        = D3D11_BIND_SHADER_RESOURCE;
-      texture_description.CPUAccessFlags   = 0;
+      {
+        texture_description.Width            = font_data.bitmap.height;
+        texture_description.Height           = font_data.bitmap.width;
+        texture_description.MipLevels        = 1;
+        texture_description.ArraySize        = 1;
+        texture_description.Format           = DXGI_FORMAT_R8_UNORM;
+        texture_description.SampleDesc.Count = 1;
+        texture_description.Usage            = D3D11_USAGE_DEFAULT;
+        texture_description.BindFlags        = D3D11_BIND_SHADER_RESOURCE;
+        texture_description.CPUAccessFlags   = 0;
+      }
 
       D3D11_SUBRESOURCE_DATA subresource = {};
-
-      subresource.pSysMem = font_data.bitmap.alpha;
-      subresource.SysMemPitch = texture_description.Width * 1;
-      subresource.SysMemSlicePitch = 0;
+      {
+        subresource.pSysMem          = font_data.bitmap.alpha;
+        subresource.SysMemPitch      = texture_description.Width * 1;
+        subresource.SysMemSlicePitch = 0;
+      }
 
       ID3D11Texture2D *texture_2d = NULL;
       HRESULT result = device->CreateTexture2D(&texture_description, &subresource, &texture_2d);
@@ -645,13 +641,14 @@ WinMain(HINSTANCE instance,
       assert(SUCCEEDED(result));
 
       D3D11_SHADER_RESOURCE_VIEW_DESC shader_resource_view_description = {};
+      {
+        shader_resource_view_description.Format                    = DXGI_FORMAT_R8_UNORM;
+        shader_resource_view_description.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
+        shader_resource_view_description.Texture2D.MipLevels       = texture_description.MipLevels;
+        shader_resource_view_description.Texture2D.MostDetailedMip = 0;
+      }
 
-      shader_resource_view_description.Format                    = DXGI_FORMAT_R8_UNORM;
-      shader_resource_view_description.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
-      shader_resource_view_description.Texture2D.MipLevels       = texture_description.MipLevels;
-      shader_resource_view_description.Texture2D.MostDetailedMip = 0;
-
-      result = device->CreateShaderResourceView(texture_2d, &shader_resource_view_description, &texture_view);
+      result = device->CreateShaderResourceView(texture_2d, &shader_resource_view_description, &font_texture_view);
       texture_2d->Release();
 
       assert(SUCCEEDED(result));
@@ -709,11 +706,49 @@ WinMain(HINSTANCE instance,
         DispatchMessage(&message);
       }
 
+      if (global_window_resized)
+      {
+        global_window_resized = false;
+
+        device_context->OMSetRenderTargets(0, 0, 0);
+        frame_buffer_view->Release();
+
+        HRESULT result = swap_chain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
+        assert(SUCCEEDED(result));
+
+        ID3D11Texture2D* frame_buffer = NULL;
+        result = swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **) &frame_buffer);
+        assert(SUCCEEDED(result));
+
+        result = device->CreateRenderTargetView(frame_buffer, NULL, &frame_buffer_view);
+        assert(SUCCEEDED(result));
+        frame_buffer->Release();
+      }
+
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
       device_context->ClearRenderTargetView(frame_buffer_view, background_color);
       device_context->OMSetRenderTargets(1, &frame_buffer_view, NULL);
 
       Rect_f32 client_rect = render_get_client_rect();
+
+      {
+        Constant_Buffer constant_buffer_items = {};
+        {
+          constant_buffer_items.client_width  = client_rect.x1;
+          constant_buffer_items.client_height = client_rect.y1;
+
+          constant_buffer_items.font_atlas_width  = (f32) font_data.bitmap.width;
+          constant_buffer_items.font_atlas_height = (f32) font_data.bitmap.height;
+        }
+
+        D3D11_MAPPED_SUBRESOURCE mapped_subresource = {};
+        device_context->Map(constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
+
+        Constant_Buffer *constants_to_fill = (Constant_Buffer *) mapped_subresource.pData;
+        copy_struct(constants_to_fill, &constant_buffer_items);
+
+        device_context->Unmap(constant_buffer, 0);
+      }
 
       D3D11_VIEWPORT viewport =
       {
@@ -726,19 +761,19 @@ WinMain(HINSTANCE instance,
 
       device_context->IASetInputLayout(input_layout);
 
-      u32 instance_buffer_strides[] = {0};
+      u32 instance_buffer_strides[] = {sizeof(Instance_Buffer_Element)};
       u32 instance_buffer_offsets[] = {0};
       device_context->IASetVertexBuffers(0, 1, &instance_buffer,
-                                         (UINT *) instance_buffer_strides,
-                                         (UINT *) instance_buffer_offsets);
+                                         instance_buffer_strides,
+                                         instance_buffer_offsets);
 
       device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
       device_context->VSSetShader(vertex_shader, NULL, 0);
-      // device_context->VSSetConstantBuffers(0, 1, vertex_constant_buffer);
+      device_context->VSSetConstantBuffers(0, 1, &constant_buffer);
 
       device_context->PSSetShader(pixel_shader, NULL, 0);
-      device_context->PSSetShaderResources(0, 1, &texture_view);
+      device_context->PSSetShaderResources(0, 1, &font_texture_view);
       device_context->PSSetSamplers(0, 1, &sampler_state);
 
       device_context->GSSetShader(NULL, NULL, 0);

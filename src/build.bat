@@ -16,6 +16,8 @@ REM W4127: Ignore "conditional expression is constant" warnings
 REM incremental:no: Specifies whether to link incrementally or always perform a full link
 REM opt:ref: eliminates functions and data that are never referenced
 
+set INCLUDE_DIRS=/I ..\src\foreign
+
 IF NOT EXIST ..\build mkdir ..\build
 pushd ..\build
 
@@ -23,7 +25,7 @@ REM 64-bit build
 
 del *.pdb > NUL 2> NUL
 
-cl ..\src\platform_win32\win32_trader.cpp /nologo /Od /Oi /FC /Z7  /WX /W4 /MTd /Gm- /GR- /wd4201 /wd4505 /link /incremental:no /opt:ref 
+cl ..\src\platform_win32\win32_trader.cpp /nologo /Od /Oi /FC /Z7 /WX /W4 /MTd /Gm- /GR- /wd4201 /EHa- /EHc- /EHsc- /wd4505 %INCLUDE_DIRS% /link /incremental:no /opt:ref 
 
 popd
 

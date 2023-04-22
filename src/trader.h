@@ -2,6 +2,8 @@
 
 #define TRADER_VERSION 1LL
 
+#include <openssl/base.h>
+
 #include "trader_base_defines.h"
 
 #include "trader_memory.h"

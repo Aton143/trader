@@ -158,6 +158,10 @@ typedef i64      b64;
 #define stringify_(a) #a
 #define stringify(a) stringify_(a)
 
+#ifdef swap
+#undef swap
+#endif
+
 #define swap(t,a,b) macro_do(t concat(hidden_temp_,__LINE__) = a; a = b; b = concat(hidden_temp_,__LINE__))
 
 #define assert_implies(a,b) assert(!(a) || (b))

@@ -17,7 +17,12 @@ struct Render_Context
 
 struct Socket
 {
-  SOCKET                    socket;
+  SOCKET socket;
+
+  SSL   *ssl_state;
+
+  BIO   *ssl_send;
+  BIO   *ssl_receive;
 };
 Socket nil_socket = {INVALID_SOCKET};
 
@@ -181,7 +186,7 @@ File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u6
   return(file_buffer);
 }
 
-internal Network_Return_Code network_startup()
+internal Network_Return_Code network_startup(Network_State *out_state)
 {
   Network_Return_Code result = network_ok;
 
@@ -189,11 +194,27 @@ internal Network_Return_Code network_startup()
   i32 winsock_result = WSAStartup(MAKEWORD(2, 2), &winsock_metadata);
   assert((winsock_result == 0) && "expected winsock dll to load");
 
+  {
+    assert((out_state != NULL) && "expected out_state to be valid");
+
+    const SSL_METHOD *client_method = NULL;
+    client_method = TLS_client_method();
+
+    out_state->ssl_context = SSL_CTX_new(client_method);
+    assert((out_state->ssl_context != NULL) && "expected to create an ssl context");
+
+    SSL_CTX_set_verify(out_state->ssl_context, SSL_VERIFY_PEER, NULL);
+
+    // TODO(antonio): certificate?
+  }
+
   return(result);
 }
 
-Network_Return_Code network_connect(String_Const_utf8 host_name, u16 port, Socket *out_socket)
+Network_Return_Code network_connect(Network_State *state, String_Const_utf8 host_name, u16 port, Socket *out_socket)
 {
+  unused(state);
+
   Network_Return_Code result = network_ok;
 
   assert(out_socket    != NULL);
@@ -241,12 +262,24 @@ Network_Return_Code network_connect(String_Const_utf8 host_name, u16 port, Socke
                                    0, NULL, 0, NULL, NULL, NULL);
   assert(connected && "expected connection");
 
+  out_socket->ssl_state = SSL_new(state->ssl_context);
+
+  // TODO(antonio): use our memory buffers
+  out_socket->ssl_send    = BIO_new(BIO_s_mem());
+  out_socket->ssl_receive = BIO_new(BIO_s_mem());
+
+  BIO_set_mem_eof_return(out_socket->ssl_send, -1);
+  BIO_set_mem_eof_return(out_socket->ssl_receive, -1);
+
+  SSL_set_bio(out_socket->ssl_state, out_socket->ssl_receive, out_socket->ssl_send);
+  SSL_set_connect_state(out_socket->ssl_state);
 
   return(result);
 }
 
-Network_Return_Code network_send(Socket *in_socket, Buffer to_send)
+Network_Return_Code network_send(Network_State *state, Socket *in_socket, Buffer to_send)
 {
+  unused(state);
   unused(to_send);
 
   Network_Return_Code result = network_ok;
@@ -263,8 +296,9 @@ Network_Return_Code network_send(Socket *in_socket, Buffer to_send)
   return(result);
 }
 
-internal Network_Return_Code network_receive(Socket *in_socket, Buffer *out_receive_buffer)
+internal Network_Return_Code network_receive(Network_State *state, Socket *in_socket, Buffer *out_receive_buffer)
 {
+  unused(state);
   unused(out_receive_buffer);
 
   Network_Return_Code result = network_ok;
@@ -279,8 +313,10 @@ internal Network_Return_Code network_receive(Socket *in_socket, Buffer *out_rece
   return(result);
 }
 
-internal Network_Return_Code network_disconnect(Socket *in_out_socket)
+internal Network_Return_Code network_disconnect(Network_State *state, Socket *in_out_socket)
 {
+  unused(state);
+
   Network_Return_Code result = network_ok;
 
   assert(in_out_socket != NULL);
@@ -292,8 +328,10 @@ internal Network_Return_Code network_disconnect(Socket *in_out_socket)
   return(result);
 }
 
-internal Network_Return_Code network_cleanup()
+internal Network_Return_Code network_cleanup(Network_State *state)
 {
+  unused(state);
+
   Network_Return_Code result = network_ok;
 
   WSACleanup();

@@ -289,15 +289,18 @@ WinMain(HINSTANCE instance,
     }
   }
 
-#if 0
-  network_startup();
+  Network_State network_state = {};
+  network_startup(&network_state);
 
   u8 _host_name[] = "finnhub.io";
   String_Const_utf8 host_name = string_literal_init(_host_name);
 
   u16 port = 443;
-#endif
 
+  Socket tls_socket;
+  network_connect(&network_state, host_name, port, &tls_socket);
+
+#if 0
   HANDLE iocp_handle = INVALID_HANDLE_VALUE;
   {
     // TODO(antonio): use completion key to distinguish handles?
@@ -311,9 +314,6 @@ WinMain(HINSTANCE instance,
     // iocp_handle = CreateIoCompletionPort((HANDLE) tls_socket.socket, iocp_handle, (ULONG_PTR) NULL, 0);
   }
 
-#if 0
-  Socket tls_socket;
-  network_connect(host_name, port, &tls_socket);
 
   u8 _request_header[1024];
   Buffer request_header = buffer_from_fixed_size(_request_header);
@@ -351,7 +351,6 @@ WinMain(HINSTANCE instance,
     }
   }
 
-  fclose(response);
 #endif
 
   if (ShowWindow(win32_global_state.window_handle, SW_NORMAL) && UpdateWindow(win32_global_state.window_handle))

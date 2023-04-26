@@ -62,8 +62,9 @@ i64 set_memory_block(void *dest, u8 val, i64 byte_count)
 
   return(byte_index);
 }
-#define zero_memory_block(dest, byte_count) set_memory_block((dest), 0, (byte_count))
+#define zero_memory_block(dest, byte_count) set_memory_block((void *) (dest), 0, (byte_count))
 #define zero_struct(dest) zero_memory_block((dest), sizeof(*(dest)))
+#define zero_literal(literal) zero_memory_block(literal, sizeof(literal))
 
 i64 move_memory_block(void *dest, void *source, i64 byte_count)
 {

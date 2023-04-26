@@ -257,22 +257,39 @@ Network_Return_Code network_connect(Network_State *state, String_Const_utf8 host
   assert((set_result == 0) && "could not disable send buffering");
 #endif
 
+  {
+    out_socket->ssl_state = SSL_new(state->ssl_context);
+
+    // TODO(antonio): use our memory buffers
+    BIO_new_bio_pair(&out_socket->ssl_send, 0, &out_socket->ssl_receive, 0);
+
+    assert((out_socket->ssl_send    != NULL) && "expected to make a send BIO");
+    assert((out_socket->ssl_receive != NULL) && "expected to make a receive BIO");
+
+    SSL_set_bio(out_socket->ssl_state, out_socket->ssl_receive, out_socket->ssl_send);
+
+    SSL_set_connect_state(out_socket->ssl_state);
+
+    assert((host_name.size <= SSL_MAX_HOST_NAME_LENGTH) && "the host name is too long");
+
+    i32 ssl_result = SSL_set_tlsext_host_name(out_socket->ssl_state, (char *) host_name.str);
+    assert((ssl_result == 1) && "no tls extension :(");
+
+    ssl_result = SSL_add1_host(out_socket->ssl_state, (char *) host_name.str);
+    assert((ssl_result == 1) && "could not add host name");
+  }
+
   b32 connected = WSAConnectByNameA(out_socket->socket,
                                    (char *) host_name.str, (char *) port_name,
                                    0, NULL, 0, NULL, NULL, NULL);
   assert(connected && "expected connection");
 
-  out_socket->ssl_state = SSL_new(state->ssl_context);
-
-  // TODO(antonio): use our memory buffers
-  out_socket->ssl_send    = BIO_new(BIO_s_mem());
-  out_socket->ssl_receive = BIO_new(BIO_s_mem());
-
-  BIO_set_mem_eof_return(out_socket->ssl_send, -1);
-  BIO_set_mem_eof_return(out_socket->ssl_receive, -1);
-
-  SSL_set_bio(out_socket->ssl_state, out_socket->ssl_receive, out_socket->ssl_send);
-  SSL_set_connect_state(out_socket->ssl_state);
+  // TODO(antonio): wrap up? resumption?
+  i32 ssl_result = SSL_do_handshake(out_socket->ssl_state);
+  if (ssl_result == SSL_ERROR)
+  {
+    network_print_error();
+  }
 
   return(result);
 }
@@ -347,6 +364,11 @@ internal DWORD iocp_thread_proc(LPVOID _iocp_handle)
   unused(iocp_handle);
 
   return(result);
+}
+
+void platform_print(const char *format, ...)
+{
+  OutputDebugStringA(format);
 }
 
 #define WIN32_IMPLEMENTATION_H

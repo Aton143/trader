@@ -1,5 +1,7 @@
 #ifndef TRADER_H
 
+#include <stdarg.h>
+
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 

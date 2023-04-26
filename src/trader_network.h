@@ -5,6 +5,10 @@ struct Network_State
   SSL_CTX *ssl_context;
 };
 
+#define SSL_MAX_HOST_NAME_LENGTH 255
+#define SSL_OK                   1
+#define SSL_ERROR                0
+
 enum
 {
   network_ok,
@@ -42,6 +46,19 @@ internal Network_Return_Code network_send(Network_State *state, Socket *in_socke
 internal Network_Return_Code network_receive(Network_State *state, Socket *in_socket, Buffer *in_receive);
 
 internal Network_Return_Code network_cleanup(Network_State *out_state);
+
+internal void network_print_error();
+
+// implementation
+internal void network_print_error()
+{
+  local_persist u8 network_error_buffer[512] = {};
+  zero_literal(network_error_buffer);
+
+  u32 ssl_error = ERR_get_error();
+  ERR_error_string_n(ssl_error, (char *) network_error_buffer, array_count(network_error_buffer) - 1);
+  platform_print((char *) network_error_buffer);
+}
 
 #define TRADER_NETWORK_H
 #endif

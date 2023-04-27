@@ -2,7 +2,7 @@
 A multiplatform, performant trading client and GUI with very few dependencies.
 
 ## What trader can do
-This project is still in its early stages, so to say. Right now, it supports HTTPS using a blocking- and sockets-based architeture sockets on Windows and has a Direct3D 11 rendering backend.
+This project is still in its early stages, so to say. Right now, it supports HTTPS using a blocking- and sockets-based architecture sockets on Windows and has a Direct3D 11 rendering backend.
 
 ## Planned features
 - [ ] OpenGL backend for Linux

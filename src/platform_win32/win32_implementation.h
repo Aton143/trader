@@ -20,9 +20,6 @@ struct Socket
   SOCKET socket;
 
   SSL   *ssl_state;
-
-  BIO   *ssl_send;
-  BIO   *ssl_receive;
 };
 Socket nil_socket = {INVALID_SOCKET};
 
@@ -206,6 +203,12 @@ internal Network_Return_Code network_startup(Network_State *out_state)
     SSL_CTX_set_verify(out_state->ssl_context, SSL_VERIFY_PEER, NULL);
 
     // TODO(antonio): certificate?
+    i32 ssl_result = SSL_CTX_set_default_verify_paths(out_state->ssl_context);
+    if (ssl_result != SSL_OK)
+    {
+      result = network_error_client_certificate_needed;
+      network_print_error();
+    }
   }
 
   return(result);
@@ -237,12 +240,12 @@ Network_Return_Code network_connect(Network_State *state, String_Const_utf8 host
   i32 found_addr = getaddrinfo((char *) host_name.str, (char *) port_name, &addr_hints, &addr_found);
   assert((found_addr == 0) && (addr_found != NULL) && "could not get address info for the given host name");
 
+  // TODO(antonio): WSA_FLAG_OVERLAPPED
   out_socket->socket = WSASocket(addr_found->ai_family,
                                  addr_found->ai_socktype,
                                  addr_found->ai_protocol,
                                  NULL,
-                                 0,
-                                 WSA_FLAG_OVERLAPPED); 
+                                 0, 0); 
 
   assert((out_socket->socket != INVALID_SOCKET) && "expected connection");
 
@@ -257,22 +260,20 @@ Network_Return_Code network_connect(Network_State *state, String_Const_utf8 host
   assert((set_result == 0) && "could not disable send buffering");
 #endif
 
+  i32 ssl_result;
   {
     out_socket->ssl_state = SSL_new(state->ssl_context);
 
-    // TODO(antonio): use our memory buffers
-    BIO_new_bio_pair(&out_socket->ssl_send, 0, &out_socket->ssl_receive, 0);
-
-    assert((out_socket->ssl_send    != NULL) && "expected to make a send BIO");
-    assert((out_socket->ssl_receive != NULL) && "expected to make a receive BIO");
-
-    SSL_set_bio(out_socket->ssl_state, out_socket->ssl_receive, out_socket->ssl_send);
+    ssl_result = SSL_set_fd(out_socket->ssl_state, (int) out_socket->socket);
+    if (ssl_result != SSL_OK)
+    {
+      network_print_error();
+    }
 
     SSL_set_connect_state(out_socket->ssl_state);
 
     assert((host_name.size <= SSL_MAX_HOST_NAME_LENGTH) && "the host name is too long");
-
-    i32 ssl_result = SSL_set_tlsext_host_name(out_socket->ssl_state, (char *) host_name.str);
+    ssl_result = SSL_set_tlsext_host_name(out_socket->ssl_state, (char *) host_name.str);
     assert((ssl_result == 1) && "no tls extension :(");
 
     ssl_result = SSL_add1_host(out_socket->ssl_state, (char *) host_name.str);
@@ -285,7 +286,7 @@ Network_Return_Code network_connect(Network_State *state, String_Const_utf8 host
   assert(connected && "expected connection");
 
   // TODO(antonio): wrap up? resumption?
-  i32 ssl_result = SSL_do_handshake(out_socket->ssl_state);
+  ssl_result = SSL_do_handshake(out_socket->ssl_state);
   if (ssl_result == SSL_ERROR)
   {
     network_print_error();
@@ -294,38 +295,54 @@ Network_Return_Code network_connect(Network_State *state, String_Const_utf8 host
   return(result);
 }
 
-Network_Return_Code network_send(Network_State *state, Socket *in_socket, Buffer to_send)
-{
-  unused(state);
-  unused(to_send);
 
+Network_Return_Code network_send_simple(Network_State *state, Socket *in_socket, Buffer *to_send)
+{
   Network_Return_Code result = network_ok;
 
-  assert(to_send.data != NULL);
-
-  u64 send_size = (u64) to_send.used;
-  unused(send_size);
+  unused(state);
+  assert(to_send->data != NULL);
 
   if (!is_nil(in_socket))
   {
+    i32 bytes_sent = SSL_write(in_socket->ssl_state, to_send->data, (i32) to_send->used);
+    if (bytes_sent <= 0) {
+      result = network_error_send_failure;
+      network_print_error();
+    }
   }
 
   return(result);
 }
 
-internal Network_Return_Code network_receive(Network_State *state, Socket *in_socket, Buffer *out_receive_buffer)
+internal Network_Return_Code network_receive_simple(Network_State *state, Socket *in_socket, Buffer *receive_buffer)
 {
   unused(state);
-  unused(out_receive_buffer);
+  unused(receive_buffer);
 
   Network_Return_Code result = network_ok;
 
   assert(in_socket          != NULL);
-  assert(out_receive_buffer != NULL);
+  assert(receive_buffer != NULL);
 
   if (!is_nil(in_socket))
   {
+    do
+    {
+      i32 bytes_received = SSL_read(in_socket->ssl_state, receive_buffer->data, (i32) receive_buffer->size - 1);
+      if (bytes_received > 0)
+      {
+        receive_buffer->used = bytes_received;
+        OutputDebugStringA((char * ) receive_buffer->data);
+      }
+      else
+      {
+        network_print_error();
+      }
+    } while (SSL_has_pending(in_socket->ssl_state));
   }
+
+  network_print_error();
 
   return(result);
 }

@@ -289,17 +289,6 @@ WinMain(HINSTANCE instance,
     }
   }
 
-  Network_State network_state = {};
-  network_startup(&network_state);
-
-  u8 _host_name[] = "finnhub.io";
-  String_Const_utf8 host_name = string_literal_init(_host_name);
-
-  u16 port = 443;
-
-  Socket tls_socket;
-  network_connect(&network_state, host_name, port, &tls_socket);
-
 #if 0
   HANDLE iocp_handle = INVALID_HANDLE_VALUE;
   {
@@ -313,10 +302,24 @@ WinMain(HINSTANCE instance,
     // TODO(antonio): completion key
     // iocp_handle = CreateIoCompletionPort((HANDLE) tls_socket.socket, iocp_handle, (ULONG_PTR) NULL, 0);
   }
+#endif
 
+  Network_State network_state = {};
+  network_startup(&network_state);
 
-  u8 _request_header[1024];
+  u8 _host_name[] = "finnhub.io";
+  String_Const_utf8 host_name = string_literal_init(_host_name);
+
+  u16 port = 443;
+
+  Socket tls_socket;
+  network_connect(&network_state, host_name, port, &tls_socket);
+
+  u8 _request_header[1024] = {};
   Buffer request_header = buffer_from_fixed_size(_request_header);
+
+  u8 _receive_buffer[kb(32)] = {};
+  Buffer receive_buffer = buffer_from_fixed_size(_receive_buffer);
 
   request_header.used =
     (u64) stbsp_snprintf((char *) request_header.data,
@@ -324,34 +327,8 @@ WinMain(HINSTANCE instance,
                          "GET / HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n",
                          (char *) host_name.str);
 
-  network_send(&tls_socket, request_header);
-
-  FILE *response = fopen("response.txt", "wb");
-  i64 received = 0;
-
-  while (true)
-  {
-    char _receive_buf[65536] = {};
-    Buffer receive_buffer = buffer_from_fixed_size(_receive_buf);
-
-    Network_Return_Code receive_code = network_receive(&tls_socket, &receive_buffer);
-
-    /*
-    if (receive_buffer.used == 0)
-    {
-      break;
-    }
-    */
-
-    if (receive_code == network_ok)
-    {
-      fwrite(receive_buffer.data, 1, receive_buffer.used, response);
-      fflush(response);
-      received += receive_buffer.used;
-    }
-  }
-
-#endif
+  network_send_simple(&network_state, &tls_socket, &request_header);
+  network_receive_simple(&network_state, &tls_socket, &receive_buffer);
 
   if (ShowWindow(win32_global_state.window_handle, SW_NORMAL) && UpdateWindow(win32_global_state.window_handle))
   {

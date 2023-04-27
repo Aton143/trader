@@ -25,6 +25,9 @@ enum
   network_error_receive_failure,
   network_error_receive_unknown,
 
+  network_error_encrypt_failure,
+  network_error_decrypt_failure,
+
   network_error_unknown,
 
   network_return_code_count,
@@ -42,8 +45,8 @@ internal Network_Return_Code network_startup(Network_State *out_state);
 internal Network_Return_Code network_connect(Network_State *state, String_Const_utf8 host_name, u16 port, Socket *out_socket);
 internal Network_Return_Code network_disconnect(Network_State *state, Socket *in_out_socket);
 
-internal Network_Return_Code network_send(Network_State *state, Socket *in_socket, Buffer to_send);
-internal Network_Return_Code network_receive(Network_State *state, Socket *in_socket, Buffer *in_receive);
+internal Network_Return_Code network_send_simple(Network_State *state, Socket *in_socket, Buffer *to_send);
+internal Network_Return_Code network_receive_simple(Network_State *state, Socket *in_socket, Buffer *receive);
 
 internal Network_Return_Code network_cleanup(Network_State *out_state);
 

@@ -307,7 +307,7 @@ WinMain(HINSTANCE instance,
   Network_State network_state = {};
   network_startup(&network_state);
 
-  u8 _host_name[] = "finnhub.io";
+  u8 _host_name[] = "www.google.com";
   String_Const_utf8 host_name = string_literal_init(_host_name);
 
   u16 port = 443;

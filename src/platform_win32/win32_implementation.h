@@ -20,6 +20,7 @@ struct Socket
   SOCKET socket;
 
   SSL   *ssl_state;
+  BIO   *ssl_buffer;
 };
 Socket nil_socket = {INVALID_SOCKET};
 
@@ -333,16 +334,17 @@ internal Network_Return_Code network_receive_simple(Network_State *state, Socket
       if (bytes_received > 0)
       {
         receive_buffer->used = bytes_received;
+        receive_buffer->data[receive_buffer->used] = 0;
+
         OutputDebugStringA((char * ) receive_buffer->data);
       }
       else
       {
-        network_print_error();
+        // TODO(antonio): why did it stop - can be success or failure
+        break;
       }
-    } while (SSL_has_pending(in_socket->ssl_state));
+    } while (1);
   }
-
-  network_print_error();
 
   return(result);
 }

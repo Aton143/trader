@@ -21,6 +21,8 @@ struct Socket
 
   SSL   *ssl_state;
   BIO   *ssl_buffer;
+
+  //u8     websocket_key[32];
 };
 Socket nil_socket = {INVALID_SOCKET};
 
@@ -215,7 +217,7 @@ internal Network_Return_Code network_startup(Network_State *out_state)
   return(result);
 }
 
-Network_Return_Code network_connect(Network_State *state, String_Const_utf8 host_name, u16 port, Socket *out_socket)
+internal Network_Return_Code network_connect(Network_State *state, Socket *out_socket, String_Const_utf8 host_name, u16 port)
 {
   unused(state);
 
@@ -345,6 +347,61 @@ internal Network_Return_Code network_receive_simple(Network_State *state, Socket
       }
     } while (1);
   }
+
+  network_print_error();
+
+  return(result);
+}
+
+internal Network_Return_Code network_do_websocket_handshake(Network_State *state,
+                                                            Socket *in_out_socket,
+                                                            String_Const_utf8 host_name,
+                                                            String_Const_utf8 query_path,
+                                                            String_Const_utf8 api_key)
+{
+  Network_Return_Code result = network_ok;
+
+  unused(api_key);
+
+  u8 sec_websocket_key[16] = {};
+  rng_fill_buffer(sec_websocket_key, array_count(sec_websocket_key));
+
+  u8 websocket_key[32] = {};
+  base64_encode(websocket_key, sec_websocket_key, array_count(sec_websocket_key));
+
+#if 0
+GET /chat HTTP/1.1
+Host: server.example.com
+Upgrade: websocket
+Connection: Upgrade
+Sec-WebSocket-Key: x3JJHMbDL1EzLkh9GBhXDw==
+Sec-WebSocket-Protocol: chat, superchat
+Sec-WebSocket-Version: 13
+Origin: http://example.com
+#endif
+
+  u8 websocket_handshake[1024] = {};
+  Buffer websocket_handshake_send = buffer_from_fixed_size(websocket_handshake);
+
+  websocket_handshake_send.used =
+    stbsp_snprintf((char *) websocket_handshake, array_count(websocket_handshake),
+                   "GET /%s HTTP/1.1\r\n"
+                   "Host: %s\r\n"
+                   "Upgrade: websocket\r\n"
+                   "Connection: Upgrade\r\n"
+                   "Sec-WebSocket-Key: %s\r\n"
+                   "Sec-WebSocket-Protocol: chat, superchat\r\n"
+                   "Sec-WebSocket-Version: 13\r\n",
+                   (char *) query_path.str,
+                   (char *) host_name.str,
+                   (char *) websocket_key);
+
+  network_send_simple(state, in_out_socket, &websocket_handshake_send);
+
+  u8 _websocket_receive[kb(4)] = {};
+  Buffer websocket_receive = buffer_from_fixed_size(_websocket_receive);
+
+  network_receive_simple(state, in_out_socket, &websocket_receive);
 
   return(result);
 }

@@ -307,27 +307,34 @@ WinMain(HINSTANCE instance,
   Network_State network_state = {};
   network_startup(&network_state);
 
-  u8 _host_name[] = "www.google.com";
+  u8 _host_name[] = "reqres.in";
   String_Const_utf8 host_name = string_literal_init(_host_name);
+
+  u8 _query_path[] = "";
+  String_Const_utf8 query_path = string_literal_init(_query_path);
 
   u16 port = 443;
 
   Socket tls_socket;
-  network_connect(&network_state, host_name, port, &tls_socket);
+  network_connect(&network_state, &tls_socket, host_name, port);
 
   u8 _request_header[1024] = {};
   Buffer request_header = buffer_from_fixed_size(_request_header);
 
-  u8 _receive_buffer[kb(32)] = {};
-  Buffer receive_buffer = buffer_from_fixed_size(_receive_buffer);
-
   request_header.used =
     (u64) stbsp_snprintf((char *) request_header.data,
                          (int) request_header.size,
-                         "GET / HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n",
+                         "GET /api/users HTTP/1.1\r\n"
+                         "Host: %s\r\n"
+                         "Accept: */*\r\n"
+                         "Connection: keep-alive\r\n\r\n",
                          (char *) host_name.str);
 
   network_send_simple(&network_state, &tls_socket, &request_header);
+
+  u8 _receive_buffer[1024] = {};
+  Buffer receive_buffer = buffer_from_fixed_size(_receive_buffer);
+
   network_receive_simple(&network_state, &tls_socket, &receive_buffer);
 
   if (ShowWindow(win32_global_state.window_handle, SW_NORMAL) && UpdateWindow(win32_global_state.window_handle))

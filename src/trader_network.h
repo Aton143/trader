@@ -41,14 +41,18 @@ internal void make_nil(Socket *check);
 internal b32 is_nil(Socket *check);
 
 internal Network_Return_Code network_startup(Network_State *out_state);
+internal Network_Return_Code network_cleanup(Network_State *out_state);
 
-internal Network_Return_Code network_connect(Network_State *state, String_Const_utf8 host_name, u16 port, Socket *out_socket);
+internal Network_Return_Code network_connect(Network_State *state, Socket *out_socket, String_Const_utf8 host_name, u16 port);
 internal Network_Return_Code network_disconnect(Network_State *state, Socket *in_out_socket);
 
 internal Network_Return_Code network_send_simple(Network_State *state, Socket *in_socket, Buffer *to_send);
 internal Network_Return_Code network_receive_simple(Network_State *state, Socket *in_socket, Buffer *receive);
 
-internal Network_Return_Code network_cleanup(Network_State *out_state);
+internal Network_Return_Code network_do_websocket_handshake(Network_State *state,
+                                                            Socket *in_out_socket,
+                                                            String_Const_utf8 host_name,
+                                                            String_Const_utf8 query_path);
 
 internal void network_print_error();
 

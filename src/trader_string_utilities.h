@@ -6,7 +6,7 @@ u64 c_string_length(utf16 *string);
 
 String_Const_char string_const_char(char *string);
 String_Const_utf16 string_const_utf16(utf16 *string);
-u64 base64_encode(u8 *data, u64 data_length, u8 *out_buffer);
+u64 base64_encode(u8 *out_buffer, u8 *data, u64 data_length);
 
 // Implementation
 u64 c_string_length(char *string)
@@ -61,9 +61,9 @@ global_const u8 base64_encoding_table[] = {
 global_const i32 base64_mod_table[] = {0, 2, 1};
 
 // from https://stackoverflow.com/questions/342409/how-do-i-base64-encode-decode-in-c
-u64 base64_encode(u8 *data,
-                  u64 data_length,
-                  u8 *out_buffer)
+u64 base64_encode(u8 *out_buffer,
+                  u8 *data,
+                  u64 data_length)
 {
   u64 result = 4 * ((data_length + 2) / 3);
 

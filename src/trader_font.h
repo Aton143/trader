@@ -7,13 +7,6 @@
 #define stbtt_uint32 u32
 #define stbtt_int32  i32
 
-struct Font_Bitmap {
-  u8 *alpha;
-
-  u32 width;
-  u32 height;
-};
-
 struct Font_Data {
   Font_Bitmap       bitmap;
   stbtt_packedchar *char_data;
@@ -55,10 +48,7 @@ b32 font_initialize(Arena       *arena,
   b32 result = false;
   stbtt_fontinfo font_info = {};
 
-  {
-    Font_Data _fd;
-    assert((font_heights != NULL) && (0 < font_height_count) && font_height_count < array_count(_fd.heights));
-  }
+  assert((font_heights != NULL) && (0 < font_height_count) && font_height_count < member_array_count(Font_Data, heights));
 
   i32 font_count = stbtt_GetNumberOfFonts(font_buffer->data);
   if (font_count > 0) 

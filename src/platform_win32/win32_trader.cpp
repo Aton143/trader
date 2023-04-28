@@ -239,18 +239,31 @@ WinMain(HINSTANCE instance,
 
   SetCurrentDirectoryW((LPCWSTR) exe_file_path.str);
 
-  String_Const_utf8 default_font_path = string_literal_init_type("C:/windows/fonts/arial.ttf", utf8);
-  Arena arena = {temp_arena_data, array_count(temp_arena_data), 0, 1};
+  Arena global_arena = {};
+  unused(global_arena);
+  {
+    void *global_arena_start = (void *) global_memory_start_addr;
+    u8 *allocated = (u8 *) VirtualAlloc(global_arena_start, global_memory_size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 
-  File_Buffer arial_font = platform_open_and_read_entire_file(&arena, default_font_path.str, default_font_path.size);
+    assert((allocated != NULL) && "virtual alloc failed");
+
+    global_arena.start     = allocated;
+    global_arena.size      = global_memory_size;
+    global_arena.used      = 0;
+    global_arena.alignment = 32;
+  }
+
+  String_Const_utf8 default_font_path = string_literal_init_type("C:/windows/fonts/arial.ttf", utf8);
+
+  File_Buffer arial_font = platform_open_and_read_entire_file(&global_arena, default_font_path.str, default_font_path.size);
 
   // NOTE(antonio): default font on Windows is Arial
-  default_font = platform_open_and_read_entire_file(&arena, default_font_path.str, default_font_path.size);
+  default_font = platform_open_and_read_entire_file(&global_arena, default_font_path.str, default_font_path.size);
 
   f32 default_font_heights[] = {14.0f, 24.0f};
   Font_Data font_data;
 
-  font_initialize(&arena, &font_data, &arial_font, default_font_heights, array_count(default_font_heights));
+  font_initialize(&global_arena, &font_data, &arial_font, default_font_heights, array_count(default_font_heights));
 
   {
     WNDCLASSEXW window_class = {};
@@ -327,7 +340,7 @@ WinMain(HINSTANCE instance,
                          "GET /api/v1/search?q=apple HTTP/1.1\r\n"
                          "Host: %s\r\n"
                          "Accept: */*\r\n"
-                         "Connection: keep-alive\r\n"
+                         "Connection: keep-alive\r\n",
                          (char *) host_name.str);
 
   network_send_simple(&network_state, &tls_socket, &request_header);

@@ -1,5 +1,13 @@
 #ifndef TRADER_MEMORY_H
 
+#if SHIP_MODE
+global_const void *global_memory_start_addr = NULL;
+#else
+global_const void *global_memory_start_addr = (void *) tb(2);
+#endif
+
+global_const u64 global_memory_size = mb(8);
+
 struct Arena
 {
   u8   *start;

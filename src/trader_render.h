@@ -10,22 +10,22 @@ union Color_f32 {
 struct Constant_Buffer
 {
   f32 client_width, client_height;
-  f32 font_atlas_width, font_atlas_height;
+  f32 atlas_width,  atlas_height;
 };
 
 struct Instance_Buffer_Element
 {
   Rect_f32  size;
   Color_f32 color;
-  V2_f32    pos;
+  V3_f32    pos;
   Rect_f32  uv;
 };
 
 struct Alpha_Bitmap {
   u8 *alpha;
 
-  u32 width;
-  u32 height;
+  f32 width;
+  f32 height;
 };
 typedef Alpha_Bitmap Font_Bitmap;
 
@@ -39,10 +39,12 @@ struct Texture_Atlas
   u32               char_data_set_counts[4];
   u32               height_count;
 
-  V2_i16            solid_color_pos;
+  Rect_i16          solid_color_rect;
 };
 
 struct Render_Context;
+
+global_const u64 render_data_size = mb(1);
 
 global File_Buffer default_font = {};
 
@@ -59,6 +61,8 @@ internal b32 render_atlas_initialize(Arena         *arena,
                                      u32            font_height_count,
                                      u32            bitmap_width,
                                      u32            bitmap_height);
+
+internal void render_push_element(Arena *arena, Instance_Buffer_Element *element);
 
 // implementation
 internal b32 render_atlas_initialize(Arena         *arena,
@@ -160,8 +164,8 @@ internal b32 render_atlas_initialize(Arena         *arena,
       if (result)
       {
         atlas->bitmap.alpha  = bitmap_data;
-        atlas->bitmap.width  = bitmap_width;
-        atlas->bitmap.height = bitmap_height;
+        atlas->bitmap.width  = (f32) bitmap_width;
+        atlas->bitmap.height = (f32) bitmap_height;
 
         atlas->char_data = packed_chars;
 
@@ -176,8 +180,10 @@ internal b32 render_atlas_initialize(Arena         *arena,
 
         atlas->height_count    = font_height_count;
 
-        atlas->solid_color_pos.x = (i16) residue_rect->x; 
-        atlas->solid_color_pos.y = (i16) residue_rect->y;
+        atlas->solid_color_rect.x0 = (i16) residue_rect->x; 
+        atlas->solid_color_rect.y0 = (i16) residue_rect->y;
+        atlas->solid_color_rect.x1 = (i16) (atlas->solid_color_rect.x0 + residue_rect->w);
+        atlas->solid_color_rect.y1 = (i16) (atlas->solid_color_rect.y0 + residue_rect->h);
       }
       else
       {
@@ -190,5 +196,10 @@ internal b32 render_atlas_initialize(Arena         *arena,
   return(result);
 }
 
+internal void render_push_element(Arena *render_data, Instance_Buffer_Element *element)
+{
+  Instance_Buffer_Element *element_data = push_struct(render_data, Instance_Buffer_Element);
+  copy_struct(element_data, element);
+}
 #define TRADER_RENDER_H
 #endif

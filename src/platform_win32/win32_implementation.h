@@ -13,6 +13,8 @@ struct Render_Context
   IDXGISwapChain1     *swap_chain;
   ID3D11Device        *device;
   ID3D11DeviceContext *device_context;
+
+  Arena                render_data;
 };
 
 struct Socket
@@ -445,6 +447,22 @@ internal DWORD iocp_thread_proc(LPVOID _iocp_handle)
 void platform_print(const char *format, ...)
 {
   OutputDebugStringA(format);
+}
+
+internal Arena arena_alloc(u64 size, u64 alignment, void *start)
+{
+  Arena arena = {};
+
+  u8 *allocated = (u8 *) VirtualAlloc(start, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+
+  assert((allocated != NULL) && "virtual alloc failed");
+
+  arena.start     = allocated;
+  arena.size      = size;
+  arena.used      = 0;
+  arena.alignment = alignment;
+
+  return(arena);
 }
 
 #define WIN32_IMPLEMENTATION_H

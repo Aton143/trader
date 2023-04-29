@@ -43,7 +43,7 @@ global_const String_Const_char shader = string_literal_init(
 "  float2 bottom_right: INSTANCE_SIZE1;\n"
 "\n"
 "  float4 color:    INSTANCE_COLOR;\n"
-"  float2 position: INSTANCE_POSITION;\n"
+"  float3 position: INSTANCE_POSITION;\n"
 "\n"
 "  float2 texture_top_left:     INSTANCE_UV0;\n"
 "  float2 texture_bottom_right: INSTANCE_UV1;\n"
@@ -55,8 +55,8 @@ global_const String_Const_char shader = string_literal_init(
 "struct PS_Input\n"
 "{\n"
 "  float4 vertex: SV_POSITION;\n"
-"  float2 uv: TEXCOORD;\n"
-"  float4 color: COLOR;\n"
+"  float2 uv:     TEXCOORD;\n"
+"  float4 color:  COLOR;\n"
 "};\n"
 "\n"
 "Global_Data  global_data;\n"
@@ -71,17 +71,17 @@ global_const String_Const_char shader = string_literal_init(
 "  {\n"
 "    // NOTE(antonio): Bottom Left\n"
 "    {-1.0f, -1.0f},\n"
-"    // NOTE(antonio): Top Left\n"
+"    // NOTE(antonio): Top    Left\n"
 "    {-1.0f, +1.0f},\n"
 "    // NOTE(antonio): Bottom Right\n"
 "    {+1.0f, -1.0f},\n"
-"    // NOTE(antonio): Top Right\n"
+"    // NOTE(antonio): Top    Right\n"
 "    {+1.0f, +1.0f},\n"
 "  };\n"
 "\n"
 "  PS_Input output;\n"
 "  float2 destination_half_size = (input.bottom_right - input.top_left) / 2;\n"
-"  float2 destination_center = (input.top_left + input.bottom_right) / 2;\n"
+"  float2 destination_center    = (input.top_left + input.bottom_right) / 2;\n"
 "\n"
 "  float2 destination_position =\n"
 "    (vertices[input.vertex_id] * destination_half_size) + destination_center;\n"
@@ -93,12 +93,12 @@ global_const String_Const_char shader = string_literal_init(
 "                         0, 1);\n"
 "\n"
 "  float2 source_half_size = (input.texture_bottom_right - input.texture_top_left) / 2;\n"
-"  float2 source_center = (input.texture_top_left + input.texture_bottom_right) / 2;\n"
+"  float2 source_center    = (input.texture_top_left + input.texture_bottom_right) / 2;\n"
 "\n"
 "  float2 source_position =\n"
 "    ((vertices[input.vertex_id] * source_half_size) + source_center);\n"
 "\n"
-"  float texture_width = global_data.texture_dimensions.x;\n"
+"  float texture_width  = global_data.texture_dimensions.x;\n"
 "  float texture_height = global_data.texture_dimensions.y;\n"
 "\n"
 "  output.uv = float2(source_position.x / texture_width,\n"
@@ -112,7 +112,7 @@ global_const String_Const_char shader = string_literal_init(
 "PS_Main(PS_Input input): SV_Target\n"
 "{\n"
 "  float4 texture_sample = global_texture.Sample(global_sampler, input.uv);\n"
-"  float4 out_color = texture_sample * input.color;\n"
+"  float4 out_color      = texture_sample * input.color;\n"
 "\n"
 "  return out_color;\n"
 "}"
@@ -239,19 +239,8 @@ WinMain(HINSTANCE instance,
 
   SetCurrentDirectoryW((LPCWSTR) exe_file_path.str);
 
-  Arena global_arena = {};
-  unused(global_arena);
-  {
-    void *global_arena_start = (void *) global_memory_start_addr;
-    u8 *allocated = (u8 *) VirtualAlloc(global_arena_start, global_memory_size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-
-    assert((allocated != NULL) && "virtual alloc failed");
-
-    global_arena.start     = allocated;
-    global_arena.size      = global_memory_size;
-    global_arena.used      = 0;
-    global_arena.alignment = 32;
-  }
+  Arena global_arena = arena_alloc(global_memory_size, 32, (void *) global_memory_start_addr);
+  Arena render_data  = arena_alloc(render_data_size, 1, NULL);
 
   String_Const_utf8 default_font_path = string_literal_init_type("C:/windows/fonts/arial.ttf", utf8);
 
@@ -262,13 +251,9 @@ WinMain(HINSTANCE instance,
 
   f32 default_font_heights[] = {14.0f, 24.0f};
 
-  Texture_Atlas atlas;
-  Font_Data font_data = {};
-  unused(font_data);
-  
-  // font_initialize(&global_arena, &font_data, &arial_font, default_font_heights, array_count(default_font_heights));
+  Texture_Atlas *atlas = push_struct_zero(&global_arena, Texture_Atlas);
   render_atlas_initialize(&global_arena,
-                          &atlas,
+                          atlas,
                           &arial_font,
                           default_font_heights,
                           array_count(default_font_heights),
@@ -324,7 +309,6 @@ WinMain(HINSTANCE instance,
     // TODO(antonio): completion key
     // iocp_handle = CreateIoCompletionPort((HANDLE) tls_socket.socket, iocp_handle, (ULONG_PTR) NULL, 0);
   }
-#endif
 
   Network_State network_state = {};
   network_startup(&network_state);
@@ -358,6 +342,7 @@ WinMain(HINSTANCE instance,
   Buffer receive_buffer = buffer_from_fixed_size(_receive_buffer);
 
   network_receive_simple(&network_state, &tls_socket, &receive_buffer);
+#endif
 
   if (ShowWindow(win32_global_state.window_handle, SW_NORMAL) && UpdateWindow(win32_global_state.window_handle))
   {
@@ -536,14 +521,32 @@ WinMain(HINSTANCE instance,
       {
 #define INSTANCE_BUFFER_SLOT 0
         // NOTE(antonio): instance buffer data
-        {"INSTANCE_SIZE", 0, DXGI_FORMAT_R32G32_FLOAT, INSTANCE_BUFFER_SLOT, 0,                            D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"INSTANCE_SIZE", 1, DXGI_FORMAT_R32G32_FLOAT, INSTANCE_BUFFER_SLOT, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        {
+          "INSTANCE_SIZE", 0, DXGI_FORMAT_R32G32_FLOAT, INSTANCE_BUFFER_SLOT,
+          0, D3D11_INPUT_PER_INSTANCE_DATA, 1
+        },
 
-        {"INSTANCE_COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, INSTANCE_BUFFER_SLOT, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"INSTANCE_POSITION", 0, DXGI_FORMAT_R32G32_FLOAT,       INSTANCE_BUFFER_SLOT, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        {
+          "INSTANCE_SIZE", 1, DXGI_FORMAT_R32G32_FLOAT, INSTANCE_BUFFER_SLOT,
+          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1
+        },
 
-        {"INSTANCE_UV", 0, DXGI_FORMAT_R32G32_FLOAT, INSTANCE_BUFFER_SLOT, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"INSTANCE_UV", 1, DXGI_FORMAT_R32G32_FLOAT, INSTANCE_BUFFER_SLOT, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        {
+          "INSTANCE_COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, INSTANCE_BUFFER_SLOT,
+          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1
+        },
+
+        {
+          "INSTANCE_POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, INSTANCE_BUFFER_SLOT,
+          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+
+        {"INSTANCE_UV", 0, DXGI_FORMAT_R32G32_FLOAT, INSTANCE_BUFFER_SLOT,
+          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1
+        },
+
+        {
+          "INSTANCE_UV", 1, DXGI_FORMAT_R32G32_FLOAT, INSTANCE_BUFFER_SLOT,
+          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
       };
 
       HRESULT result = device->CreateInputLayout(input_element_description, array_count(input_element_description),
@@ -557,7 +560,7 @@ WinMain(HINSTANCE instance,
     {
       D3D11_BUFFER_DESC instance_buffer_description = {};
 
-      instance_buffer_description.ByteWidth      = 512;
+      instance_buffer_description.ByteWidth      = (u32) render_data.size;
       instance_buffer_description.Usage          = D3D11_USAGE_DYNAMIC;
       instance_buffer_description.BindFlags      = D3D11_BIND_VERTEX_BUFFER;
       instance_buffer_description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -622,8 +625,8 @@ WinMain(HINSTANCE instance,
     {
       D3D11_TEXTURE2D_DESC texture_description = {};
       {
-        texture_description.Width            = font_data.bitmap.height;
-        texture_description.Height           = font_data.bitmap.width;
+        texture_description.Width            = (u32) atlas->bitmap.height;
+        texture_description.Height           = (u32) atlas->bitmap.width;
         texture_description.MipLevels        = 1;
         texture_description.ArraySize        = 1;
         texture_description.Format           = DXGI_FORMAT_R8_UNORM;
@@ -635,7 +638,7 @@ WinMain(HINSTANCE instance,
 
       D3D11_SUBRESOURCE_DATA subresource = {};
       {
-        subresource.pSysMem          = font_data.bitmap.alpha;
+        subresource.pSysMem          = atlas->bitmap.alpha;
         subresource.SysMemPitch      = texture_description.Width * 1;
         subresource.SysMemSlicePitch = 0;
       }
@@ -664,7 +667,7 @@ WinMain(HINSTANCE instance,
       D3D11_BUFFER_DESC constant_buffer_description = {};
 
       // NOTE(antonio): ByteWidth must be a multiple of 16, per the docs
-      constant_buffer_description.ByteWidth      = (sizeof(f32) + 0xf) & 0xfffffff0;
+      constant_buffer_description.ByteWidth      = (sizeof(Constant_Buffer) + 0xf) & 0xfffffff0;
       constant_buffer_description.Usage          = D3D11_USAGE_DYNAMIC;
       constant_buffer_description.BindFlags      = D3D11_BIND_CONSTANT_BUFFER;
       constant_buffer_description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -696,10 +699,36 @@ WinMain(HINSTANCE instance,
       render_context.swap_chain     = swap_chain;
       render_context.device         = device;
       render_context.device_context = device_context;
+
+      render_context.render_data    = render_data;
     };
 
     global_running = true;
     global_window_resized = true;
+
+    {
+      Instance_Buffer_Element *element = push_struct(&render_context.render_data, Instance_Buffer_Element);
+
+      element->size.x0 = 0;
+      element->size.y0 = 0;
+      element->size.x1 = atlas->bitmap.width;
+      element->size.y1 = atlas->bitmap.height;
+
+      element->color.r = 1.0f;
+      element->color.g = 1.0f;
+      element->color.b = 1.0f;
+      element->color.a = 1.0f;
+
+      element->pos.x   = 0.0f;
+      element->pos.y   = 0.0f;
+      element->pos.z   = 0.0f;
+
+      element->uv.x0   = ((f32) atlas->solid_color_rect.x0) + 0.5f;
+      element->uv.y0   = ((f32) atlas->solid_color_rect.y0) + 0.5f;
+
+      element->uv.x1   = ((f32) atlas->solid_color_rect.x1) - 0.5f;
+      element->uv.y1   = ((f32) atlas->solid_color_rect.y1) - 0.5f;
+    }
 
     while (global_running)
     {
@@ -742,8 +771,8 @@ WinMain(HINSTANCE instance,
           constant_buffer_items.client_width  = client_rect.x1;
           constant_buffer_items.client_height = client_rect.y1;
 
-          constant_buffer_items.font_atlas_width  = (f32) font_data.bitmap.width;
-          constant_buffer_items.font_atlas_height = (f32) font_data.bitmap.height;
+          constant_buffer_items.atlas_width   = (f32) atlas->bitmap.width;
+          constant_buffer_items.atlas_height  = (f32) atlas->bitmap.height;
         }
 
         D3D11_MAPPED_SUBRESOURCE mapped_subresource = {};
@@ -753,6 +782,15 @@ WinMain(HINSTANCE instance,
         copy_struct(constants_to_fill, &constant_buffer_items);
 
         device_context->Unmap(constant_buffer, 0);
+      }
+
+      {
+        D3D11_MAPPED_SUBRESOURCE mapped_instance_buffer = {};
+        device_context->Map(instance_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_instance_buffer);
+
+        copy_memory_block(mapped_instance_buffer.pData, render_context.render_data.start, render_context.render_data.used);
+
+        device_context->Unmap(instance_buffer, 0);
       }
 
       D3D11_VIEWPORT viewport =
@@ -793,6 +831,9 @@ WinMain(HINSTANCE instance,
 
       D3D11_RECT scissor_rectangle = {(LONG) 0, (LONG) 0, (LONG) client_rect.x1, (LONG) client_rect.y1};
       device_context->RSSetScissorRects(1, &scissor_rectangle);
+
+      u32 draw_call_count = (u32) (render_context.render_data.used / sizeof(Instance_Buffer_Element));
+      device_context->DrawInstanced(4, draw_call_count, 0, 0);
 
       swap_chain->Present(1, 0);
     }

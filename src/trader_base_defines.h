@@ -616,6 +616,20 @@ struct Range_f32_Array {
   i32 count;
 };
 
+union Rect_i16 {
+  struct {
+    i16 x0;
+    i16 y0;
+    i16 x1;
+    i16 y1;
+  };
+  struct {
+    V2_i16 p0;
+    V2_i16 p1;
+  };
+  V2_i16 p[2];
+};
+
 union Rect_i32 {
   struct {
     i32 x0;

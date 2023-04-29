@@ -16,7 +16,7 @@ struct Arena
   u64   alignment;
 };
 
-unimplemented Arena *arena_alloc(u64 size, u64 alignment);
+internal Arena arena_alloc(u64 size, u64 alignment, void *start);
 unimplemented void arena_release(Arena *arena);
 
 void *arena_push(Arena *arena, u64 size);
@@ -26,8 +26,8 @@ void *arena_push_zero(Arena *arena, u64 size);
 #define push_array_zero(arena, type, count) (type *) arena_push_zero((arena), sizeof(type)*(count))
 #define push_buffer(arena, size) {(u8 * ) arena_push(arena, size), size}
 
-#define push_struct(arena, type) push_array((arena), (type), 1)
-#define push_struct_zero(arena, type) push_array_zero((arena), (type), 1)
+#define push_struct(arena, type) (type *) arena_push((arena), sizeof(type))
+#define push_struct_zero(arena, type) (type *) arena_push_zero((arena), sizeof(type))
 
 void arena_pop(Arena *arena, u64 size);
 

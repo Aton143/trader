@@ -24,10 +24,12 @@ void *arena_push_zero(Arena *arena, u64 size);
 
 #define push_array(arena, type, count) (type *) arena_push((arena), sizeof(type)*(count))
 #define push_array_zero(arena, type, count) (type *) arena_push_zero((arena), sizeof(type)*(count))
+#define push_buffer(arena, size) {(u8 * ) arena_push(arena, size), size}
+
 #define push_struct(arena, type) push_array((arena), (type), 1)
 #define push_struct_zero(arena, type) push_array_zero((arena), (type), 1)
 
-unimplemented void arena_pop(Arena *arena, u64 size);
+void arena_pop(Arena *arena, u64 size);
 
 #define pop_array(arena, type, count) arena_pop((arena), sizeof(type)*(count))
 #define pop_struct(arena, type) arena_pop((arena), sizeof(type))
@@ -146,12 +148,10 @@ void *arena_push_zero(Arena *arena, u64 size)
 
   return(memory_given_back);
 }
-#define arena_push_buffer(arena, size) {(u8 * ) arena_push(arena, size), size}
 
 void arena_pop(Arena *arena, u64 size)
 {
-  unused(arena);
-  unused(size);
+  arena->used -= size;
 }
 
 i64 compare_memory_block(void *a, void *b, i64 byte_count)

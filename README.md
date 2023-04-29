@@ -9,6 +9,6 @@ This project is still in its early stages, so to say. Right now, it supports HTT
 - [ ] Linux-based networking backend
 - [ ] WebSockets and socket-based connections to APIs
 - [ ] Immediate Mode GUI with real-time data visualization and manipulation
-- [ ] Multi-threaded architecture using [I/O Completion Ports](https://learn.microsoft.com/en-us/windows/win32/fileio/i-o-completion-ports) on Windows and [io_uring](https://man.archlinux.org/man/io_uring.7.en) on Linux
+- [ ] Multi-threaded architecture
 - [ ] Embedded Python Interpreter to conduct trades
 - [ ] [TLS resumption](https://zoompf.com/blog/2014/12/optimizing-tls-handshake/)?

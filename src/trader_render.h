@@ -84,7 +84,7 @@ internal b32 render_atlas_initialize(Arena         *arena,
     // NOTE(antonio): fallback font
     if (!stbtt_InitFont(&font_info, font_data->data, font_offset))
     {
-      assert((default_font.data != NULL) || !"expected a default font at least...");
+      assert((default_font.data != NULL) && "expected a default font at least...");
 
       font_data = &default_font;
       stbtt_InitFont(&font_info, font_data->data, 0);

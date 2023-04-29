@@ -16,8 +16,8 @@ struct Arena
   u64   alignment;
 };
 
-Arena *arena_alloc(u64 size, u64 alignment);
-void arena_release(Arena *arena);
+unimplemented Arena *arena_alloc(u64 size, u64 alignment);
+unimplemented void arena_release(Arena *arena);
 
 void *arena_push(Arena *arena, u64 size);
 void *arena_push_zero(Arena *arena, u64 size);
@@ -27,12 +27,15 @@ void *arena_push_zero(Arena *arena, u64 size);
 #define push_struct(arena, type) push_array((arena), (type), 1)
 #define push_struct_zero(arena, type) push_array_zero((arena), (type), 1)
 
-void arena_pop(Arena *arena, u64 size);
+unimplemented void arena_pop(Arena *arena, u64 size);
 
-u64 arena_get_pos(Arena *arena);
+#define pop_array(arena, type, count) arena_pop((arena), sizeof(type)*(count))
+#define pop_struct(arena, type) arena_pop((arena), sizeof(type))
 
-void arena_set_pos_back(Arena *arena, u64 pos);
-void arena_clear(Arena *arena);
+unimplemented u64 arena_get_pos(Arena *arena);
+
+unimplemented void arena_set_pos_back(Arena *arena, u64 pos);
+unimplemented void arena_clear(Arena *arena);
 
 i64 copy_memory_block(void *dest, void *source, i64 byte_count);
 i64 set_memory_block(void *dest, u8 val, i64 byte_count);
@@ -53,8 +56,9 @@ i64 copy_memory_block(void *dest, void *source, i64 byte_count)
 
   return(byte_index);
 }
-#define copy_string(dest, string) copy_memory_block((dest), (string).str, (string).size)
-#define copy_struct(dest, copy) copy_memory_block(dest, copy, sizeof(*(copy)))
+#define copy_string(dest, string)       copy_memory_block((dest), (string).str, (string).size)
+#define copy_struct(dest, copy)         copy_memory_block(dest, copy, sizeof(*(copy)))
+#define copy_array(dest, array, length) copy_memory_block(dest, array, sizeof(*(array) * length))
 
 i64 set_memory_block(void *dest, u8 val, i64 byte_count)
 {
@@ -143,6 +147,12 @@ void *arena_push_zero(Arena *arena, u64 size)
   return(memory_given_back);
 }
 #define arena_push_buffer(arena, size) {(u8 * ) arena_push(arena, size), size}
+
+void arena_pop(Arena *arena, u64 size)
+{
+  unused(arena);
+  unused(size);
+}
 
 i64 compare_memory_block(void *a, void *b, i64 byte_count)
 {

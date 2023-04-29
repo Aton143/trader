@@ -261,9 +261,18 @@ WinMain(HINSTANCE instance,
   default_font = platform_open_and_read_entire_file(&global_arena, default_font_path.str, default_font_path.size);
 
   f32 default_font_heights[] = {14.0f, 24.0f};
-  Font_Data font_data;
 
-  font_initialize(&global_arena, &font_data, &arial_font, default_font_heights, array_count(default_font_heights));
+  Texture_Atlas atlas;
+  Font_Data font_data = {};
+  unused(font_data);
+  
+  // font_initialize(&global_arena, &font_data, &arial_font, default_font_heights, array_count(default_font_heights));
+  render_atlas_initialize(&global_arena,
+                          &atlas,
+                          &arial_font,
+                          default_font_heights,
+                          array_count(default_font_heights),
+                          512, 512);
 
   {
     WNDCLASSEXW window_class = {};

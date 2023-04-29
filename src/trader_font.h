@@ -16,10 +16,12 @@ struct Font_Data {
   u32               height_count;
 };
 
+/*
 global File_Buffer default_font = {};
 
 global_const utf32 starting_code_point = 32;  // ' '
 global_const utf32 ending_code_point   = 126; // '~'
+*/
 
 b32 font_initialize(Arena       *arena,
                     Font_Data   *font_data,
@@ -75,7 +77,7 @@ b32 font_initialize(Arena       *arena,
     stbtt_pack_context pack_context;
     stbtt_PackBegin(&pack_context, bitmap_data, bitmap_width, bitmap_height, 0, 1, NULL);
 
-    u32 code_point_count      = (ending_code_point - starting_code_point) + 1;
+    u32 code_point_count = (ending_code_point - starting_code_point) + 1;
 
     stbtt_packedchar *packed_chars =
       (stbtt_packedchar *) push_array(arena, stbtt_packedchar, font_height_count * code_point_count);
@@ -92,6 +94,7 @@ b32 font_initialize(Arena       *arena,
       f32 font_height = font_heights[font_height_index];
 
       if (font_height < 15.0f) stbtt_PackSetOversampling(&pack_context, 2, 2);
+      else  stbtt_PackSetOversampling(&pack_context, 1, 1);
 
       if (!stbtt_PackFontRange(&pack_context,
                                font_buffer->data, font_offset, font_height,

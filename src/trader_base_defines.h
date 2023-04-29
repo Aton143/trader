@@ -204,6 +204,7 @@ typedef i64      b64;
 #define local_const   static const
 #define global_const  static const
 #define external      extern "C"
+#define unimplemented
 
 #define member_offset(st, m) ((size_t)((u8 *)&((st *)0)->m - (u8 *) 0))
 #define member_size(type, member) sizeof(((type *)0)->member)

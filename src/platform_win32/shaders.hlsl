@@ -30,18 +30,18 @@ Global_Data  global_data;
 Texture2D    global_texture: register(t0);
 SamplerState global_sampler: register(s0);
 
-// NOTE(antonio): will be using OpenGL ndc coordinate:
+// NOTE(antonio): ndc coordinates:
 // 
-//  (0, 0)        (1, 0)
-//    +-------------+
-//    |             |
-//    |             |
-//    |             |
-//    |             |
-//    |             |
-//    |             |
-//    +-------------+
-//  (0, 1)        (1, 1)
+//  (-1, -1)        (1, -1)
+//     +-------------+
+//     |             |
+//     |             |
+//     |             |
+//     |             |
+//     |             |
+//     |             |
+//     +-------------+
+//  (-1,  1)        (1,  1)
 
 
 PS_Input VS_Main(VS_Input input)
@@ -89,7 +89,8 @@ PS_Input VS_Main(VS_Input input)
 float4 PS_Main(PS_Input input): SV_Target
 {
   float4 texture_sample = global_texture.Sample(global_sampler, input.uv);
-  float4 out_color      = texture_sample * input.color;
+  float4 alpha_sample   = float4(texture_sample.r, texture_sample.r, texture_sample.r, 1.0f);
+  float4 out_color      = alpha_sample * input.color;
   return out_color;
 }
 

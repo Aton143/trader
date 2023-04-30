@@ -164,7 +164,7 @@ WinMain(HINSTANCE instance,
   // NOTE(antonio): default font on Windows is Arial
   default_font = platform_open_and_read_entire_file(&global_arena, default_font_path.str, default_font_path.size);
 
-  f32 default_font_heights[] = {14.0f, 24.0f};
+  f32 default_font_heights[] = {8.0f, 14.0f, 24.0f, 30.0f};
 
   Texture_Atlas *atlas = push_struct_zero(&global_arena, Texture_Atlas);
   render_atlas_initialize(&global_arena,
@@ -644,9 +644,9 @@ WinMain(HINSTANCE instance,
       element->size.x1 = atlas->bitmap.width;
       element->size.y1 = atlas->bitmap.height;
 
-      element->color.r = 0.0f;
-      element->color.g = 0.0f;
-      element->color.b = 0.0f;
+      element->color.r = 1.0f;
+      element->color.g = 1.0f;
+      element->color.b = 1.0f;
       element->color.a = 1.0f;
 
       element->pos.x   = 0.0f;

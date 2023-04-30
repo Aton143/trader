@@ -74,8 +74,8 @@ internal b32 render_atlas_initialize(Arena         *arena,
   b32 result = true;
 
   assert((font_heights != NULL) &&
-         (0 < font_height_count) &&
-         (font_height_count < member_array_count(Texture_Atlas, heights)));
+         ((0 < font_height_count) &&
+          (font_height_count <= member_array_count(Texture_Atlas, heights))));
 
   i32 font_count = stbtt_GetNumberOfFonts(font_data->data);
   if (font_count > 0) 

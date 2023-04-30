@@ -30,94 +30,6 @@
 
 #include "..\trader.h"
 
-global_const String_Const_char shader = string_literal_init(
-"struct Global_Data\n"
-"{\n"
-"  float2 resolution;\n"
-"  float2 texture_dimensions;\n"
-"};\n"
-"\n"
-"struct VS_Input\n"
-"{\n"
-"  float2 top_left:    INSTANCE_SIZE0;\n"
-"  float2 bottom_right: INSTANCE_SIZE1;\n"
-"\n"
-"  float4 color:    INSTANCE_COLOR;\n"
-"  float3 position: INSTANCE_POSITION;\n"
-"\n"
-"  float2 texture_top_left:     INSTANCE_UV0;\n"
-"  float2 texture_bottom_right: INSTANCE_UV1;\n"
-"\n"
-"  // NOTE(antonio): synthetic\n"
-"  uint vertex_id: SV_VertexID;\n"
-"};\n"
-"\n"
-"struct PS_Input\n"
-"{\n"
-"  float4 vertex: SV_POSITION;\n"
-"  float2 uv:     TEXCOORD;\n"
-"  float4 color:  COLOR;\n"
-"};\n"
-"\n"
-"Global_Data  global_data;\n"
-"Texture2D    global_texture: register(t0);\n"
-"SamplerState global_sampler: register(s0);\n"
-"\n"
-"PS_Input\n"
-"VS_Main(VS_Input input)\n"
-"{\n"
-"  // NOTE(antonio): static vertex array that we can index into with our vertex ID\n"
-"  static float2 vertices[] =\n"
-"  {\n"
-"    // NOTE(antonio): Bottom Left\n"
-"    {-1.0f, -1.0f},\n"
-"    // NOTE(antonio): Top    Left\n"
-"    {-1.0f, +1.0f},\n"
-"    // NOTE(antonio): Bottom Right\n"
-"    {+1.0f, -1.0f},\n"
-"    // NOTE(antonio): Top    Right\n"
-"    {+1.0f, +1.0f},\n"
-"  };\n"
-"\n"
-"  PS_Input output;\n"
-"  float2 destination_half_size = (input.bottom_right - input.top_left) / 2;\n"
-"  float2 destination_center    = (input.top_left + input.bottom_right) / 2;\n"
-"\n"
-"  float2 destination_position =\n"
-"    (vertices[input.vertex_id] * destination_half_size) + destination_center;\n"
-"\n"
-"  destination_position.xy += input.position.xy;\n"
-"\n"
-"  output.vertex = float4((2 * destination_position.x / global_data.resolution.x) - 1,\n"
-"                         1 - (2 * destination_position.y / global_data.resolution.y),\n"
-"                         0, 1);\n"
-"\n"
-"  float2 source_half_size = (input.texture_bottom_right - input.texture_top_left) / 2;\n"
-"  float2 source_center    = (input.texture_top_left + input.texture_bottom_right) / 2;\n"
-"\n"
-"  float2 source_position =\n"
-"    ((vertices[input.vertex_id] * source_half_size) + source_center);\n"
-"\n"
-"  float texture_width  = global_data.texture_dimensions.x;\n"
-"  float texture_height = global_data.texture_dimensions.y;\n"
-"\n"
-"  output.uv = float2(source_position.x / texture_width,\n"
-"                     source_position.y / texture_height);\n"
-"\n"
-"  output.color = input.color;\n"
-"  return output;\n"
-"}\n"
-"\n"
-"float4\n"
-"PS_Main(PS_Input input): SV_Target\n"
-"{\n"
-"  float4 texture_sample = global_texture.Sample(global_sampler, input.uv);\n"
-"  float4 out_color      = texture_sample * input.color;\n"
-"\n"
-"  return out_color;\n"
-"}"
-);
-
 global b32 global_running        = false;
 global b32 global_window_resized = false;
 
@@ -230,6 +142,9 @@ WinMain(HINSTANCE instance,
   unused(show_command);
 
   rng_init();
+
+  u32 lkfjd;
+  lkfjd = sizeof(Instance_Buffer_Element);
 
   wchar_t _exe_file_path[MAX_PATH] = {};
   GetModuleFileNameW(NULL, _exe_file_path, array_count(_exe_file_path));
@@ -459,11 +374,17 @@ WinMain(HINSTANCE instance,
       frame_buffer->Release();
     }
 
+    String_Const_utf8 shader_source_path = string_literal_init_type("..\\src\\platform_win32\\shaders.hlsl", utf8);
+    File_Buffer shader_source =
+      platform_open_and_read_entire_file(&global_arena,
+                                         shader_source_path.str,
+                                         shader_source_path.size);
+
     ID3DBlob *vertex_shader_blob = NULL;
     ID3D11VertexShader *vertex_shader = NULL;
     {
       ID3DBlob *shader_compile_errors_blob = NULL;
-      HRESULT result = D3DCompile(shader.str, shader.size, NULL, NULL, NULL,
+      HRESULT result = D3DCompile(shader_source.data, shader_source.size, NULL, NULL, NULL,
                                   "VS_Main", "vs_5_0", 0, 0, &vertex_shader_blob, &shader_compile_errors_blob);
       if (FAILED(result))
       {
@@ -471,7 +392,11 @@ WinMain(HINSTANCE instance,
 
         if (shader_compile_errors_blob)
         {
-          error_string = {(char *) shader_compile_errors_blob->GetBufferPointer(), shader_compile_errors_blob->GetBufferSize()};
+          error_string =
+          {
+            (char *) shader_compile_errors_blob->GetBufferPointer(),
+            shader_compile_errors_blob->GetBufferSize()
+          };
           shader_compile_errors_blob->Release();
         }
         MessageBoxA(0, error_string.str, "Shader Compiler Error", MB_ICONERROR | MB_OK);
@@ -487,10 +412,10 @@ WinMain(HINSTANCE instance,
 
     ID3D11PixelShader *pixel_shader = NULL;
     {
-      ID3DBlob *pixel_shader_blob = NULL;
+      ID3DBlob *pixel_shader_blob          = NULL;
       ID3DBlob *shader_compile_errors_blob = NULL;
 
-      HRESULT result = D3DCompile(shader.str, shader.size, NULL, NULL, NULL,
+      HRESULT result = D3DCompile(shader_source.data, shader_source.size, NULL, NULL, NULL,
                                   "PS_Main", "ps_5_0", 0, 0, &pixel_shader_blob, &shader_compile_errors_blob);
       if (FAILED(result))
       {
@@ -498,7 +423,11 @@ WinMain(HINSTANCE instance,
 
         if (shader_compile_errors_blob)
         {
-          error_string = {(char *) shader_compile_errors_blob->GetBufferPointer(), shader_compile_errors_blob->GetBufferSize()};
+          error_string =
+          {
+            (char *) shader_compile_errors_blob->GetBufferPointer(),
+            shader_compile_errors_blob->GetBufferSize()
+          };
           shader_compile_errors_blob->Release();
         }
 
@@ -508,7 +437,8 @@ WinMain(HINSTANCE instance,
       }
 
       result = device->CreatePixelShader(pixel_shader_blob->GetBufferPointer(),
-                                         pixel_shader_blob->GetBufferSize(), NULL,
+                                         pixel_shader_blob->GetBufferSize(),
+                                         NULL,
                                          &pixel_shader);
       assert(SUCCEEDED(result));
 
@@ -714,20 +644,19 @@ WinMain(HINSTANCE instance,
       element->size.x1 = atlas->bitmap.width;
       element->size.y1 = atlas->bitmap.height;
 
-      element->color.r = 1.0f;
-      element->color.g = 1.0f;
-      element->color.b = 1.0f;
+      element->color.r = 0.0f;
+      element->color.g = 0.0f;
+      element->color.b = 0.0f;
       element->color.a = 1.0f;
 
       element->pos.x   = 0.0f;
       element->pos.y   = 0.0f;
       element->pos.z   = 0.0f;
 
-      element->uv.x0   = ((f32) atlas->solid_color_rect.x0) + 0.5f;
-      element->uv.y0   = ((f32) atlas->solid_color_rect.y0) + 0.5f;
-
-      element->uv.x1   = ((f32) atlas->solid_color_rect.x1) - 0.5f;
-      element->uv.y1   = ((f32) atlas->solid_color_rect.y1) - 0.5f;
+      element->uv.x0   = 0.0f;
+      element->uv.y0   = 0.0f;
+      element->uv.x1   = atlas->bitmap.width;
+      element->uv.y1   = atlas->bitmap.height;
     }
 
     while (global_running)
@@ -748,18 +677,18 @@ WinMain(HINSTANCE instance,
         frame_buffer_view->Release();
 
         HRESULT result = swap_chain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
-        assert(SUCCEEDED(result));
+        // assert(SUCCEEDED(result));
 
         ID3D11Texture2D* frame_buffer = NULL;
         result = swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **) &frame_buffer);
-        assert(SUCCEEDED(result));
+        // assert(SUCCEEDED(result));
 
         result = device->CreateRenderTargetView(frame_buffer, NULL, &frame_buffer_view);
-        assert(SUCCEEDED(result));
+        // assert(SUCCEEDED(result));
         frame_buffer->Release();
       }
 
-      FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+      FLOAT background_color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
       device_context->ClearRenderTargetView(frame_buffer_view, background_color);
       device_context->OMSetRenderTargets(1, &frame_buffer_view, NULL);
 

@@ -14,6 +14,9 @@ struct Render_Context
   ID3D11Device        *device;
   ID3D11DeviceContext *device_context;
 
+  ID3D11VertexShader  *vertex_shader;
+  ID3D11PixelShader   *pixel_shader;
+
   Arena                render_data;
 };
 
@@ -56,7 +59,7 @@ Rect_f32 render_get_client_rect()
   client_rect.y0 = 0;
 
   client_rect.x1 = (f32) (win32_client_rect.right  - win32_client_rect.left);
-  client_rect.x1 = (f32) (win32_client_rect.bottom - win32_client_rect.top);
+  client_rect.y1 = (f32) (win32_client_rect.bottom - win32_client_rect.top);
 
   return(client_rect);
 }

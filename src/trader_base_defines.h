@@ -929,5 +929,21 @@ u64 rng_fill_buffer(u8 *buffer, u64 buffer_length)
   return(buffer_length);
 }
 
+u16 fletcher_sum(u8 *data, u32 count)
+{
+   u8 sum1 = 0;
+   u8 sum2 = 0;
+
+   for (u32 index = 0;
+        index < count;
+        ++index)
+   {
+      sum1 = (sum1 + data[index]) % 255;
+      sum2 = (sum2 + sum1) % 255;
+   }
+
+   return((sum2 << 8) | sum1);
+}
+
 #define TRADER_BASE_DEFINES_H
 #endif

@@ -62,8 +62,6 @@ internal b32 render_atlas_initialize(Arena         *arena,
                                      u32            bitmap_width,
                                      u32            bitmap_height);
 
-internal void render_push_element(Arena *arena, Instance_Buffer_Element *element);
-
 // implementation
 internal b32 render_atlas_initialize(Arena         *arena,
                                      Texture_Atlas *atlas,
@@ -196,10 +194,5 @@ internal b32 render_atlas_initialize(Arena         *arena,
   return(result);
 }
 
-internal void render_push_element(Arena *render_data, Instance_Buffer_Element *element)
-{
-  Instance_Buffer_Element *element_data = push_struct(render_data, Instance_Buffer_Element);
-  copy_struct(element_data, element);
-}
 #define TRADER_RENDER_H
 #endif

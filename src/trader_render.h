@@ -52,7 +52,8 @@ global_const utf32 starting_code_point = 32;  // ' '
 global_const utf32 ending_code_point   = 126; // '~'
 
 extern Asset_Handle render_make_texture(Render_Context *context, void *texture_data, u64 width, u64 height, u64 channels);
-extern Rect_f32 render_get_client_rect();
+extern Rect_f32     render_get_client_rect();
+// extern void         render_load_shader(Render_Context *context, char *shader_path);
 
 internal b32 render_atlas_initialize(Arena         *arena,
                                      Texture_Atlas *atlas,
@@ -189,6 +190,7 @@ internal b32 render_atlas_initialize(Arena         *arena,
         arena_pop(arena, bitmap_width * bitmap_height);
       }
     }
+    stbtt_PackEnd(&pack_context);
   }
 
   return(result);

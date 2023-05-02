@@ -874,10 +874,10 @@ static u32 rng_state[16] =
 };
 
 // init should also reset this to 0
-static u32 rng_index = 0;
+global u32 rng_index = 0;
 
 // return 32 bit random number
-u32 WELLRNG512(void)
+internal u32 WELLRNG512(void)
 {
   u32 a, b, c, d;
   a = rng_state[rng_index];
@@ -893,18 +893,18 @@ u32 WELLRNG512(void)
   return rng_state[rng_index];
 }
 
-void rng_init(void)
+internal void rng_init(void)
 {
   rng_index = 0;
 }
 
-u32 rng_get_random32(void)
+internal u32 rng_get_random32(void)
 {
   u32 result = WELLRNG512();
   return(result);
 }
 
-u64 rng_fill_buffer(u8 *buffer, u64 buffer_length)
+internal u64 rng_fill_buffer(u8 *buffer, u64 buffer_length)
 {
   u32 *buffer32 = (u32 *) buffer;
   u64 length32 = buffer_length / sizeof(*buffer32);
@@ -929,7 +929,7 @@ u64 rng_fill_buffer(u8 *buffer, u64 buffer_length)
   return(buffer_length);
 }
 
-u16 fletcher_sum(u8 *data, u32 count)
+internal u16 fletcher_sum(u8 *data, u32 count)
 {
    u8 sum1 = 0;
    u8 sum2 = 0;
@@ -943,6 +943,50 @@ u16 fletcher_sum(u8 *data, u32 count)
    }
 
    return((sum2 << 8) | sum1);
+}
+
+global u64 hash_seed = 0x400921fb54442d18;
+
+internal u64 hash_mix(u64 value)
+{
+ value ^= value >> 23;
+ value *= 0x2127599bf4325c37ULL;
+ value ^= (value) >> 47;
+ return(value);
+}
+
+internal u64 hash(u8 *buffer, u64 length)
+{
+  u64 multiplier = 0x880355f21e6d1965ULL;
+  u64 *buffer_position = (u64 *) buffer;
+  u64 *buffer_end = buffer_position + (length / 8);
+
+  u8 *remaining_buffer_position;
+  u64 result = hash_seed ^ (length * multiplier);
+
+  u64 current_buffer_value;
+  while (buffer_position != buffer_end) {
+    current_buffer_value = (*buffer_position)++;
+    result ^= hash_mix(current_buffer_value);
+    result *= multiplier;
+  }
+
+  remaining_buffer_position = (u8 *) buffer_position;
+  current_buffer_value = 0;
+
+  switch (length & 7) {
+  case 7: current_buffer_value ^= ((u64) remaining_buffer_position[6]) << 48;
+  case 6: current_buffer_value ^= ((u64) remaining_buffer_position[5]) << 40;
+  case 5: current_buffer_value ^= ((u64) remaining_buffer_position[4]) << 32;
+  case 4: current_buffer_value ^= ((u64) remaining_buffer_position[3]) << 24;
+  case 3: current_buffer_value ^= ((u64) remaining_buffer_position[2]) << 16;
+  case 2: current_buffer_value ^= ((u64) remaining_buffer_position[1]) << 8;
+  case 1: current_buffer_value ^= ((u64) remaining_buffer_position[0]);
+          result ^= hash_mix(current_buffer_value);
+          result *= multiplier;
+  }
+
+  return(hash_mix(result));
 }
 
 #define TRADER_BASE_DEFINES_H

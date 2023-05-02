@@ -143,9 +143,6 @@ WinMain(HINSTANCE instance,
 
   rng_init();
 
-  u32 lkfjd;
-  lkfjd = sizeof(Instance_Buffer_Element);
-
   wchar_t _exe_file_path[MAX_PATH] = {};
   GetModuleFileNameW(NULL, _exe_file_path, array_count(_exe_file_path));
 
@@ -156,6 +153,17 @@ WinMain(HINSTANCE instance,
 
   Arena global_arena = arena_alloc(global_memory_size, 32, (void *) global_memory_start_addr);
   Arena render_data  = arena_alloc(render_data_size, 1, NULL);
+
+  Asset_Node *asset_pool_start = (Asset_Node *) VirtualAlloc(NULL, mb(1), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+  u64 asset_count = mb(1) / sizeof(*asset_pool_start);
+  for (u64 asset_index = 0;
+       asset_index < asset_count - 1;
+       ++asset_index)
+  {
+    asset_pool_start[asset_index].next = asset_pool_start + (asset_index + 1);
+  }
+
+  global_asset_pool.free_list_head = asset_pool_start;
 
   String_Const_utf8 default_font_path = string_literal_init_type("C:/windows/fonts/arial.ttf", utf8);
 

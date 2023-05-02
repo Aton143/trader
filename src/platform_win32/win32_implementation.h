@@ -14,9 +14,6 @@ struct Render_Context
   ID3D11Device        *device;
   ID3D11DeviceContext *device_context;
 
-  ID3D11VertexShader  *vertex_shader;
-  ID3D11PixelShader   *pixel_shader;
-
   Arena                render_data;
 };
 

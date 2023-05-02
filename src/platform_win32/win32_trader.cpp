@@ -165,6 +165,9 @@ WinMain(HINSTANCE instance,
 
   make_handle(Handle_Kind_None, NULL);
 
+  String_Const_utf8 notify_dir = string_literal_init_type("..\\src\\platform_win32\\", utf8);
+  platform_push_notify_dir(notify_dir.str, notify_dir.size);
+
   global_asset_pool.free_list_head = asset_pool_start;
   global_asset_pool.temp_arena     = arena_alloc(global_asset_pool_temp_arena_size, 1, NULL);
 

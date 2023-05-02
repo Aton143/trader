@@ -11,7 +11,6 @@ struct Render_Context;
 #define TRADER_VERSION 1LL
 #include "trader_base_defines.h"
 
-#include "trader_platform.h"
 #include "trader_memory.h"
 #include "trader_handle.h"
 #include "trader_string_utilities.h"
@@ -21,6 +20,7 @@ struct Render_Context;
 
 #include "trader_render.h"
 #include "trader_font.h"
+#include "trader_platform.h"
 #include "trader_network.h"
 
 #if OS_WINDOWS

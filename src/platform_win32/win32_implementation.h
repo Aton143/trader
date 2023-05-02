@@ -201,6 +201,19 @@ File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u6
   return(file_buffer);
 }
 
+void platform_push_notify_dir(utf8 *dir_path, u64 dir_path_length)
+{
+  unused(dir_path);
+  unused(dir_path_length);
+}
+
+b32 platform_did_file_change(utf8 *file_name, u64 *file_name_length)
+{
+  unused(file_name);
+  unused(file_name_length);
+  return(true);
+}
+
 internal Network_Return_Code network_startup(Network_State *out_state)
 {
   Network_Return_Code result = network_ok;

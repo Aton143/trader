@@ -1,5 +1,11 @@
 #ifndef TRADER_RENDER_H
 
+#define STB_RECT_PACK_IMPLEMENTATION
+#include "./foreign/stb_rect_pack.h"
+
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "./foreign/stb_truetype.h"
+
 union Color_f32 {
   struct {
     f32 r, g, b, a;
@@ -42,18 +48,19 @@ struct Texture_Atlas
   Rect_i16          solid_color_rect;
 };
 
-struct Render_Context;
+struct Vertex_Shader;
+struct Pixel_Shader;
 
 global_const u64 render_data_size = mb(1);
-
 global File_Buffer default_font = {};
 
 global_const utf32 starting_code_point = 32;  // ' '
 global_const utf32 ending_code_point   = 126; // '~'
 
-extern Asset_Handle render_make_texture(Render_Context *context, void *texture_data, u64 width, u64 height, u64 channels);
-extern Rect_f32     render_get_client_rect();
-// extern void         render_load_shader(Render_Context *context, char *shader_path);
+// extern Asset_Handle render_make_texture(void *texture_data, u64 width, u64 height, u64 channels);
+extern Rect_f32      render_get_client_rect();
+extern Vertex_Shader render_load_vertex_shader(File_Buffer source);
+extern Pixel_Shader  render_load_pixel_shader(File_Buffer source);
 
 internal b32 render_atlas_initialize(Arena         *arena,
                                      Texture_Atlas *atlas,

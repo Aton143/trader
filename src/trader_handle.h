@@ -2,9 +2,12 @@
 
 enum {
   Handle_Kind_None,
-  Handle_Kind_File,
-  Handle_Kind_Texture,
-  Handle_Kind_Shader,
+
+  // NOTE(antonio): these have a file associated with them
+  Handle_Kind_Vertex_Shader,
+  Handle_Kind_Pixel_Shader,
+
+  Handke_Kind_Count,
 };
 typedef u64 Handle_Kind;
 
@@ -17,7 +20,8 @@ struct Handle {
   utf8        id[64];
 };
 
-#define asset_data_size (kb(4) - 32 - sizeof(Handle))
+global_const u64 asset_data_size  = kb(4) - 32 - sizeof(Handle);
+
 #pragma pack(push, 1)
 struct Asset_Node {
   Asset_Node *next;
@@ -37,9 +41,11 @@ struct Asset_Node {
 
 struct Asset_Pool
 {
+  Arena       temp_arena;
   Asset_Node *free_list_head;
 };
 
+global_const u64 global_asset_pool_temp_arena_size = kb(512);
 global Asset_Pool global_asset_pool;
 
 typedef Handle Asset_Handle;
@@ -49,22 +55,6 @@ internal b32 is_nil(Handle *handle);
 
 internal Handle make_handle(Handle_Kind kind, utf8 *id, utf8 *location);
 internal u64    handle_node_count(Handle *handle);
-
-// implementation
-internal b32 is_nil(Handle *handle)
-{
-  b32 result = (handle->asset      == nil_handle.asset)      &&
-               (handle->generation == nil_handle.generation) &&
-               (handle->kind       == nil_handle.kind);
-  return(result);
-}
-
-/*
-internal Handle *make_handle(Handle_Kind kind, utf8 *id)
-{
-
-}
-*/
 
 #define TRADER_HANDLE_H
 #endif

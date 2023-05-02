@@ -1,13 +1,6 @@
 #ifndef WIN32_IMPLEMENTATION_H
 #include <malloc.h>
 
-struct Global_Platform_State
-{
-  HWND      window_handle;
-};
-
-global Global_Platform_State win32_global_state = {};
-
 struct Render_Context
 {
   IDXGISwapChain1     *swap_chain;
@@ -16,6 +9,24 @@ struct Render_Context
 
   Arena                render_data;
 };
+
+struct Vertex_Shader
+{
+  ID3D11VertexShader *shader;
+};
+
+struct Pixel_Shader
+{
+  ID3D11PixelShader  *shader;
+};
+
+struct Global_Platform_State
+{
+  Render_Context render_context;
+  HWND           window_handle;
+};
+
+global Global_Platform_State win32_global_state = {};
 
 struct Socket
 {
@@ -61,6 +72,7 @@ Rect_f32 render_get_client_rect()
   return(client_rect);
 }
 
+/*
 Asset_Handle render_make_texture(Render_Context *context, void *texture_data, u64 width, u64 height, u64 channels)
 {
   Asset_Handle handle = nil_handle;
@@ -110,6 +122,7 @@ Asset_Handle render_make_texture(Render_Context *context, void *texture_data, u6
 
   return(handle);
 }
+*/
 
 File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u64 file_path_size)
 {
@@ -463,6 +476,47 @@ internal Arena arena_alloc(u64 size, u64 alignment, void *start)
   arena.alignment = alignment;
 
   return(arena);
+}
+
+Pixel_Shader render_load_pixel_shader(File_Buffer shader_source)
+{
+  Pixel_Shader result = {};
+
+  {
+    ID3DBlob *pixel_shader_blob          = NULL;
+    ID3DBlob *shader_compile_errors_blob = NULL;
+
+    HRESULT return_code = D3DCompile(shader_source.data, shader_source.size, NULL, NULL, NULL,
+                                     "PS_Main", "ps_5_0", 0, 0, &pixel_shader_blob, &shader_compile_errors_blob);
+    if (FAILED(return_code))
+    {
+      String_Const_char error_string = {};
+
+      if (shader_compile_errors_blob)
+      {
+        error_string =
+        {
+          (char *) shader_compile_errors_blob->GetBufferPointer(),
+          shader_compile_errors_blob->GetBufferSize()
+        };
+        shader_compile_errors_blob->Release();
+      }
+
+      MessageBoxA(0, error_string.str, "Shader Compiler Error", MB_ICONERROR | MB_OK);
+    }
+
+    ID3D11Device *device = win32_global_state.render_context.device;
+    return_code = device->CreatePixelShader(pixel_shader_blob->GetBufferPointer(),
+                                            pixel_shader_blob->GetBufferSize(),
+                                            NULL,
+                                            &result.shader);
+
+    assert(SUCCEEDED(return_code));
+
+    pixel_shader_blob->Release();
+  }
+
+  return(result);
 }
 
 #define WIN32_IMPLEMENTATION_H

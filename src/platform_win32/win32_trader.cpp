@@ -163,7 +163,10 @@ WinMain(HINSTANCE instance,
     asset_pool_start[asset_index].next = asset_pool_start + (asset_index + 1);
   }
 
+  make_handle(Handle_Kind_None, NULL);
+
   global_asset_pool.free_list_head = asset_pool_start;
+  global_asset_pool.temp_arena     = arena_alloc(global_asset_pool_temp_arena_size, 1, NULL);
 
   String_Const_utf8 default_font_path = string_literal_init_type("C:/windows/fonts/arial.ttf", utf8);
 
@@ -632,20 +635,19 @@ WinMain(HINSTANCE instance,
       assert(SUCCEEDED(result));
     }
 
-    Render_Context render_context = {};
     {
-      render_context.swap_chain     = swap_chain;
-      render_context.device         = device;
-      render_context.device_context = device_context;
+      win32_global_state.render_context.swap_chain     = swap_chain;
+      win32_global_state.render_context.device         = device;
+      win32_global_state.render_context.device_context = device_context;
 
-      render_context.render_data    = render_data;
+      win32_global_state.render_context.render_data    = render_data;
     };
 
     global_running = true;
     global_window_resized = true;
 
     {
-      Instance_Buffer_Element *element = push_struct(&render_context.render_data, Instance_Buffer_Element);
+      Instance_Buffer_Element *element = push_struct(&win32_global_state.render_context.render_data, Instance_Buffer_Element);
 
       element->size.x0 = 0;
       element->size.y0 = 0;
@@ -725,7 +727,9 @@ WinMain(HINSTANCE instance,
         D3D11_MAPPED_SUBRESOURCE mapped_instance_buffer = {};
         device_context->Map(instance_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_instance_buffer);
 
-        copy_memory_block(mapped_instance_buffer.pData, render_context.render_data.start, render_context.render_data.used);
+        copy_memory_block(mapped_instance_buffer.pData,
+                          win32_global_state.render_context.render_data.start,
+                          win32_global_state.render_context.render_data.used);
 
         device_context->Unmap(instance_buffer, 0);
       }
@@ -769,7 +773,7 @@ WinMain(HINSTANCE instance,
       D3D11_RECT scissor_rectangle = {(LONG) 0, (LONG) 0, (LONG) client_rect.x1, (LONG) client_rect.y1};
       device_context->RSSetScissorRects(1, &scissor_rectangle);
 
-      u32 draw_call_count = (u32) (render_context.render_data.used / sizeof(Instance_Buffer_Element));
+      u32 draw_call_count = (u32) (win32_global_state.render_context.render_data.used / sizeof(Instance_Buffer_Element));
       device_context->DrawInstanced(4, draw_call_count, 0, 0);
 
       swap_chain->Present(1, 0);

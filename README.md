@@ -2,7 +2,7 @@
 A multiplatform, performant trading client and GUI with very few dependencies.
 
 ## What trader can do
-This project is still in its early stages, so to say. Right now, it supports HTTPS using a blocking- and sockets-based architecture sockets on Windows and has a Direct3D 11 rendering backend. It has the infrastructure to do hot-reloads using efficient methods (a.k.a. I/O Completion Ports).
+This project is still in its early stages, so to say. Right now, it supports HTTPS using a blocking- and sockets-based architecture sockets on Windows and has a Direct3D 11 rendering backend. It has the infrastructure to do hot-reloads using efficient methods (a.k.a. [I/O Completion Ports](https://learn.microsoft.com/en-us/windows/win32/fileio/i-o-completion-ports)).
 
 ## Planned features
 - [ ] OpenGL backend for Linux
@@ -11,4 +11,3 @@ This project is still in its early stages, so to say. Right now, it supports HTT
 - [ ] Immediate Mode GUI with real-time data visualization and manipulation
 - [ ] Multi-threaded architecture
 - [ ] Embedded Python Interpreter to conduct trades
-- [ ] [TLS resumption](https://zoompf.com/blog/2014/12/optimizing-tls-handshake/)?

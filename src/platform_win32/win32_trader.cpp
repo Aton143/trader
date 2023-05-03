@@ -151,7 +151,7 @@ WinMain(HINSTANCE instance,
 
   SetCurrentDirectoryW((LPCWSTR) exe_file_path.str);
 
-  Arena global_arena = arena_alloc(global_memory_size, 32, (void *) global_memory_start_addr);
+  Arena global_arena = arena_alloc(global_memory_size, 4, (void *) global_memory_start_addr);
   Arena render_data  = arena_alloc(render_data_size, 1, NULL);
 
   Asset_Node *asset_pool_start = (Asset_Node *) VirtualAlloc(NULL, mb(1), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -164,7 +164,7 @@ WinMain(HINSTANCE instance,
   }
 
   global_asset_pool.free_list_head = asset_pool_start;
-  win32_global_state.temp_arena    = arena_alloc(global_asset_pool_temp_arena_size, 32, NULL);
+  win32_global_state.temp_arena    = arena_alloc(global_asset_pool_temp_arena_size, 4, NULL);
 
   HANDLE iocp_handle = INVALID_HANDLE_VALUE;
   {
@@ -179,8 +179,9 @@ WinMain(HINSTANCE instance,
   }
 
   String_Const_utf8 notify_dir = string_literal_init_type("..\\src\\platform_win32\\", utf8);
+
   platform_push_notify_dir(notify_dir.str, notify_dir.size);
-  platform_collect_notifications();
+  platform_start_collect_notifications();
 
   String_Const_utf8 default_font_path = string_literal_init_type("C:/windows/fonts/arial.ttf", utf8);
 
@@ -698,6 +699,8 @@ WinMain(HINSTANCE instance,
         // assert(SUCCEEDED(result));
         frame_buffer->Release();
       }
+
+      platform_collect_notifications();
 
       FLOAT background_color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
       device_context->ClearRenderTargetView(frame_buffer_view, background_color);

@@ -34,7 +34,9 @@ struct Global_Platform_State
   HANDLE         notify_dir_iocp;
   OVERLAPPED     notify_overlapped;
 
-  utf8           changed_files[8][128];
+  // TODO(antonio): make part of global arena
+  FILE_NOTIFY_INFORMATION _changed_files[kb(64)];
+  utf8                    changed_files[8][128];
 };
 #pragma pack(pop)
 
@@ -238,6 +240,9 @@ void platform_push_notify_dir(utf8 *dir_path, u64 dir_path_size)
           win32_global_state.notify_dir      = dir_handle;
           win32_global_state.notify_dir_iocp = notify_dir_iocp;
         }
+        else
+        {
+        }
       }
       else
       {
@@ -246,7 +251,7 @@ void platform_push_notify_dir(utf8 *dir_path, u64 dir_path_size)
     }
     else
     {
-      // TODO(antonio): logging
+      // TODO(antonio): loggindffag
     }
   }
   else
@@ -255,36 +260,54 @@ void platform_push_notify_dir(utf8 *dir_path, u64 dir_path_size)
   }
 }
 
+void platform_start_collect_notifications(void)
+{
+  win32_global_state.notify_overlapped = {};
+
+  FILE_NOTIFY_INFORMATION *changes = win32_global_state._changed_files;
+  assert(((uintptr_t) changes & 0x3) == 0);
+
+  u32 bytes_written = 0;
+  BOOL got_changes =
+    ReadDirectoryChangesW(win32_global_state.notify_dir,
+                          (void *) changes,
+                          (DWORD) win32_global_state.temp_arena.size,
+                          TRUE,
+                          FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION | FILE_NOTIFY_CHANGE_SIZE,
+                          (DWORD *) &bytes_written,
+                          &win32_global_state.notify_overlapped,
+                          NULL);
+  if (!got_changes)
+  {
+    DWORD error; error = GetLastError();
+    assert(!"expected ReadDirectoryChangesW to succeed");
+  }
+}
+
 void platform_collect_notifications(void)
 {
   if (win32_global_state.notify_dir != INVALID_HANDLE_VALUE)
   {
-    win32_global_state.notify_overlapped = {};
-    FILE_NOTIFY_INFORMATION *changes =
-      push_array(&win32_global_state.temp_arena,
-                 FILE_NOTIFY_INFORMATION,
-                 (win32_global_state.temp_arena.size / sizeof(FILE_NOTIFY_INFORMATION)) - 1);
+    OVERLAPPED *overlapped        = NULL;
+    void       *completion_key    = NULL;
+    u32         bytes_transferred = 0;
 
-    assert(((uintptr_t) changes & 0x1f) == 0);
-
-    u32 bytes_written = 0;
-    BOOL got_changes =
-      ReadDirectoryChangesW(win32_global_state.notify_dir,
-                            (void *) changes,
-                            (DWORD) win32_global_state.temp_arena.size,
-                            TRUE,
-                            FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION,
-                            (DWORD *) &bytes_written,
-                            &win32_global_state.notify_overlapped,
-                            NULL);
-    if (got_changes)
+    BOOL completion_status =
+      GetQueuedCompletionStatus(win32_global_state.notify_iocp,
+                                (DWORD *) &bytes_transferred,
+                                (PULONG_PTR) &completion_key,
+                                &overlapped,
+                                0);
+    if (completion_status)
     {
       zero_struct(&win32_global_state.changed_files);
+      platform_start_collect_notifications();
     }
     else
     {
-      DWORD error = GetLastError();
-      error = error;
+      // TODO(antonio): log no change?
+      DWORD error;
+      error = GetLastError();
     }
   }
 }

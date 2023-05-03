@@ -35,8 +35,8 @@ struct Global_Platform_State
   OVERLAPPED     notify_overlapped;
 
   // TODO(antonio): make part of global arena
-  FILE_NOTIFY_INFORMATION _changed_files[kb(64)];
-  utf8                    changed_files[8][128];
+  u8             _changed_files[kb(1)];
+  utf8           changed_files[8][128];
 };
 #pragma pack(pop)
 
@@ -263,15 +263,16 @@ void platform_push_notify_dir(utf8 *dir_path, u64 dir_path_size)
 void platform_start_collect_notifications(void)
 {
   win32_global_state.notify_overlapped = {};
+  win32_global_state.notify_overlapped = {};
 
-  FILE_NOTIFY_INFORMATION *changes = win32_global_state._changed_files;
-  assert(((uintptr_t) changes & 0x3) == 0);
+  FILE_NOTIFY_INFORMATION *changes = (FILE_NOTIFY_INFORMATION *) win32_global_state._changed_files;
+  assert(((ptr_val) changes & 0x3) == 0);
 
   u32 bytes_written = 0;
   BOOL got_changes =
     ReadDirectoryChangesW(win32_global_state.notify_dir,
                           (void *) changes,
-                          (DWORD) win32_global_state.temp_arena.size,
+                          (DWORD) sizeof(win32_global_state._changed_files),
                           TRUE,
                           FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION | FILE_NOTIFY_CHANGE_SIZE,
                           (DWORD *) &bytes_written,
@@ -301,9 +302,20 @@ void platform_collect_notifications(void)
     if (completion_status)
     {
       zero_struct(&win32_global_state.changed_files);
+      
+      for (FILE_NOTIFY_INFORMATION *cur = (FILE_NOTIFY_INFORMATION *) win32_global_state._changed_files;
+           cur->NextEntryOffset != 0;
+           cur = (FILE_NOTIFY_INFORMATION *) (((u8 *) cur) + cur->NextEntryOffset))
+      {
+        utf16 *file_name = (utf16 *) push_array_zero(&win32_global_state.temp_arena, u8, cur->FileNameLength + 2);
+        copy_memory_block(file_name, cur->FileName, cur->FileNameLength);
+
+        OutputDebugStringW(file_name);
+      }
+
       platform_start_collect_notifications();
     }
-    else
+    else 
     {
       // TODO(antonio): log no change?
       DWORD error;

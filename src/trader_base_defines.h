@@ -712,9 +712,9 @@ struct Array_u64 {
   i32 count;
 };
 
-typedef u8  utf8;
-typedef u16 utf16;
-typedef u32 utf32;
+typedef u8      utf8;
+typedef wchar_t utf16;
+typedef u32     utf32;
 
 struct String_Const_char {
   char *str;
@@ -725,8 +725,8 @@ struct String_Const_utf8 {
   u64 size;
 };
 struct String_Const_utf16 {
-  u16 *str;
-  u64 size;
+  utf16 *str;
+  u64    size;
 };
 struct String_Const_utf32 {
   u32 *str;

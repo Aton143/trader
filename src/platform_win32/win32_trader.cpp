@@ -163,13 +163,24 @@ WinMain(HINSTANCE instance,
     asset_pool_start[asset_index].next = asset_pool_start + (asset_index + 1);
   }
 
-  make_handle(Handle_Kind_None, NULL);
+  global_asset_pool.free_list_head = asset_pool_start;
+  win32_global_state.temp_arena    = arena_alloc(global_asset_pool_temp_arena_size, 32, NULL);
+
+  HANDLE iocp_handle = INVALID_HANDLE_VALUE;
+  {
+    // TODO(antonio): use completion key to distinguish handles?
+    iocp_handle = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 0);
+    if (iocp_handle == INVALID_HANDLE_VALUE)
+    {
+      assert(!"could not create an I/O completion port");
+    }
+
+    win32_global_state.notify_iocp = iocp_handle;
+  }
 
   String_Const_utf8 notify_dir = string_literal_init_type("..\\src\\platform_win32\\", utf8);
   platform_push_notify_dir(notify_dir.str, notify_dir.size);
-
-  global_asset_pool.free_list_head = asset_pool_start;
-  global_asset_pool.temp_arena     = arena_alloc(global_asset_pool_temp_arena_size, 1, NULL);
+  platform_collect_notifications();
 
   String_Const_utf8 default_font_path = string_literal_init_type("C:/windows/fonts/arial.ttf", utf8);
 
@@ -226,19 +237,6 @@ WinMain(HINSTANCE instance,
   }
 
 #if 0
-  HANDLE iocp_handle = INVALID_HANDLE_VALUE;
-  {
-    // TODO(antonio): use completion key to distinguish handles?
-    iocp_handle = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 0);
-    if (iocp_handle == INVALID_HANDLE_VALUE)
-    {
-      assert(!"could not create an I/O completion port");
-    }
-
-    // TODO(antonio): completion key
-    // iocp_handle = CreateIoCompletionPort((HANDLE) tls_socket.socket, iocp_handle, (ULONG_PTR) NULL, 0);
-  }
-
   Network_State network_state = {};
   network_startup(&network_state);
 

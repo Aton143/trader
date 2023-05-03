@@ -18,10 +18,10 @@ internal Handle *make_handle(Handle_Kind kind, utf8 *id)
 
   if (is_between_inclusive(Handle_Kind_Vertex_Shader, kind, Handle_Kind_Pixel_Shader))
   {
-    zero_memory_block(global_asset_pool.temp_arena.start, global_asset_pool.temp_arena.used);
-    global_asset_pool.temp_arena.used = 0;
+    zero_memory_block(win32_global_state.temp_arena.start, win32_global_state.temp_arena.used);
+    win32_global_state.temp_arena.used = 0;
 
-    file_data = platform_open_and_read_entire_file(&global_asset_pool.temp_arena, id, id_length);
+    file_data = platform_open_and_read_entire_file(&win32_global_state.temp_arena, id, id_length);
   }
 
   switch (kind)

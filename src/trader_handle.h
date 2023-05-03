@@ -41,7 +41,6 @@ struct Asset_Node {
 
 struct Asset_Pool
 {
-  Arena       temp_arena;
   Asset_Node *free_list_head;
 };
 

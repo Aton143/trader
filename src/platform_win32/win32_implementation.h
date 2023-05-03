@@ -20,11 +20,23 @@ struct Pixel_Shader
   ID3D11PixelShader  *shader;
 };
 
+#pragma pack(push, 4)
 struct Global_Platform_State
 {
+  Arena          temp_arena;
+
   Render_Context render_context;
+
   HWND           window_handle;
+
+  HANDLE         notify_iocp;
+  HANDLE         notify_dir;
+  HANDLE         notify_dir_iocp;
+  OVERLAPPED     notify_overlapped;
+
+  utf8           changed_files[8][128];
 };
+#pragma pack(pop)
 
 global Global_Platform_State win32_global_state = {};
 
@@ -201,13 +213,83 @@ File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u6
   return(file_buffer);
 }
 
-void platform_push_notify_dir(utf8 *dir_path, u64 dir_path_length)
+void platform_push_notify_dir(utf8 *dir_path, u64 dir_path_size)
 {
-  unused(dir_path);
-  unused(dir_path_length);
+  if ((dir_path != NULL) && (win32_global_state.notify_iocp != INVALID_HANDLE_VALUE))
+  {
+    utf16 file_path_utf16[512] = {};
+    u32 bytes_written = (u32) MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED,
+                                                  (LPCCH) dir_path, (int) dir_path_size,
+                                                  (wchar_t *) file_path_utf16, array_count(file_path_utf16));
+
+    if (bytes_written == dir_path_size)
+    {
+      HANDLE dir_handle = CreateFileW((LPCWSTR) file_path_utf16,
+                                       GENERIC_READ, FILE_SHARE_READ,
+                                       NULL, OPEN_EXISTING,
+                                       FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
+                                       NULL);
+      if (dir_handle != INVALID_HANDLE_VALUE)
+      {
+        // TODO(antonio): completion key?
+        HANDLE notify_dir_iocp = CreateIoCompletionPort(dir_handle, win32_global_state.notify_iocp, 0, 0);
+        if (notify_dir_iocp != INVALID_HANDLE_VALUE)
+        {
+          win32_global_state.notify_dir      = dir_handle;
+          win32_global_state.notify_dir_iocp = notify_dir_iocp;
+        }
+      }
+      else
+      {
+        // TODO(antonio): logging
+      }
+    }
+    else
+    {
+      // TODO(antonio): logging
+    }
+  }
+  else
+  {
+    // TODO(antonio): logging
+  }
 }
 
-b32 platform_did_file_change(utf8 *file_name, u64 *file_name_length)
+void platform_collect_notifications(void)
+{
+  if (win32_global_state.notify_dir != INVALID_HANDLE_VALUE)
+  {
+    win32_global_state.notify_overlapped = {};
+    FILE_NOTIFY_INFORMATION *changes =
+      push_array(&win32_global_state.temp_arena,
+                 FILE_NOTIFY_INFORMATION,
+                 (win32_global_state.temp_arena.size / sizeof(FILE_NOTIFY_INFORMATION)) - 1);
+
+    assert(((uintptr_t) changes & 0x1f) == 0);
+
+    u32 bytes_written = 0;
+    BOOL got_changes =
+      ReadDirectoryChangesW(win32_global_state.notify_dir,
+                            (void *) changes,
+                            (DWORD) win32_global_state.temp_arena.size,
+                            TRUE,
+                            FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION,
+                            (DWORD *) &bytes_written,
+                            &win32_global_state.notify_overlapped,
+                            NULL);
+    if (got_changes)
+    {
+      zero_struct(&win32_global_state.changed_files);
+    }
+    else
+    {
+      DWORD error = GetLastError();
+      error = error;
+    }
+  }
+}
+
+b32 platform_did_file_change(utf8 *file_name, u64 file_name_length)
 {
   unused(file_name);
   unused(file_name_length);

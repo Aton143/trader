@@ -1,15 +1,6 @@
 #ifndef WIN32_IMPLEMENTATION_H
 #include <malloc.h>
 
-struct Render_Context
-{
-  IDXGISwapChain1     *swap_chain;
-  ID3D11Device        *device;
-  ID3D11DeviceContext *device_context;
-
-  Arena                render_data;
-};
-
 struct Vertex_Shader
 {
   ID3D11VertexShader *shader;
@@ -18,6 +9,15 @@ struct Vertex_Shader
 struct Pixel_Shader
 {
   ID3D11PixelShader  *shader;
+};
+
+struct Render_Context
+{
+  IDXGISwapChain1     *swap_chain;
+  ID3D11Device        *device;
+  ID3D11DeviceContext *device_context;
+
+  Arena                render_data;
 };
 
 #pragma pack(push, 4)
@@ -64,13 +64,13 @@ internal void make_nil(Socket *s)
   s->socket = INVALID_SOCKET;
 }
 
-Global_Platform_State *get_global_platform_state()
+internal Global_Platform_State *get_global_platform_state()
 {
   Global_Platform_State *state = &win32_global_state;
   return(state);
 }
 
-Rect_f32 render_get_client_rect()
+internal Rect_f32 render_get_client_rect()
 {
   Rect_f32 client_rect = {};
 
@@ -87,7 +87,7 @@ Rect_f32 render_get_client_rect()
 }
 
 /*
-Asset_Handle render_make_texture(Render_Context *context, void *texture_data, u64 width, u64 height, u64 channels)
+internal Asset_Handle render_make_texture(Render_Context *context, void *texture_data, u64 width, u64 height, u64 channels)
 {
   Asset_Handle handle = nil_handle;
 
@@ -138,7 +138,7 @@ Asset_Handle render_make_texture(Render_Context *context, void *texture_data, u6
 }
 */
 
-File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u64 file_path_size)
+internal File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u64 file_path_size)
 {
   File_Buffer file_buffer = {};
 
@@ -215,7 +215,7 @@ File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u6
   return(file_buffer);
 }
 
-void platform_push_notify_dir(utf8 *dir_path, u64 dir_path_size)
+internal void platform_push_notify_dir(utf8 *dir_path, u64 dir_path_size)
 {
   if ((dir_path != NULL) && (win32_global_state.notify_iocp != INVALID_HANDLE_VALUE))
   {
@@ -260,9 +260,8 @@ void platform_push_notify_dir(utf8 *dir_path, u64 dir_path_size)
   }
 }
 
-void platform_start_collect_notifications(void)
+internal void platform_start_collect_notifications(void)
 {
-  win32_global_state.notify_overlapped = {};
   win32_global_state.notify_overlapped = {};
 
   FILE_NOTIFY_INFORMATION *changes = (FILE_NOTIFY_INFORMATION *) win32_global_state._changed_files;
@@ -289,7 +288,7 @@ void platform_start_collect_notifications(void)
   }
 }
 
-void platform_collect_notifications(void)
+internal void platform_collect_notifications(void)
 {
   if (win32_global_state.notify_dir != INVALID_HANDLE_VALUE)
   {
@@ -305,7 +304,7 @@ void platform_collect_notifications(void)
                                 0);
     if (completion_status)
     {
-      zero_struct(&win32_global_state.changed_files);
+      zero_struct(win32_global_state.changed_files);
 
       i32 cur_index = 0;
       FILE_NOTIFY_INFORMATION *cur = (FILE_NOTIFY_INFORMATION *) win32_global_state._changed_files;
@@ -342,9 +341,15 @@ void platform_collect_notifications(void)
   }
 }
 
-b32 platform_did_file_change(utf8 *file_name, u64 file_name_length)
+internal b32 platform_did_file_change(utf8 *file_path, u64 file_path_length)
 {
   b32 file_changed = false;
+
+  String_Const_utf8 file_path_wrapped = {file_path, file_path_length};
+  String_Const_utf8 file_name_only    = platform_get_file_name_from_path(&file_path_wrapped);
+
+  utf8 *file_name = file_name_only.str;
+  u64   file_name_length = file_name_only.size;
 
   for (u64 changed_file_index = 0;
        changed_file_index < array_count(win32_global_state.changed_files);
@@ -368,6 +373,32 @@ b32 platform_did_file_change(utf8 *file_name, u64 file_name_length)
   }
 
   return(file_changed);
+}
+
+global_const u8 platform_path_separator = '\\';
+global_const u8 unix_path_separator = '/';
+
+internal String_Const_utf8 platform_get_file_name_from_path(String_Const_utf8 *path)
+{
+  String_Const_utf8 result = {};
+
+  u64 last_separator_pos = 0;
+  for (u64 path_char_index = 0;
+       path_char_index < path->size;
+       ++path_char_index)
+  {
+    if ((path->str[path_char_index] == platform_path_separator) ||
+        (path->str[path_char_index] == unix_path_separator))
+    {
+      last_separator_pos = path_char_index;
+    }
+  }
+
+  u64 char_pos = (last_separator_pos == 0) ? last_separator_pos : (last_separator_pos + 1);
+  result.str   = &path->str[char_pos];
+  result.size  = path->size - char_pos;
+
+  return(result);
 }
 
 internal Network_Return_Code network_startup(Network_State *out_state)

@@ -58,9 +58,9 @@ global_const utf32 starting_code_point = 32;  // ' '
 global_const utf32 ending_code_point   = 126; // '~'
 
 // extern Asset_Handle render_make_texture(void *texture_data, u64 width, u64 height, u64 channels);
-extern Rect_f32      render_get_client_rect();
-extern Vertex_Shader render_load_vertex_shader(File_Buffer source);
-extern Pixel_Shader  render_load_pixel_shader(File_Buffer source);
+internal Rect_f32      render_get_client_rect();
+internal Vertex_Shader render_load_vertex_shader(File_Buffer source);
+internal Pixel_Shader  render_load_pixel_shader(File_Buffer source);
 
 internal b32 render_atlas_initialize(Arena         *arena,
                                      Texture_Atlas *atlas,

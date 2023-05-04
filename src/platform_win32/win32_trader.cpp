@@ -647,6 +647,12 @@ WinMain(HINSTANCE instance,
       win32_global_state.render_context.render_data    = render_data;
     };
 
+    Pixel_Shader  renderer_pixel_shader  = {pixel_shader};
+    Vertex_Shader renderer_vertex_shader = {vertex_shader};
+
+    unused(renderer_pixel_shader);
+    unused(renderer_vertex_shader);
+
     global_running = true;
     global_window_resized = true;
 
@@ -704,6 +710,20 @@ WinMain(HINSTANCE instance,
 
       platform_collect_notifications();
 
+      if (platform_did_file_change(shader_source_path.str, shader_source_path.size))
+      {
+        // renderer_vertex_shader.shader->Release();
+        renderer_pixel_shader.shader->Release();
+
+        shader_source =
+          platform_open_and_read_entire_file(&global_arena,
+                                             shader_source_path.str,
+                                             shader_source_path.size);
+
+        // renderer_vertex_shader = render_load_vertex_shader(shader_source);
+        renderer_pixel_shader = render_load_pixel_shader(shader_source);
+      }
+
       FLOAT background_color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
       device_context->ClearRenderTargetView(frame_buffer_view, background_color);
       device_context->OMSetRenderTargets(1, &frame_buffer_view, NULL);
@@ -759,10 +779,10 @@ WinMain(HINSTANCE instance,
 
       device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-      device_context->VSSetShader(vertex_shader, NULL, 0);
+      device_context->VSSetShader(renderer_vertex_shader.shader, NULL, 0);
       device_context->VSSetConstantBuffers(0, 1, &constant_buffer);
 
-      device_context->PSSetShader(pixel_shader, NULL, 0);
+      device_context->PSSetShader(renderer_pixel_shader.shader, NULL, 0);
       device_context->PSSetShaderResources(0, 1, &font_texture_view);
       device_context->PSSetSamplers(0, 1, &sampler_state);
 

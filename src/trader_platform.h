@@ -13,6 +13,7 @@ internal void platform_start_collect_notifications(void);
 internal void platform_collect_notifications(void);
 
 internal b32 platform_did_file_change(utf8 *file_name, u64 file_name_length);
+internal String_Const_utf8 platform_get_file_name_from_path(String_Const_utf8 *path);
 
 #define TRADER_PLATFORM_H
 #endif

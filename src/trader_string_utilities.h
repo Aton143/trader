@@ -1,12 +1,13 @@
 #ifndef TRADER_STRING_H
 #include <wchar.h>
 
-u64 c_string_length(char *string);
-u64 c_string_length(utf16 *string);
+internal u64 c_string_length(char *string);
+internal u64 c_string_length(utf16 *string);
+internal u64 c_string_count(utf16 *string);
 
-String_Const_char string_const_char(char *string);
-String_Const_utf16 string_const_utf16(utf16 *string);
-u64 base64_encode(u8 *out_buffer, u8 *data, u64 data_length);
+internal String_Const_char string_const_char(char *string);
+internal String_Const_utf16 string_const_utf16(utf16 *string);
+internal u64 base64_encode(u8 *out_buffer, u8 *data, u64 data_length);
 
 // Implementation
 u64 c_string_length(char *string)
@@ -24,6 +25,12 @@ u64 c_string_length(utf16 *string)
   while (string[result] != '\0') {
     result++;
   }
+  return(result);
+}
+
+u64 c_string_count(utf16 *string)
+{
+  u64 result = wcslen(string); 
   return(result);
 }
 

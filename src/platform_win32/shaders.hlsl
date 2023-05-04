@@ -33,7 +33,7 @@ SamplerState global_sampler: register(s0);
 // NOTE(antonio): ndc coordinates:
 // 
 //  (-1, -1)        (1, -1)
-//     +-------------+
+//     +-------------+z
 //     |             |
 //     |             |
 //     |             |

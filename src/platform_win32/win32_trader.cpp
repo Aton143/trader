@@ -143,8 +143,10 @@ WinMain(HINSTANCE instance,
 
   rng_init();
 
-  wchar_t _exe_file_path[MAX_PATH] = {};
+  utf16 _exe_file_path[MAX_PATH] = {};
   GetModuleFileNameW(NULL, _exe_file_path, array_count(_exe_file_path));
+
+  int i; i = array_count(win32_global_state.changed_files[0]);
 
   String_Const_utf16 exe_file_path = string_const_utf16((utf16 *) _exe_file_path);
   unused(exe_file_path);

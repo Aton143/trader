@@ -268,13 +268,17 @@ void platform_start_collect_notifications(void)
   FILE_NOTIFY_INFORMATION *changes = (FILE_NOTIFY_INFORMATION *) win32_global_state._changed_files;
   assert(((ptr_val) changes & 0x3) == 0);
 
+  DWORD notify_filter = FILE_NOTIFY_CHANGE_LAST_WRITE  | FILE_NOTIFY_CHANGE_CREATION   |
+                        FILE_NOTIFY_CHANGE_SIZE        | FILE_NOTIFY_CHANGE_ATTRIBUTES |
+                        FILE_NOTIFY_CHANGE_LAST_ACCESS;
+
   u32 bytes_written = 0;
   BOOL got_changes =
     ReadDirectoryChangesW(win32_global_state.notify_dir,
                           (void *) changes,
                           (DWORD) sizeof(win32_global_state._changed_files),
                           TRUE,
-                          FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION | FILE_NOTIFY_CHANGE_SIZE,
+                          notify_filter,
                           (DWORD *) &bytes_written,
                           &win32_global_state.notify_overlapped,
                           NULL);
@@ -302,16 +306,30 @@ void platform_collect_notifications(void)
     if (completion_status)
     {
       zero_struct(&win32_global_state.changed_files);
-      
-      for (FILE_NOTIFY_INFORMATION *cur = (FILE_NOTIFY_INFORMATION *) win32_global_state._changed_files;
-           cur->NextEntryOffset != 0;
-           cur = (FILE_NOTIFY_INFORMATION *) (((u8 *) cur) + cur->NextEntryOffset))
-      {
-        utf16 *file_name = (utf16 *) push_array_zero(&win32_global_state.temp_arena, u8, cur->FileNameLength + 2);
-        copy_memory_block(file_name, cur->FileName, cur->FileNameLength);
 
-        OutputDebugStringW(file_name);
-      }
+      i32 cur_index = 0;
+      FILE_NOTIFY_INFORMATION *cur = (FILE_NOTIFY_INFORMATION *) win32_global_state._changed_files;
+
+      do
+      {
+        utf16 last_char = cur->FileName[cur->FileNameLength];
+        cur->FileName[cur->FileNameLength] = 0;
+
+        WideCharToMultiByte(CP_UTF8, 0,
+                            cur->FileName,
+                            (i32)   c_string_count(cur->FileName),
+                            (LPSTR) win32_global_state.changed_files[cur_index],
+                            array_count(win32_global_state.changed_files[cur_index]),
+                            NULL, NULL);
+
+        cur->FileName[cur->FileNameLength] = last_char;
+
+        cur_index++;
+        cur = (FILE_NOTIFY_INFORMATION *) (((u8 *) cur) + cur->NextEntryOffset);
+      } while (cur->NextEntryOffset != 0);
+
+      zero_memory_block(win32_global_state._changed_files,
+                        min(bytes_transferred, sizeof(win32_global_state._changed_files)));
 
       platform_start_collect_notifications();
     }
@@ -326,9 +344,30 @@ void platform_collect_notifications(void)
 
 b32 platform_did_file_change(utf8 *file_name, u64 file_name_length)
 {
-  unused(file_name);
-  unused(file_name_length);
-  return(true);
+  b32 file_changed = false;
+
+  for (u64 changed_file_index = 0;
+       changed_file_index < array_count(win32_global_state.changed_files);
+       ++changed_file_index)
+  {
+    utf8 *cur_changed_file = win32_global_state.changed_files[changed_file_index];
+
+    if (cur_changed_file[0] != 0)
+    {
+      u64 min_length = min(file_name_length, array_count(win32_global_state.changed_files[0]));
+      if (!compare_memory_block(file_name, cur_changed_file, min_length))
+      {
+        file_changed = true;
+        break;
+      }
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  return(file_changed);
 }
 
 internal Network_Return_Code network_startup(Network_State *out_state)

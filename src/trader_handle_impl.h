@@ -25,7 +25,10 @@ internal Handle *make_handle(utf8 *id, Handle_Kind kind, Handle *previous_handle
 
       if (platform_open_file(id, id_size, result))
       {
-        copy_memory_block(result->id, id, min(id_size, array_count(result->id)));
+        String_Const_utf8 id_conv   = {id, id_size};
+        String_Const_utf8 file_name = platform_get_file_name_from_path(&id_conv);
+        copy_memory_block(result->id, file_name.str, min(file_name.size, array_count(result->id)));
+
         result->kind = kind;
 
         global_asset_pool.free_list_head = global_asset_pool.free_list_head->next;

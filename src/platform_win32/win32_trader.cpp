@@ -28,6 +28,8 @@
 #pragma comment (lib, "Mswsock.lib")
 #pragma comment (lib, "AdvApi32.lib")
 
+#define safe_release(releasable) if (releasable) releasable->Release()
+
 #include "..\trader.h"
 
 global b32 global_running        = false;
@@ -401,6 +403,7 @@ WinMain(HINSTANCE instance,
       ID3DBlob *shader_compile_errors_blob = NULL;
       HRESULT result = D3DCompile(shader_source.data, shader_source.size, NULL, NULL, NULL,
                                   "VS_Main", "vs_5_0", 0, 0, &vertex_shader_blob, &shader_compile_errors_blob);
+
       if (FAILED(result))
       {
         String_Const_char error_string = {};
@@ -412,55 +415,20 @@ WinMain(HINSTANCE instance,
             (char *) shader_compile_errors_blob->GetBufferPointer(),
             shader_compile_errors_blob->GetBufferSize()
           };
-          shader_compile_errors_blob->Release();
         }
-        MessageBoxA(0, error_string.str, "Shader Compiler Error", MB_ICONERROR | MB_OK);
 
+        MessageBoxA(0, error_string.str, "Shader Compiler Error", MB_ICONERROR | MB_OK);
         return(1);
       }
 
       result = device->CreateVertexShader(vertex_shader_blob->GetBufferPointer(),
                                           vertex_shader_blob->GetBufferSize(),
                                           NULL, &vertex_shader);
+
+      safe_release(shader_compile_errors_blob);
+
       assert(SUCCEEDED(result));
     }
-
-    /*
-    ID3D11PixelShader *pixel_shader = NULL;
-    {
-      ID3DBlob *pixel_shader_blob          = NULL;
-      ID3DBlob *shader_compile_errors_blob = NULL;
-
-      HRESULT result = D3DCompile(shader_source.data, shader_source.size, NULL, NULL, NULL,
-                                  "PS_Main", "ps_5_0", 0, 0, &pixel_shader_blob, &shader_compile_errors_blob);
-      if (FAILED(result))
-      {
-        String_Const_char error_string = {};
-
-        if (shader_compile_errors_blob)
-        {
-          error_string =
-          {
-            (char *) shader_compile_errors_blob->GetBufferPointer(),
-            shader_compile_errors_blob->GetBufferSize()
-          };
-          shader_compile_errors_blob->Release();
-        }
-
-        MessageBoxA(0, error_string.str, "Shader Compiler Error", MB_ICONERROR | MB_OK);
-
-        return(1);
-      }
-
-      result = device->CreatePixelShader(pixel_shader_blob->GetBufferPointer(),
-                                         pixel_shader_blob->GetBufferSize(),
-                                         NULL,
-                                         &pixel_shader);
-      assert(SUCCEEDED(result));
-
-      pixel_shader_blob->Release();
-    }
-    */
 
     ID3D11InputLayout *input_layout = NULL;
     {
@@ -651,11 +619,10 @@ WinMain(HINSTANCE instance,
 
     Handle *shader_source_handle = make_handle(shader_source_path.str, Handle_Kind_File);
 
-    Pixel_Shader  renderer_pixel_shader  = render_load_pixel_shader(shader_source_handle);
-    Vertex_Shader renderer_vertex_shader = {vertex_shader};
+    Pixel_Shader  renderer_pixel_shader = {};
+    render_load_pixel_shader(shader_source_handle, &renderer_pixel_shader, true);
 
-    unused(renderer_pixel_shader);
-    unused(renderer_vertex_shader);
+    Vertex_Shader renderer_vertex_shader = {vertex_shader};
 
     global_running = true;
     global_window_resized = true;
@@ -788,7 +755,9 @@ WinMain(HINSTANCE instance,
       device_context->VSSetShader(renderer_vertex_shader.shader, NULL, 0);
       device_context->VSSetConstantBuffers(0, 1, &constant_buffer);
 
+      render_load_pixel_shader(shader_source_handle, &renderer_pixel_shader);
       device_context->PSSetShader(renderer_pixel_shader.shader, NULL, 0);
+
       device_context->PSSetShaderResources(0, 1, &font_texture_view);
       device_context->PSSetSamplers(0, 1, &sampler_state);
 

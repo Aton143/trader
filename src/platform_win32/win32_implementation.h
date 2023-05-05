@@ -155,7 +155,7 @@ internal b32 platform_open_file(utf8 *file_path, u64 file_path_size, Handle *out
 
     assert(bytes_written == file_path_size);
     HANDLE file_handle = CreateFileW((LPCWSTR) file_path_utf16,
-                                     GENERIC_READ, FILE_SHARE_READ,
+                                     GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
                                      NULL, OPEN_ALWAYS,
                                      FILE_ATTRIBUTE_NORMAL, NULL);
 
@@ -189,7 +189,7 @@ internal File_Buffer platform_read_entire_file(Handle *handle)
       u32 bytes_read = 0;
       if (ReadFile(handle->file_handle, file_buffer_data, (u32) file_size, (LPDWORD) &bytes_read, NULL))
       {
-        assert((bytes_read == file_size) || !"Win32 Error: bytes read does not match expected");
+        assert((bytes_read == file_size) && "Win32 Error: bytes read does not match expected");
 
         file_buffer.data           = file_buffer_data;
         file_buffer.size           = file_size;
@@ -399,15 +399,9 @@ internal void platform_collect_notifications(void)
   }
 }
 
-internal b32 platform_did_file_change(utf8 *file_path, u64 file_path_length)
+internal b32 platform_did_file_change(utf8 *file_name, u64 file_name_length)
 {
   b32 file_changed = false;
-
-  String_Const_utf8 file_path_wrapped = {file_path, file_path_length};
-  String_Const_utf8 file_name_only    = platform_get_file_name_from_path(&file_path_wrapped);
-
-  utf8 *file_name = file_name_only.str;
-  u64   file_name_length = file_name_only.size;
 
   for (u64 changed_file_index = 0;
        changed_file_index < array_count(win32_global_state.changed_files);
@@ -736,47 +730,48 @@ internal Arena arena_alloc(u64 size, u64 alignment, void *start)
   return(arena);
 }
 
-Pixel_Shader render_load_pixel_shader(Handle *shader_handle)
+void render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shader, b32 force)
 {
-  Pixel_Shader result = {};
-
-  // TODO(antonio): will have to read file twice
-  File_Buffer temp_shader_source = platform_read_entire_file(shader_handle);
+  u64 file_name_length = c_string_length(shader_handle->id, array_count(shader_handle->id));
+  if (force || platform_did_file_change(shader_handle->id, file_name_length))
   {
-    ID3DBlob *pixel_shader_blob          = NULL;
-    ID3DBlob *shader_compile_errors_blob = NULL;
-
-    HRESULT return_code = D3DCompile(temp_shader_source.data, temp_shader_source.size, NULL, NULL, NULL,
-                                     "PS_Main", "ps_5_0", 0, 0, &pixel_shader_blob, &shader_compile_errors_blob);
-    if (FAILED(return_code))
+    // TODO(antonio): will have to read file twice
+    File_Buffer temp_shader_source = platform_read_entire_file(shader_handle);
     {
-      String_Const_char error_string = {};
+      ID3DBlob *pixel_shader_blob          = NULL;
+      ID3DBlob *shader_compile_errors_blob = NULL;
 
-      if (shader_compile_errors_blob)
+      HRESULT return_code = D3DCompile(temp_shader_source.data, temp_shader_source.size, NULL, NULL, NULL,
+                                       "PS_Main", "ps_5_0", 0, 0, &pixel_shader_blob, &shader_compile_errors_blob);
+
+      if (FAILED(return_code))
       {
-        error_string =
+        String_Const_char error_string = {};
+
+        if (shader_compile_errors_blob)
         {
-          (char *) shader_compile_errors_blob->GetBufferPointer(),
-          shader_compile_errors_blob->GetBufferSize()
-        };
-        shader_compile_errors_blob->Release();
+          error_string =
+          {
+            (char *) shader_compile_errors_blob->GetBufferPointer(),
+            shader_compile_errors_blob->GetBufferSize()
+          };
+        }
+
+        MessageBoxA(0, error_string.str, "Shader Compiler Error", MB_ICONERROR | MB_OK);
       }
 
-      MessageBoxA(0, error_string.str, "Shader Compiler Error", MB_ICONERROR | MB_OK);
+      ID3D11Device *device = win32_global_state.render_context.device;
+      return_code = device->CreatePixelShader(pixel_shader_blob->GetBufferPointer(),
+                                              pixel_shader_blob->GetBufferSize(),
+                                              NULL,
+                                              &shader->shader);
+
+      assert(SUCCEEDED(return_code));
+
+      safe_release(shader_compile_errors_blob);
+      pixel_shader_blob->Release();
     }
-
-    ID3D11Device *device = win32_global_state.render_context.device;
-    return_code = device->CreatePixelShader(pixel_shader_blob->GetBufferPointer(),
-                                            pixel_shader_blob->GetBufferSize(),
-                                            NULL,
-                                            &result.shader);
-
-    assert(SUCCEEDED(return_code));
-
-    pixel_shader_blob->Release();
   }
-
-  return(result);
 }
 
 #define WIN32_IMPLEMENTATION_H

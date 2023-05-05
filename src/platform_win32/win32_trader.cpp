@@ -391,44 +391,23 @@ WinMain(HINSTANCE instance,
       frame_buffer->Release();
     }
 
-    String_Const_utf8 shader_source_path = string_literal_init_type("..\\src\\platform_win32\\shaders.hlsl", utf8);
-    File_Buffer shader_source =
-      platform_open_and_read_entire_file(&global_arena,
-                                         shader_source_path.str,
-                                         shader_source_path.size);
-
-    ID3DBlob *vertex_shader_blob = NULL;
-    ID3D11VertexShader *vertex_shader = NULL;
     {
-      ID3DBlob *shader_compile_errors_blob = NULL;
-      HRESULT result = D3DCompile(shader_source.data, shader_source.size, NULL, NULL, NULL,
-                                  "VS_Main", "vs_5_0", 0, 0, &vertex_shader_blob, &shader_compile_errors_blob);
+      win32_global_state.render_context.swap_chain     = swap_chain;
+      win32_global_state.render_context.device         = device;
+      win32_global_state.render_context.device_context = device_context;
 
-      if (FAILED(result))
-      {
-        String_Const_char error_string = {};
+      win32_global_state.render_context.render_data    = render_data;
+    };
 
-        if (shader_compile_errors_blob)
-        {
-          error_string =
-          {
-            (char *) shader_compile_errors_blob->GetBufferPointer(),
-            shader_compile_errors_blob->GetBufferSize()
-          };
-        }
+    String_Const_utf8 shader_source_path = string_literal_init_type("..\\src\\platform_win32\\shaders.hlsl", utf8);
+    Handle *shader_source_handle = make_handle(shader_source_path.str, Handle_Kind_File);
 
-        MessageBoxA(0, error_string.str, "Shader Compiler Error", MB_ICONERROR | MB_OK);
-        return(1);
-      }
+    Vertex_Shader renderer_vertex_shader = {};
+    Pixel_Shader  renderer_pixel_shader = {};
 
-      result = device->CreateVertexShader(vertex_shader_blob->GetBufferPointer(),
-                                          vertex_shader_blob->GetBufferSize(),
-                                          NULL, &vertex_shader);
-
-      safe_release(shader_compile_errors_blob);
-
-      assert(SUCCEEDED(result));
-    }
+    ID3DBlob *vertex_shader_blob =
+      (ID3DBlob *) render_load_vertex_shader(shader_source_handle, &renderer_vertex_shader, true);
+    render_load_pixel_shader(shader_source_handle, &renderer_pixel_shader, true);
 
     ID3D11InputLayout *input_layout = NULL;
     {
@@ -609,21 +588,6 @@ WinMain(HINSTANCE instance,
       assert(SUCCEEDED(result));
     }
 
-    {
-      win32_global_state.render_context.swap_chain     = swap_chain;
-      win32_global_state.render_context.device         = device;
-      win32_global_state.render_context.device_context = device_context;
-
-      win32_global_state.render_context.render_data    = render_data;
-    };
-
-    Handle *shader_source_handle = make_handle(shader_source_path.str, Handle_Kind_File);
-
-    Pixel_Shader  renderer_pixel_shader = {};
-    render_load_pixel_shader(shader_source_handle, &renderer_pixel_shader, true);
-
-    Vertex_Shader renderer_vertex_shader = {vertex_shader};
-
     global_running = true;
     global_window_resized = true;
 
@@ -752,6 +716,7 @@ WinMain(HINSTANCE instance,
 
       device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
+      render_load_vertex_shader(shader_source_handle, &renderer_vertex_shader);
       device_context->VSSetShader(renderer_vertex_shader.shader, NULL, 0);
       device_context->VSSetConstantBuffers(0, 1, &constant_buffer);
 

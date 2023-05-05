@@ -565,8 +565,7 @@ internal Network_Return_Code network_connect(Network_State *state, Socket *out_s
   return(result);
 }
 
-
-Network_Return_Code network_send_simple(Network_State *state, Socket *in_socket, Buffer *to_send)
+internal Network_Return_Code network_send_simple(Network_State *state, Socket *in_socket, Buffer *to_send)
 {
   Network_Return_Code result = network_ok;
 
@@ -709,7 +708,7 @@ internal DWORD iocp_thread_proc(LPVOID _iocp_handle)
   return(result);
 }
 
-void platform_print(const char *format, ...)
+internal void platform_print(const char *format, ...)
 {
   OutputDebugStringA(format);
 }
@@ -730,7 +729,55 @@ internal Arena arena_alloc(u64 size, u64 alignment, void *start)
   return(arena);
 }
 
-void render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shader, b32 force)
+
+internal void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *shader, b32 force)
+{
+  void *blob = NULL;
+
+  u64 file_name_length = c_string_length(shader_handle->id, array_count(shader_handle->id));
+  if (force || platform_did_file_change(shader_handle->id, file_name_length))
+  {
+    // TODO(antonio): will have to read file twice
+    File_Buffer temp_shader_source = platform_read_entire_file(shader_handle);
+    {
+      ID3DBlob *vertex_shader_blob = NULL;
+      ID3DBlob *shader_compile_errors_blob = NULL;
+
+      HRESULT result = D3DCompile(temp_shader_source.data, temp_shader_source.size, NULL, NULL, NULL,
+                                  "VS_Main", "vs_5_0", 0, 0, &vertex_shader_blob, &shader_compile_errors_blob);
+
+      if (FAILED(result))
+      {
+        String_Const_char error_string = {};
+
+        if (shader_compile_errors_blob)
+        {
+          error_string =
+          {
+            (char *) shader_compile_errors_blob->GetBufferPointer(),
+            shader_compile_errors_blob->GetBufferSize()
+          };
+        }
+
+        MessageBoxA(0, error_string.str, "Shader Compiler Error", MB_ICONERROR | MB_OK);
+      }
+
+      ID3D11Device *device = win32_global_state.render_context.device;
+      result = device->CreateVertexShader(vertex_shader_blob->GetBufferPointer(),
+                                          vertex_shader_blob->GetBufferSize(),
+                                          NULL, &shader->shader);
+
+      assert(SUCCEEDED(result));
+      safe_release(shader_compile_errors_blob);
+
+      blob = (void *) vertex_shader_blob;
+    }
+  }
+
+  return(blob);
+}
+
+internal void render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shader, b32 force)
 {
   u64 file_name_length = c_string_length(shader_handle->id, array_count(shader_handle->id));
   if (force || platform_did_file_change(shader_handle->id, file_name_length))

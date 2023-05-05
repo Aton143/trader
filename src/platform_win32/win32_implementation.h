@@ -138,78 +138,136 @@ internal Asset_Handle render_make_texture(Render_Context *context, void *texture
 }
 */
 
-internal File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u64 file_path_size)
+internal b32 platform_open_file(utf8 *file_path, u64 file_path_size, Handle *out_handle)
 {
-  File_Buffer file_buffer = {};
+  b32 result = false;
 
-  utf8 *file_path_copy = (utf8 *) arena_push_zero(arena, file_path_size);
+  utf8 *file_path_copy = (utf8 *) arena_push_zero(&win32_global_state.temp_arena, file_path_size);
   if (file_path_copy != NULL)
   {
     copy_memory_block(file_path_copy, file_path, file_path_size);
 
     utf16 file_path_utf16[512] = {};
+    u32 bytes_written =
+      (u32) MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED,
+                                (LPCCH) file_path, (int) file_path_size,
+                                (wchar_t *) file_path_utf16, array_count(file_path_utf16));
 
-    u32 bytes_written = (u32) MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED,
-                                                  (LPCCH) file_path, (int) file_path_size,
-                                                  (wchar_t *) file_path_utf16, array_count(file_path_utf16));
+    assert(bytes_written == file_path_size);
+    HANDLE file_handle = CreateFileW((LPCWSTR) file_path_utf16,
+                                     GENERIC_READ, FILE_SHARE_READ,
+                                     NULL, OPEN_ALWAYS,
+                                     FILE_ATTRIBUTE_NORMAL, NULL);
 
-    if (bytes_written == file_path_size)
+    if (file_handle != INVALID_HANDLE_VALUE)
     {
-      HANDLE file_handle = CreateFileW((LPCWSTR) file_path_utf16,
-                                       GENERIC_READ, FILE_SHARE_READ,
-                                       NULL, OPEN_ALWAYS,
-                                       FILE_ATTRIBUTE_NORMAL, NULL);
+      out_handle->file_handle = file_handle;
+      result = true;
+    }
+  }
 
-      if (file_handle != INVALID_HANDLE_VALUE)
+  return(result);
+}
+
+internal File_Buffer platform_read_entire_file(Handle *handle)
+{
+  File_Buffer file_buffer = {};
+
+  assert((handle != NULL) && "idiot! you have to provide a good handle");
+
+  LARGE_INTEGER large_file_size;
+  if (GetFileSizeEx(handle->file_handle, &large_file_size))
+  {
+    u64 file_size = large_file_size.QuadPart;
+    unused(file_size);
+
+    u8 *file_buffer_data = (u8 *) temp_arena_push(&win32_global_state.temp_arena, file_size);
+    if (file_buffer_data)
+    {
+      SetFilePointer(handle->file_handle, 0, NULL, FILE_BEGIN);
+
+      u32 bytes_read = 0;
+      if (ReadFile(handle->file_handle, file_buffer_data, (u32) file_size, (LPDWORD) &bytes_read, NULL))
       {
-        LARGE_INTEGER large_file_size;
-        if (GetFileSizeEx(file_handle, &large_file_size))
-        {
-          u64 file_size = large_file_size.QuadPart;
-          u8 *file_buffer_data = (u8 *) arena_push(arena, file_size);
+        assert((bytes_read == file_size) || !"Win32 Error: bytes read does not match expected");
 
-          if (file_buffer_data)
-          {
-            u32 bytes_read = 0;
-            if (ReadFile(file_handle, file_buffer_data, (u32) file_size, (LPDWORD) &bytes_read, NULL))
-            {
-              assert((bytes_read == file_size) || !"Win32 Error: bytes read does not match expected");
-
-              file_buffer.data           = file_buffer_data;
-              file_buffer.file_path.str  = file_path_copy;
-              file_buffer.file_path.size = file_path_size;
-              file_buffer.size           = file_size;
-
-              CloseHandle(file_handle);
-            }
-            else
-            {
-              assert(!"Win32 Error: could not read file");
-            }
-          }
-          else
-          {
-            assert(!"expected arena allocation to succeed");
-          }
-        }
-        else
-        {
-          assert(!"Win32 Error: could not get file size");
-        }
+        file_buffer.data           = file_buffer_data;
+        file_buffer.size           = file_size;
       }
       else
       {
-        assert(!"Win32 Error: could not open file");
+        assert(!"Win32 Error: could not read file");
       }
-    }
-    else
-    {
-      assert(!"Win32 Error: could not convert the file path to UTF-16");
     }
   }
   else
   {
-    assert(!"expected arena allocation to succeed");
+    assert(!"could not get file size");
+  }
+
+  return(file_buffer);
+}
+
+internal File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u64 file_path_size)
+{
+  File_Buffer file_buffer = {};
+
+  utf16 file_path_utf16[512] = {};
+  u32 bytes_written =
+    (u32) MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED,
+                              (LPCCH) file_path, (int) file_path_size,
+                              (wchar_t *) file_path_utf16, array_count(file_path_utf16));
+
+  if (bytes_written == file_path_size)
+  {
+    HANDLE file_handle = CreateFileW((LPCWSTR) file_path_utf16,
+                                     GENERIC_READ, FILE_SHARE_READ,
+                                     NULL, OPEN_ALWAYS,
+                                     FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (file_handle != INVALID_HANDLE_VALUE)
+    {
+      LARGE_INTEGER large_file_size;
+      if (GetFileSizeEx(file_handle, &large_file_size))
+      {
+        u64 file_size = large_file_size.QuadPart;
+        u8 *file_buffer_data = (u8 *) arena_push(arena, file_size);
+
+        if (file_buffer_data)
+        {
+          u32 bytes_read = 0;
+          if (ReadFile(file_handle, file_buffer_data, (u32) file_size, (LPDWORD) &bytes_read, NULL))
+          {
+            assert((bytes_read == file_size) || !"Win32 Error: bytes read does not match expected");
+
+            file_buffer.data           = file_buffer_data;
+            file_buffer.size           = file_size;
+
+            CloseHandle(file_handle);
+          }
+          else
+          {
+            assert(!"Win32 Error: could not read file");
+          }
+        }
+        else
+        {
+          assert(!"expected arena allocation to succeed");
+        }
+      }
+      else
+      {
+        assert(!"Win32 Error: could not get file size");
+      }
+    }
+    else
+    {
+      assert(!"Win32 Error: could not open file");
+    }
+  }
+  else
+  {
+    assert(!"Win32 Error: could not convert the file path to UTF-16");
   }
 
   return(file_buffer);
@@ -678,15 +736,17 @@ internal Arena arena_alloc(u64 size, u64 alignment, void *start)
   return(arena);
 }
 
-Pixel_Shader render_load_pixel_shader(File_Buffer shader_source)
+Pixel_Shader render_load_pixel_shader(Handle *shader_handle)
 {
   Pixel_Shader result = {};
 
+  // TODO(antonio): will have to read file twice
+  File_Buffer temp_shader_source = platform_read_entire_file(shader_handle);
   {
     ID3DBlob *pixel_shader_blob          = NULL;
     ID3DBlob *shader_compile_errors_blob = NULL;
 
-    HRESULT return_code = D3DCompile(shader_source.data, shader_source.size, NULL, NULL, NULL,
+    HRESULT return_code = D3DCompile(temp_shader_source.data, temp_shader_source.size, NULL, NULL, NULL,
                                      "PS_Main", "ps_5_0", 0, 0, &pixel_shader_blob, &shader_compile_errors_blob);
     if (FAILED(return_code))
     {

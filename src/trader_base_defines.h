@@ -830,8 +830,6 @@ struct File_Buffer
 {
   u8  *data;
 
-  String_Const_utf8 file_path;
-
   u64 size;
   u64 used;
 };

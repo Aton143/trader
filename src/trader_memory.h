@@ -21,6 +21,7 @@ unimplemented void arena_release(Arena *arena);
 
 void *arena_push(Arena *arena, u64 size);
 void *arena_push_zero(Arena *arena, u64 size);
+void *temp_arena_push(Arena *temp_arena, u64 size);
 
 #define push_array(arena, type, count) (type *) arena_push((arena), sizeof(type)*(count))
 #define push_array_zero(arena, type, count) (type *) arena_push_zero((arena), sizeof(type)*(count))
@@ -132,6 +133,22 @@ void *arena_push(Arena *arena, u64 size)
     memory_given_back = aligned_ptr;
 
     arena->used += size;
+  }
+
+  return(memory_given_back);
+}
+
+void *temp_arena_push(Arena *temp_arena, u64 size)
+{
+  void *memory_given_back = NULL;
+
+  size = align(size, temp_arena->alignment);
+  if (size <= temp_arena->size)
+  {
+    void *aligned_ptr = (void *) align((ptr_val) temp_arena->start, temp_arena->alignment);
+    memory_given_back = aligned_ptr;
+
+    temp_arena->used = size;
   }
 
   return(memory_given_back);

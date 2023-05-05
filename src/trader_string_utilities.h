@@ -2,6 +2,11 @@
 #include <wchar.h>
 
 internal u64 c_string_length(char *string);
+internal u64 c_string_length(char *string, u64 max_length);
+
+internal u64 c_string_length(utf8 *string);
+internal u64 c_string_length(utf8 *string, u64 max_length);
+
 internal u64 c_string_length(utf16 *string);
 internal u64 c_string_count(utf16 *string);
 
@@ -10,7 +15,37 @@ internal String_Const_utf16 string_const_utf16(utf16 *string);
 internal u64 base64_encode(u8 *out_buffer, u8 *data, u64 data_length);
 
 // Implementation
-u64 c_string_length(char *string)
+internal u64 c_string_length(char *string)
+{
+  u64 result = 0;
+  while (string[result] != '\0')
+  {
+    result++;
+  }
+  return(result);
+}
+
+internal u64 c_string_length(char *string, u64 n)
+{
+  u64 result = 0;
+  while ((n-- > 0) && string[result] != '\0')
+  {
+    result++;
+  }
+  return(result);
+}
+
+internal u64 c_string_length(utf8 *string)
+{
+  return(c_string_length((char *) string));
+}
+
+internal u64 c_string_length(utf8 *string, u64 max_length)
+{
+  return(c_string_length((char *) string, max_length));
+}
+
+internal u64 c_string_length(utf16 *string)
 {
   u64 result = 0;
   while (string[result] != '\0') {
@@ -19,22 +54,13 @@ u64 c_string_length(char *string)
   return(result);
 }
 
-u64 c_string_length(utf16 *string)
-{
-  u64 result = 0;
-  while (string[result] != '\0') {
-    result++;
-  }
-  return(result);
-}
-
-u64 c_string_count(utf16 *string)
+internal u64 c_string_count(utf16 *string)
 {
   u64 result = wcslen(string); 
   return(result);
 }
 
-String_Const_char string_const_char(char *string)
+internal String_Const_char string_const_char(char *string)
 {
   String_Const_char result = {};
 
@@ -44,7 +70,7 @@ String_Const_char string_const_char(char *string)
   return(result);
 }
 
-String_Const_utf16 string_const_utf16(utf16 *string)
+internal String_Const_utf16 string_const_utf16(utf16 *string)
 {
   String_Const_utf16 result = {};
 
@@ -68,9 +94,9 @@ global_const u8 base64_encoding_table[] = {
 global_const i32 base64_mod_table[] = {0, 2, 1};
 
 // from https://stackoverflow.com/questions/342409/how-do-i-base64-encode-decode-in-c
-u64 base64_encode(u8 *out_buffer,
-                  u8 *data,
-                  u64 data_length)
+internal u64 base64_encode(u8 *out_buffer,
+                           u8 *data,
+                           u64 data_length)
 {
   u64 result = 4 * ((data_length + 2) / 3);
 

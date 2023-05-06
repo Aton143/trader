@@ -577,7 +577,7 @@ WinMain(HINSTANCE instance,
 
       depth_stencil_state_description.DepthEnable                  = TRUE;
       depth_stencil_state_description.DepthWriteMask               = D3D11_DEPTH_WRITE_MASK_ALL;
-      depth_stencil_state_description.DepthFunc                    = D3D11_COMPARISON_ALWAYS;
+      depth_stencil_state_description.DepthFunc                    = D3D11_COMPARISON_GREATER;
       depth_stencil_state_description.StencilEnable                = TRUE;
       depth_stencil_state_description.StencilReadMask              = 0xff;
       depth_stencil_state_description.StencilWriteMask             = 0xff;
@@ -682,7 +682,7 @@ WinMain(HINSTANCE instance,
         1024.0f, 30.0f,
       };
       element->color = {1.0f, 0.0f, 0.0f, 1.0f};
-      element->pos   = {0.0f, 0.0f, 1.0f};
+      element->pos   = {0.0f, 0.0f, 0.5f};
       element->uv    = 
       {
         (f32) win32_global_state.render_context.atlas->solid_color_rect.x0,
@@ -691,9 +691,10 @@ WinMain(HINSTANCE instance,
         (f32) win32_global_state.render_context.atlas->solid_color_rect.y1,
       };
 
-
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
       device_context->ClearRenderTargetView(frame_buffer_view, background_color);
+      device_context->ClearDepthStencilView(depth_stencil_view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0, 0);
+
       device_context->OMSetRenderTargets(1, &frame_buffer_view, depth_stencil_view);
 
       Rect_f32 client_rect = render_get_client_rect();

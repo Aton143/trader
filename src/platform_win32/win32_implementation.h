@@ -848,7 +848,7 @@ internal void render_draw_text(utf8 *text, u64 text_size, f32 *baseline_x, f32 *
     {
       cur_x + cur_packed_char->xoff,
       cur_y + cur_packed_char->yoff,
-      0.0f
+      1.0f
     };
 
     cur_element->size = 

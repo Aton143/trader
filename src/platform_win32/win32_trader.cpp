@@ -575,10 +575,12 @@ WinMain(HINSTANCE instance,
     {
       D3D11_DEPTH_STENCIL_DESC depth_stencil_state_description = {};
 
-      depth_stencil_state_description.DepthEnable                  = FALSE;
+      depth_stencil_state_description.DepthEnable                  = TRUE;
       depth_stencil_state_description.DepthWriteMask               = D3D11_DEPTH_WRITE_MASK_ALL;
       depth_stencil_state_description.DepthFunc                    = D3D11_COMPARISON_ALWAYS;
-      depth_stencil_state_description.StencilEnable                = FALSE;
+      depth_stencil_state_description.StencilEnable                = TRUE;
+      depth_stencil_state_description.StencilReadMask              = 0xff;
+      depth_stencil_state_description.StencilWriteMask             = 0xff;
       depth_stencil_state_description.FrontFace.StencilFailOp      = D3D11_STENCIL_OP_KEEP;
       depth_stencil_state_description.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
       depth_stencil_state_description.FrontFace.StencilPassOp      = D3D11_STENCIL_OP_KEEP;
@@ -589,11 +591,14 @@ WinMain(HINSTANCE instance,
       assert(SUCCEEDED(result));
     }
 
+    ID3D11Texture2D        *depth_stencil_texture = NULL;
+    ID3D11DepthStencilView *depth_stencil_view = NULL;
+
     global_running = true;
     global_window_resized = true;
 
-    String_Const_utf8 text_to_render = string_literal_init_type("abcdefghijklmnopqrstuvqxyz"
-                                                                "ABCDEFGHIJKLMNOPQRSTUVQXYZ "
+    String_Const_utf8 text_to_render = string_literal_init_type("abcdefghijklmnopqrstuvwxyz"
+                                                                "ABCDEFGHIJKLMNOPQRSTUVWXYZ "
                                                                 "1234567890"
                                                                 "!@#$%^&*()"
                                                                 "{}|[]\\;':\",./<>?-=_+`~", utf8);
@@ -615,25 +620,81 @@ WinMain(HINSTANCE instance,
         frame_buffer_view->Release();
 
         HRESULT result = swap_chain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
-        // assert(SUCCEEDED(result));
+        assert(SUCCEEDED(result));
 
         ID3D11Texture2D* frame_buffer = NULL;
         result = swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **) &frame_buffer);
-        // assert(SUCCEEDED(result));
+        assert(SUCCEEDED(result));
 
         result = device->CreateRenderTargetView(frame_buffer, NULL, &frame_buffer_view);
-        // assert(SUCCEEDED(result));
+        assert(SUCCEEDED(result));
+
+        depth_stencil_texture = NULL;
+        {
+          D3D11_TEXTURE2D_DESC depth_stencil_texture_desc = {};
+
+          Rect_f32 client_rect = render_get_client_rect();
+
+          depth_stencil_texture_desc.Width              = (UINT) client_rect.x1;
+          depth_stencil_texture_desc.Height             = (UINT) client_rect.y1;
+          depth_stencil_texture_desc.MipLevels          = 1;
+          depth_stencil_texture_desc.ArraySize          = 1;
+          depth_stencil_texture_desc.Format             = DXGI_FORMAT_D24_UNORM_S8_UINT;
+          depth_stencil_texture_desc.SampleDesc.Count   = 1;
+          depth_stencil_texture_desc.SampleDesc.Quality = 0;
+          depth_stencil_texture_desc.Usage              = D3D11_USAGE_DEFAULT;
+          depth_stencil_texture_desc.BindFlags          = D3D11_BIND_DEPTH_STENCIL;
+          depth_stencil_texture_desc.CPUAccessFlags     = 0;
+          depth_stencil_texture_desc.MiscFlags          = 0;
+
+          result = device->CreateTexture2D(&depth_stencil_texture_desc, NULL, &depth_stencil_texture);
+          assert(SUCCEEDED(result));
+        }
+
+        depth_stencil_view = NULL;
+        {
+          D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc = {};
+
+          depth_stencil_view_desc.Format             = DXGI_FORMAT_D24_UNORM_S8_UINT;
+          depth_stencil_view_desc.ViewDimension      = D3D11_DSV_DIMENSION_TEXTURE2D;
+          depth_stencil_view_desc.Texture2D.MipSlice = 0;
+
+          result = device->CreateDepthStencilView(depth_stencil_texture,
+                                                  &depth_stencil_view_desc,
+                                                  &depth_stencil_view);
+          assert(SUCCEEDED(result));
+        } 
+
         frame_buffer->Release();
       }
 
       platform_collect_notifications();
+      V2_f32 text_pos_start, text_pos_end;
+      text_pos_start = text_pos_end =  {0.0f, 24.0f};
 
-      V2_f32 text_pos = {0.0f, 24.0f};
-      render_draw_text(text_to_render.str, text_to_render.size, &text_pos.x, &text_pos.y);
+      render_draw_text(text_to_render.str, text_to_render.size, &text_pos_end.x, &text_pos_end.y);
+
+      Instance_Buffer_Element *element = push_struct(&win32_global_state.render_context.render_data,
+                                                     Instance_Buffer_Element);
+      element->size =
+      {
+        0.0f, 0.0f,
+        1024.0f, 30.0f,
+      };
+      element->color = {1.0f, 0.0f, 0.0f, 1.0f};
+      element->pos   = {0.0f, 0.0f, 1.0f};
+      element->uv    = 
+      {
+        (f32) win32_global_state.render_context.atlas->solid_color_rect.x0,
+        (f32) win32_global_state.render_context.atlas->solid_color_rect.y0,
+        (f32) win32_global_state.render_context.atlas->solid_color_rect.x1,
+        (f32) win32_global_state.render_context.atlas->solid_color_rect.y1,
+      };
+
 
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
       device_context->ClearRenderTargetView(frame_buffer_view, background_color);
-      device_context->OMSetRenderTargets(1, &frame_buffer_view, NULL);
+      device_context->OMSetRenderTargets(1, &frame_buffer_view, depth_stencil_view);
 
       Rect_f32 client_rect = render_get_client_rect();
 

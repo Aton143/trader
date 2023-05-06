@@ -39,6 +39,8 @@ typedef Alpha_Bitmap Font_Bitmap;
 struct Texture_Atlas
 {
   Font_Bitmap       bitmap;
+
+  stbtt_fontinfo    font_info;
   stbtt_packedchar *char_data;
 
   f32               heights[4];
@@ -58,9 +60,12 @@ global_const utf32 starting_code_point = 32;  // ' '
 global_const utf32 ending_code_point   = 126; // '~'
 
 // extern Asset_Handle render_make_texture(void *texture_data, u64 width, u64 height, u64 channels);
-internal Rect_f32      render_get_client_rect();
+internal Rect_f32 render_get_client_rect();
+
 internal void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *shader, b32 force = false);
 internal void  render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shader, b32 force = false);
+
+internal void render_draw_text(utf8 *text, u64 text_size, f32 *x, f32 *y);
 
 internal b32 render_atlas_initialize(Arena         *arena,
                                      Texture_Atlas *atlas,
@@ -114,7 +119,6 @@ internal b32 render_atlas_initialize(Arena         *arena,
       u32 code_point_count = (ending_code_point - starting_code_point) + 1;
 
       // NOTE(antonio): the extra is the solid color glyph
-
       u32               rect_count        = (code_point_count * font_height_count) + 1;
       u32               packed_char_count = rect_count - 1;
 
@@ -173,7 +177,17 @@ internal b32 render_atlas_initialize(Arena         *arena,
         atlas->bitmap.width  = (f32) bitmap_width;
         atlas->bitmap.height = (f32) bitmap_height;
 
+        copy_struct(&atlas->font_info, &font_info);
+
+        for (u64 packed_char_index = 0;
+             packed_char_index < packed_char_count;
+             ++packed_char_index)
+        {
+          // stbtt_packedchar *packed_char = packed_chars + packed_char_index;
+          // packed_char->yoff *= -1.0f;
+        }
         atlas->char_data = packed_chars;
+
 
         copy_array(atlas->heights, font_heights, font_height_count);
 

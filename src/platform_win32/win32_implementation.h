@@ -17,6 +17,7 @@ struct Render_Context
   ID3D11Device        *device;
   ID3D11DeviceContext *device_context;
 
+  Texture_Atlas       *atlas;
   Arena                render_data;
 };
 
@@ -737,6 +738,8 @@ internal void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *s
   u64 file_name_length = c_string_length(shader_handle->id, array_count(shader_handle->id));
   if (force || platform_did_file_change(shader_handle->id, file_name_length))
   {
+    safe_release(shader->shader);
+
     // TODO(antonio): will have to read file twice
     File_Buffer temp_shader_source = platform_read_entire_file(shader_handle);
     {
@@ -782,6 +785,8 @@ internal void render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shad
   u64 file_name_length = c_string_length(shader_handle->id, array_count(shader_handle->id));
   if (force || platform_did_file_change(shader_handle->id, file_name_length))
   {
+    safe_release(shader->shader);
+
     // TODO(antonio): will have to read file twice
     File_Buffer temp_shader_source = platform_read_entire_file(shader_handle);
     {
@@ -819,6 +824,53 @@ internal void render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shad
       pixel_shader_blob->Release();
     }
   }
+}
+
+internal void render_draw_text(utf8 *text, u64 text_size, f32 *baseline_x, f32 *baseline_y)
+{
+  Texture_Atlas *atlas = win32_global_state.render_context.atlas;
+  Instance_Buffer_Element *render_elements =
+    push_array(&win32_global_state.render_context.render_data, Instance_Buffer_Element, text_size);
+
+  f32 cur_x = *baseline_x;
+  f32 cur_y = *baseline_y;
+
+  for (u64 text_index = 0;
+       text_index < text_size;
+       ++text_index)
+  {
+    Instance_Buffer_Element *cur_element     = render_elements  +  text_index;
+    stbtt_packedchar        *cur_packed_char = atlas->char_data + (text[text_index] - starting_code_point);
+
+    cur_element->pos = 
+    {
+      cur_x + cur_packed_char->xoff,
+      cur_y + cur_packed_char->yoff,
+      0.0f
+    };
+
+    cur_element->size = 
+    {
+      0.0f,
+      0.0f,
+      (f32) (cur_packed_char->xoff2 - cur_packed_char->xoff),
+      (f32) (cur_packed_char->yoff2 - cur_packed_char->yoff)
+    };
+
+    cur_element->uv = 
+    {
+      (f32) cur_packed_char->x0,
+      (f32) cur_packed_char->y0,
+      (f32) cur_packed_char->x1,
+      (f32) cur_packed_char->y1,
+    };
+
+    cur_element->color = {1.0f, 1.0f, 1.0f, 1.0f};
+
+    cur_x += (cur_packed_char->xadvance/* + 10.0f*/);
+  }
+
+  *baseline_x = cur_x;
 }
 
 #define WIN32_IMPLEMENTATION_H

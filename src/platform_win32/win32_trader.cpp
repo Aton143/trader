@@ -194,16 +194,17 @@ WinMain(HINSTANCE instance,
   // NOTE(antonio): default font on Windows is Arial
   default_font = platform_open_and_read_entire_file(&global_arena, default_font_path.str, default_font_path.size);
 
-  f32 default_font_heights[] = {8.0f, 14.0f, 24.0f, 30.0f};
+  f32 default_font_heights[] = {24.0f, 30.0f};
 
-  Texture_Atlas *atlas = push_struct_zero(&global_arena, Texture_Atlas);
+  win32_global_state.render_context.atlas  = push_struct_zero(&global_arena, Texture_Atlas);
   render_atlas_initialize(&global_arena,
-                          atlas,
+                          win32_global_state.render_context.atlas,
                           &arial_font,
                           default_font_heights,
                           array_count(default_font_heights),
                           512, 512);
 
+  Texture_Atlas *atlas = win32_global_state.render_context.atlas;
   {
     WNDCLASSEXW window_class = {};
 
@@ -591,28 +592,14 @@ WinMain(HINSTANCE instance,
     global_running = true;
     global_window_resized = true;
 
-    {
-      Instance_Buffer_Element *element = push_struct(&win32_global_state.render_context.render_data, Instance_Buffer_Element);
+    String_Const_utf8 text_to_render = string_literal_init_type("abcdefghijklmnopqrstuvqxyz"
+                                                                "ABCDEFGHIJKLMNOPQRSTUVQXYZ "
+                                                                "1234567890"
+                                                                "!@#$%^&*()"
+                                                                "{}|[]\\;':\",./<>?-=_+`~", utf8);
+    V2_f32 text_pos = {0.0f, 24.0f};
 
-      element->size.x0 = 0;
-      element->size.y0 = 0;
-      element->size.x1 = atlas->bitmap.width;
-      element->size.y1 = atlas->bitmap.height;
-
-      element->color.r = 1.0f;
-      element->color.g = 1.0f;
-      element->color.b = 1.0f;
-      element->color.a = 1.0f;
-
-      element->pos.x   = 0.0f;
-      element->pos.y   = 0.0f;
-      element->pos.z   = 0.0f;
-
-      element->uv.x0   = 0.0f;
-      element->uv.y0   = 0.0f;
-      element->uv.x1   = atlas->bitmap.width;
-      element->uv.y1   = atlas->bitmap.height;
-    }
+    render_draw_text(text_to_render.str, text_to_render.size, &text_pos.x, &text_pos.y);
 
     while (global_running)
     {
@@ -661,7 +648,7 @@ WinMain(HINSTANCE instance,
       }
       */
 
-      FLOAT background_color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+      FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
       device_context->ClearRenderTargetView(frame_buffer_view, background_color);
       device_context->OMSetRenderTargets(1, &frame_buffer_view, NULL);
 

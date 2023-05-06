@@ -597,11 +597,6 @@ WinMain(HINSTANCE instance,
                                                                 "1234567890"
                                                                 "!@#$%^&*()"
                                                                 "{}|[]\\;':\",./<>?-=_+`~", utf8);
-    V2_f32 text_pos  = {0.0f, 24.0f};
-    V2_f32 text_pos2 = {0.0f, 48.0f};
-
-    render_draw_text(text_to_render.str, text_to_render.size, &text_pos.x, &text_pos.y);
-
     while (global_running)
     {
       MSG message;
@@ -633,21 +628,8 @@ WinMain(HINSTANCE instance,
 
       platform_collect_notifications();
 
-      /*
-      if (platform_did_file_change(shader_source_path.str, shader_source_path.size))
-      {
-        // renderer_vertex_shader.shader->Release();
-        renderer_pixel_shader.shader->Release();
-
-        shader_source =
-          platform_open_and_read_entire_file(&global_arena,
-                                             shader_source_path.str,
-                                             shader_source_path.size);
-
-        // renderer_vertex_shader = render_load_vertex_shader(shader_source);
-        renderer_pixel_shader = render_load_pixel_shader(shader_source);
-      }
-      */
+      V2_f32 text_pos = {0.0f, 24.0f};
+      render_draw_text(text_to_render.str, text_to_render.size, &text_pos.x, &text_pos.y);
 
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
       device_context->ClearRenderTargetView(frame_buffer_view, background_color);
@@ -729,6 +711,8 @@ WinMain(HINSTANCE instance,
 
       u32 draw_call_count = (u32) (win32_global_state.render_context.render_data.used / sizeof(Instance_Buffer_Element));
       device_context->DrawInstanced(4, draw_call_count, 0, 0);
+
+      arena_reset(&win32_global_state.render_context.render_data);
 
       swap_chain->Present(1, 0);
     }

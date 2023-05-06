@@ -31,6 +31,7 @@ void *temp_arena_push(Arena *temp_arena, u64 size);
 #define push_struct_zero(arena, type) (type *) arena_push_zero((arena), sizeof(type))
 
 void arena_pop(Arena *arena, u64 size);
+#define arena_reset(arena) arena_pop((arena), (arena)->used)
 
 #define pop_array(arena, type, count) arena_pop((arena), sizeof(type)*(count))
 #define pop_struct(arena, type) arena_pop((arena), sizeof(type))

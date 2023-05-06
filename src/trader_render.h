@@ -40,6 +40,7 @@ struct Texture_Atlas
 {
   Font_Bitmap       bitmap;
 
+
   stbtt_fontinfo    font_info;
   stbtt_packedchar *char_data;
 

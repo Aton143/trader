@@ -832,6 +832,8 @@ internal void render_draw_text(utf8 *text, u64 text_size, f32 *baseline_x, f32 *
   Instance_Buffer_Element *render_elements =
     push_array(&win32_global_state.render_context.render_data, Instance_Buffer_Element, text_size);
 
+  f32 font_scale = stbtt_ScaleForPixelHeight(&atlas->font_info, atlas->heights[0]);
+
   f32 cur_x = *baseline_x;
   f32 cur_y = *baseline_y;
 
@@ -867,7 +869,16 @@ internal void render_draw_text(utf8 *text, u64 text_size, f32 *baseline_x, f32 *
 
     cur_element->color = {1.0f, 1.0f, 1.0f, 1.0f};
 
-    cur_x += (cur_packed_char->xadvance/* + 10.0f*/);
+    f32 kern_advance = 0.0f;
+    if (text_index < (text_size - 1))
+    {
+      kern_advance = font_scale *
+                     stbtt_GetCodepointKernAdvance(&atlas->font_info,
+                                                   text[text_index],
+                                                   text[text_index + 1]);
+    }
+
+    cur_x += kern_advance + cur_packed_char->xadvance;
   }
 
   *baseline_x = cur_x;

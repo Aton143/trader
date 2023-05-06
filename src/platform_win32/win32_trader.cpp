@@ -597,7 +597,8 @@ WinMain(HINSTANCE instance,
                                                                 "1234567890"
                                                                 "!@#$%^&*()"
                                                                 "{}|[]\\;':\",./<>?-=_+`~", utf8);
-    V2_f32 text_pos = {0.0f, 24.0f};
+    V2_f32 text_pos  = {0.0f, 24.0f};
+    V2_f32 text_pos2 = {0.0f, 48.0f};
 
     render_draw_text(text_to_render.str, text_to_render.size, &text_pos.x, &text_pos.y);
 

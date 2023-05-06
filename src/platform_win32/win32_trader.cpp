@@ -672,7 +672,7 @@ WinMain(HINSTANCE instance,
       V2_f32 text_pos_start, text_pos_end;
       text_pos_start = text_pos_end =  {0.0f, 24.0f};
 
-      render_draw_text(text_to_render.str, text_to_render.size, &text_pos_end.x, &text_pos_end.y);
+      render_draw_text(&text_pos_end.x, &text_pos_end.y, text_to_render.str);
 
       Instance_Buffer_Element *element = push_struct(&win32_global_state.render_context.render_data,
                                                      Instance_Buffer_Element);

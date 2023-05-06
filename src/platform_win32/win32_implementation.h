@@ -826,11 +826,25 @@ internal void render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shad
   }
 }
 
-internal void render_draw_text(utf8 *text, u64 text_size, f32 *baseline_x, f32 *baseline_y)
+internal void render_draw_text(f32 *baseline_x, f32 *baseline_y, utf8 *format, ...)
 {
+
+  u64 sprinted_text_cap = 512;
+  String_utf8 sprinted_text =
+  {
+    (utf8 *) temp_arena_push(&win32_global_state.temp_arena, sprinted_text_cap),
+    0,
+    sprinted_text_cap
+  };
+
+  va_list args;
+  va_start(args, format);
+  sprinted_text.size = stbsp_vsnprintf((char *) sprinted_text.str, (i32) sprinted_text.cap, (char *) format, args);
+  va_end(args);
+
   Texture_Atlas *atlas = win32_global_state.render_context.atlas;
   Instance_Buffer_Element *render_elements =
-    push_array(&win32_global_state.render_context.render_data, Instance_Buffer_Element, text_size);
+    push_array(&win32_global_state.render_context.render_data, Instance_Buffer_Element, sprinted_text.size);
 
   f32 font_scale = stbtt_ScaleForPixelHeight(&atlas->font_info, atlas->heights[0]);
 
@@ -838,11 +852,11 @@ internal void render_draw_text(utf8 *text, u64 text_size, f32 *baseline_x, f32 *
   f32 cur_y = *baseline_y;
 
   for (u64 text_index = 0;
-       text_index < text_size;
+       text_index < sprinted_text.size;
        ++text_index)
   {
     Instance_Buffer_Element *cur_element     = render_elements  +  text_index;
-    stbtt_packedchar        *cur_packed_char = atlas->char_data + (text[text_index] - starting_code_point);
+    stbtt_packedchar        *cur_packed_char = atlas->char_data + (sprinted_text.str[text_index] - starting_code_point);
 
     cur_element->pos = 
     {
@@ -870,12 +884,12 @@ internal void render_draw_text(utf8 *text, u64 text_size, f32 *baseline_x, f32 *
     cur_element->color = {1.0f, 1.0f, 1.0f, 1.0f};
 
     f32 kern_advance = 0.0f;
-    if (text_index < (text_size - 1))
+    if (text_index < (sprinted_text.size - 1))
     {
       kern_advance = font_scale *
                      stbtt_GetCodepointKernAdvance(&atlas->font_info,
-                                                   text[text_index],
-                                                   text[text_index + 1]);
+                                                   sprinted_text.str[text_index],
+                                                   sprinted_text.str[text_index + 1]);
     }
 
     cur_x += kern_advance + cur_packed_char->xadvance;

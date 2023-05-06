@@ -66,7 +66,7 @@ internal Rect_f32 render_get_client_rect();
 internal void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *shader, b32 force = false);
 internal void  render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shader, b32 force = false);
 
-internal void render_draw_text(utf8 *text, u64 text_size, f32 *x, f32 *y);
+internal void render_draw_text(f32 *x, f32 *y, utf8 *format, ...);
 
 internal b32 render_atlas_initialize(Arena         *arena,
                                      Texture_Atlas *atlas,

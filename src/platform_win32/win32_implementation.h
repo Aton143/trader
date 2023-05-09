@@ -27,6 +27,10 @@ struct Global_Platform_State
   Arena          temp_arena;
 
   Render_Context render_context;
+  //UI_Context     ui_context;
+
+  V2_f32         mouse;
+  V2_f32         drag_delta;
 
   HWND           window_handle;
 

@@ -676,7 +676,7 @@ union Rect_f32_Pair {
 };
 
 typedef Rect_f32_Pair Quad;
-typedef u32 ARGB_Color;
+typedef u32 ARGB_u32;
 
 struct Array_i8 {
   i8 *vals;

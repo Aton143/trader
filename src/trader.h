@@ -20,6 +20,7 @@ struct Render_Context;
 
 #include "trader_render.h"
 #include "trader_font.h"
+#include "trader_ui.h"
 #include "trader_platform.h"
 #include "trader_network.h"
 
@@ -28,6 +29,7 @@ struct Render_Context;
 #endif
 
 #include "trader_handle_impl.h"
+#include "trader_ui_impl.h"
 
 #define TRADER_H
 #endif

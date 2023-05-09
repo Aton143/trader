@@ -129,9 +129,6 @@ win32_window_procedure(HWND window_handle, UINT message,
   return(result);
 }
 
-global u8 temp_arena_data[mb(4)];
-global u8 default_font_data_static[mb(2)];
-
 int CALL_CONVENTION
 WinMain(HINSTANCE instance,
         HINSTANCE previous_instance,
@@ -166,6 +163,10 @@ WinMain(HINSTANCE instance,
   {
     asset_pool_start[asset_index].next = &asset_pool_start[asset_index + 1];
   }
+
+  win32_global_state.ui_context.widget_memory =
+    push_array_zero(&global_arena, Widget, default_widget_count);
+  win32_global_state.ui_context.widget_memory_size = sizeof(Widget) * default_widget_count;
 
   global_asset_pool.free_list_head = asset_pool_start;
   win32_global_state.temp_arena    = arena_alloc(global_asset_pool_temp_arena_size, 4, NULL);

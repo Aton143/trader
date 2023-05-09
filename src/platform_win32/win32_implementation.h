@@ -27,7 +27,7 @@ struct Global_Platform_State
   Arena          temp_arena;
 
   Render_Context render_context;
-  //UI_Context     ui_context;
+  UI_Context     ui_context;
 
   V2_f32         mouse;
   V2_f32         drag_delta;
@@ -46,6 +46,12 @@ struct Global_Platform_State
 #pragma pack(pop)
 
 global Global_Platform_State win32_global_state = {};
+
+internal UI_Context *ui_get_context(void)
+{
+  UI_Context *context = &win32_global_state.ui_context;
+  return(context);
+}
 
 struct Socket
 {

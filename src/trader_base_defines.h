@@ -676,7 +676,19 @@ union Rect_f32_Pair {
 };
 
 typedef Rect_f32_Pair Quad;
-typedef u32 ARGB_u32;
+typedef V4_f32        RGBA_f32;
+
+internal RGBA_f32 rgba(f32 r, f32 g, f32 b, f32 a)
+{
+  RGBA_f32 color; 
+
+  color.r = clamp(0.0f, r, 1.0f);
+  color.g = clamp(0.0f, g, 1.0f);
+  color.b = clamp(0.0f, b, 1.0f);
+  color.a = clamp(0.0f, a, 1.0f);
+
+  return(color);
+}
 
 struct Array_i8 {
   i8 *vals;

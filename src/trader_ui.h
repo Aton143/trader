@@ -53,9 +53,6 @@ enum
   size_flag_to_be_sized_y       = (1LL << 31),
 };
 
-#define Size_Flag_TextContent \
-  AMAI_UI_SizeFlag_ContentSize_X | AMAI_UI_SizeFlag_ContentSize_Y
-
 typedef u64 UI_Key;
 struct Widget
 {
@@ -88,32 +85,33 @@ struct Widget
   f32               active_time;
 };
 
-global_const Rect_i16 text_gutter_dim          = {10, 5};
-global_const ARGB_u32 default_text_color       = 0xffffffff;
-global_const ARGB_u32 default_background_color = 0xffffffff;
+global_const Rect_i16 default_text_gutter_dim  = {10, 5};
+global_const RGBA_f32 default_text_color       = rgba(1.0f, 1.0f, 1.0f, 1.0);
+global_const RGBA_f32 default_background_color = rgba(1.0f, 1.0f, 1.0f, 1.0);
+global_const u64      default_widget_count     = 4096;
 
-struct amai_ui_context
+struct UI_Context
 {
   UI_Key    hot_key;
   UI_Key    active_key;
 
   Widget   *current_parent;
 
-  Widget   *widgets;
-  Widget   *free_widget_list_head;
+  Widget   *widget_memory;
+  u64       widget_memory_size;
+
+  Widget   *allocated_widgets;
+  Widget   *widget_free_list_head;
 
   u32       max_widget_count;
   u32       current_widget_count;
-
-  // TODO(antonio): does this need to be here?
-  Rect_f32  client_rectangle;
 
   Rect_i16  text_gutter_dim;
 
   V2_f32    drag_delta;
 
-  ARGB_u32  text_color;
-  ARGB_u32  background_color;
+  RGBA_f32  text_color;
+  RGBA_f32  background_color;
 
   b8        clicked;
   b8        double_clicked;
@@ -123,6 +121,18 @@ struct amai_ui_context
   b8        dragging;
   b8        hovering;
 };
+
+internal UI_Context *ui_get_context(void);
+internal void ui_initialize_frame(void);
+
+internal void ui_set_text_color(f32 r, f32 g, f32 b, f32 a);
+internal void ui_set_background_color(f32 r, f32 g, f32 b, f32 a);
+
+internal void ui_push_parent(Widget *widget);
+internal void ui_pop_parent(void);
+
+internal UI_Key ui_make_key(String_Const_utf8 string);
+internal b32 ui_is_key_equal(UI_Key a, UI_Key b);
 
 #define TRADER_UI_H
 #endif

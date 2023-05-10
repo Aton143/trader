@@ -83,6 +83,7 @@ struct Widget
   // NOTE(antonio): persistent data
   f32               hot_time;
   f32               active_time;
+  f32               font_height;
 };
 
 global_const Rect_i16 default_text_gutter_dim  = {10, 5};
@@ -110,6 +111,7 @@ struct UI_Context
 
   V2_f32    drag_delta;
 
+  f32       text_height;
   RGBA_f32  text_color;
   RGBA_f32  background_color;
 
@@ -122,6 +124,9 @@ struct UI_Context
   b8        hovering;
 };
 
+#include "trader_platform.h"
+#include "trader_render.h"
+
 internal UI_Context *ui_get_context(void);
 internal void ui_initialize_frame(void);
 
@@ -133,6 +138,8 @@ internal void ui_pop_parent(void);
 
 internal UI_Key ui_make_key(String_Const_utf8 string);
 internal b32 ui_is_key_equal(UI_Key a, UI_Key b);
+
+internal void ui_make_widget(Widget_Flag widget_flags, Widget_Size_Flag size_flags, String_Const_utf8 string);
 
 #define TRADER_UI_H
 #endif

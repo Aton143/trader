@@ -54,6 +54,8 @@ struct Texture_Atlas
 struct Vertex_Shader;
 struct Pixel_Shader;
 
+#include "trader_platform.h"
+
 global_const u64 render_data_size = mb(1);
 global File_Buffer default_font = {};
 
@@ -61,10 +63,14 @@ global_const utf32 starting_code_point = 32;  // ' '
 global_const utf32 ending_code_point   = 126; // '~'
 
 // extern Asset_Handle render_make_texture(void *texture_data, u64 width, u64 height, u64 channels);
-internal Rect_f32 render_get_client_rect();
+internal Render_Context *render_get_context(void);
+internal Rect_f32        render_get_client_rect(void);
 
 internal void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *shader, b32 force = false);
 internal void  render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shader, b32 force = false);
+
+internal i64 render_get_font_height_index(f32 font_height);
+internal i64 render_get_packed_char_start(f32 font_height);
 
 internal void render_draw_text(f32 *x, f32 *y, utf8 *format, ...);
 

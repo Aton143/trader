@@ -1,4 +1,4 @@
-#ifndef TRADER_UI_IMPL_H
+#if !defined(TRADER_UI_IMPL_H)
 
 internal void ui_initialize_frame(void)
 {
@@ -71,6 +71,83 @@ internal b32 ui_is_key_equal(UI_Key a, UI_Key b)
   b32 result = (a == b);
   return(result);
 }
+
+internal void ui_make_widget(Widget_Flag       widget_flags,
+                             Widget_Size_Flag  size_flags,
+                             String_Const_utf8 string)
+{
+  // TODO(antonio): sprint nation?
+  UI_Context     *ui     = ui_get_context();
+  Render_Context *render = render_get_context();
+
+  unused(widget_flags);
+  unused(string);
+  unused(size_flags);
+
+  if (ui->current_widget_count < ui->max_widget_count)
+  {
+    Widget *widget = ui->widget_free_list_head;
+
+    ++ui->current_widget_count;
+    ui->widget_free_list_head = ui->widget_free_list_head->next_sibling;
+
+    zero_struct(widget);
+
+    // TODO(antonio): append_widget?
+    Widget *cur_par = ui->current_parent;
+
+    if (cur_par->first_child == NULL)
+    {
+      widget->next_sibling     = widget;
+      widget->previous_sibling = widget;
+
+      cur_par->first_child = widget;
+      cur_par->last_child  = widget;
+    }
+    else
+    {
+      widget->previous_sibling = cur_par->last_child;
+      widget->next_sibling     = cur_par->first_child;
+
+      cur_par->last_child->next_sibling      = widget;
+      cur_par->first_child->previous_sibling = widget;
+      cur_par->last_child                    = widget;
+    }
+
+    widget->parent = cur_par;
+
+    f32 content_height = 0;
+    f32 content_width = 0;
+
+    if (widget_flags & widget_flag_draw_text)
+    {
+      // NOTE(antonio): calculate text width
+      // NOTE(antonio): assuming that font height was found when pushed
+      stbtt_packedchar *packed_char_start = render->atlas->char_data + render_get_packed_char_start(ui->text_height);
+
+      u64 string_index;
+      for (string_index = 0;
+           // NOTE(antonio): just in case they're being rat bastards
+           (string.str[string_index] != '\0') && (string_index < string.size);
+           ++string_index)
+      {
+        stbtt_packedchar *cur_packed_char = packed_char_start + (string.str[string_index] - starting_code_point);
+        f32 cur_char_height = (f32) (cur_packed_char->yoff2 - cur_packed_char->yoff);
+        f32 cur_char_width  = (f32) (cur_packed_char->xoff2 - cur_packed_char->xoff);
+
+        content_height  = max(content_height, cur_char_height);
+        content_width  += (cur_char_width + cur_packed_char->xadvance);
+      }
+
+      widget->computed_size_in_pixels = {content_width, content_height};
+    }
+
+    widget->widget_flags  = widget_flags;
+    widget->size_flags    = size_flags;
+    widget->string        = string;
+  }
+}
+
 
 #define TRADER_UI_IMPL_H
 #endif

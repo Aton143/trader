@@ -999,5 +999,20 @@ internal u64 hash(u8 *buffer, u64 length)
   return(hash_mix(result));
 }
 
+// TODO(antonio): this of course doesn't really make sense
+global_const f32 float_epsilon = 0.0005f;
+
+internal f32 abs(f32 a)
+{
+  f32 result = (a < 0.0f) ? -a : a;
+  return(result);
+}
+
+internal b32 approx_equal(f32 a, f32 b)
+{
+  b32 result = (abs(a - b) < float_epsilon);
+  return(result);
+}
+
 #define TRADER_BASE_DEFINES_H
 #endif

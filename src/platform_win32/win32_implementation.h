@@ -53,6 +53,12 @@ internal UI_Context *ui_get_context(void)
   return(context);
 }
 
+internal Render_Context *render_get_context(void)
+{
+  Render_Context *context = &win32_global_state.render_context;
+  return(context);
+}
+
 struct Socket
 {
   SOCKET socket;
@@ -75,18 +81,18 @@ internal void make_nil(Socket *s)
   s->socket = INVALID_SOCKET;
 }
 
-internal Global_Platform_State *get_global_platform_state()
+internal Global_Platform_State *platform_get_global_state(void)
 {
   Global_Platform_State *state = &win32_global_state;
   return(state);
 }
 
-internal Rect_f32 render_get_client_rect()
+internal Rect_f32 render_get_client_rect(void)
 {
   Rect_f32 client_rect = {};
 
   RECT win32_client_rect = {};
-  GetClientRect(get_global_platform_state()->window_handle, &win32_client_rect);
+  GetClientRect(platform_get_global_state()->window_handle, &win32_client_rect);
 
   client_rect.x0 = 0;
   client_rect.y0 = 0;
@@ -836,9 +842,54 @@ internal void render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shad
   }
 }
 
+internal i64 render_get_font_height_index(f32 font_height)
+{
+  Texture_Atlas *atlas = win32_global_state.render_context.atlas;
+
+  i64 result = -1;
+  for (u64 font_height_index = 0;
+       font_height_index < array_count(atlas->heights);
+       ++font_height_index)
+  {
+    f32 cur_height = atlas->heights[font_height_index];
+    if (approx_equal(cur_height, font_height))
+    {
+      result = font_height_index;
+    }
+  }
+
+  return(result);
+}
+
+internal i64 render_get_packed_char_start(f32 font_height)
+{
+  Texture_Atlas *atlas = win32_global_state.render_context.atlas;
+
+  i64 result = 0;
+  b32 found = false;
+
+  for (u64 font_height_index = 0;
+       font_height_index < array_count(atlas->heights);
+       ++font_height_index)
+  {
+    f32 cur_height = atlas->heights[font_height_index];
+
+    if (approx_equal(cur_height, font_height))
+    {
+      found = true;
+      break;
+    }
+    else
+    {
+      result += atlas->char_data_set_counts[font_height_index];
+    }
+  }
+
+  return(found ? result : -1);
+}
+
 internal void render_draw_text(f32 *baseline_x, f32 *baseline_y, utf8 *format, ...)
 {
-
   u64 sprinted_text_cap = 512;
   String_utf8 sprinted_text =
   {

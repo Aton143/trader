@@ -47,7 +47,7 @@ unimplemented void arena_set_pos_back(Arena *arena, u64 pos);
 unimplemented void arena_clear(Arena *arena);
 
 internal void *_arena_get_top_element(Arena *arena, u64 size);
-#define arena_get_top(arena, type) (type *) _arena_get_top((arena), sizeof(type)
+#define arena_get_top(arena, type) (type *) _arena_get_top((arena), sizeof(type))
 
 struct Ring_Buffer
 {

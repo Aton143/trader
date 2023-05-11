@@ -171,8 +171,45 @@ internal void ui_prepare_render(void)
 
   {
     // NOTE(antonio): stack grows from high to low
-  //   Arena *widget_stack     = temp_arena;
-    // arena_push_str(
+    Arena *widget_stack = temp_arena;
+    append_struct(widget_stack, ui->allocated_widgets);
+
+    Widget *cur_widget = NULL;
+    while ((cur_widget = arena_get_top(widget_stack, Widget)))
+    {
+      Widget *parent = cur_widget->parent;
+
+      if (cur_widget->size_flags & size_flag_copy_parent_size_x)
+      {
+        cur_widget->rectangle.x0 = parent->rectangle.x0;
+        cur_widget->rectangle.x1 = parent->rectangle.x1;
+      }
+
+      if (cur_widget->size_flags & size_flag_copy_parent_size_y)
+      {
+        cur_widget->rectangle.y0 = parent->rectangle.y0;
+        cur_widget->rectangle.y1 = parent->rectangle.y1;
+      }
+
+      if (cur_widget->size_flags & size_flag_fill_rest_of_axis_x)
+      {
+        cur_widget->size_flags |= size_flag_to_be_sized_x;
+      }
+
+      if (cur_widget->size_flags & size_flag_fill_rest_of_axis_y)
+      {
+        cur_widget->size_flags |= size_flag_to_be_sized_y;
+      }
+
+      // NOTE(antonio): this needs to be communicated to the parent
+      if (cur_widget->computed_size_in_pixels.x > 0.0f)
+      {
+        if (parent && (parent->size_flags & size_flag_content_size_x))
+        {
+          parent->computed_size_in_pixels.x += cur_widget->computed_size_in_pixels.x;
+        }
+      }
+    }
   }
 
   arena_reset(temp_arena);

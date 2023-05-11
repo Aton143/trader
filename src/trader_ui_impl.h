@@ -172,10 +172,11 @@ internal void ui_prepare_render(void)
   {
     // NOTE(antonio): stack grows from high to low
     Arena *widget_stack = temp_arena;
-    append_struct(widget_stack, ui->allocated_widgets);
+    append_struct(widget_stack, &ui->allocated_widgets);
 
+    // NOTE(antonio): THIS HAS TO BE A STACK OF POINTERS
     Widget *cur_widget = NULL;
-    while ((cur_widget = arena_get_top(widget_stack, Widget)))
+    while ((cur_widget = (Widget *) _arena_get_top(widget_stack, sizeof(Widget *))))
     {
       Widget *parent = cur_widget->parent;
 
@@ -224,7 +225,7 @@ internal void ui_prepare_render(void)
            cur_child != first_child;
            cur_child = cur_child->next_sibling)
       {
-        append_struct(widget_stack, cur_child);
+        arena_append(widget_stack, &cur_child, sizeof(Widget *));
         first_child = cur_child->first_child; // TODO(antonio): not cur_widget->first_child???
       }
     }
@@ -232,7 +233,22 @@ internal void ui_prepare_render(void)
 
   arena_reset(temp_arena);
   {
+    Ring_Buffer widget_queue = ring_buffer_make(temp_arena, structs_in_size(temp_arena->size, Widget *));
+    unused(widget_queue);
 
+    Widget *first_child = NULL;
+    for (Widget *cur_child = ui->allocated_widgets->first_child;
+         cur_child != first_child;
+         cur_child = cur_child->next_sibling)
+    {
+      ring_buffer_append(&widget_queue, &cur_child, sizeof(Widget *));
+      first_child = ui->allocated_widgets->first_child;
+    }
+
+    while (widget_queue.write != widget_queue.read)
+    {
+
+    }
   }
 }
 

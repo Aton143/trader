@@ -62,7 +62,7 @@ unimplemented void arena_set_pos_back(Arena *arena, u64 pos);
 unimplemented void arena_clear(Arena *arena);
 
 internal void *_arena_get_top_element(Arena *arena, u64 size);
-#define arena_get_top(arena, type) (type *) _arena_get_top((arena), sizeof(type))
+#define arena_get_top(arena, type) (type *) _arena_get_top((arena), sizeof(*type))
 
 struct Ring_Buffer
 {
@@ -82,7 +82,6 @@ struct Ring_Buffer
 
   u64 size;
 };
-typedef Ring_Buffer Queue;
 
 // TODO(antonio): is an arena the best place to get the memory from?
 internal Ring_Buffer ring_buffer_make(Arena *arena, u64 size);
@@ -90,10 +89,11 @@ internal Ring_Buffer ring_buffer_make(Arena *arena, u64 size);
 internal void *ring_buffer_push(Ring_Buffer *ring_buffer, u64 size);
 #define ring_buffer_push_struct(rb, type)       \
   (type *) ring_buffer_push((rb), sizeof(type))
+internal void *ring_buffer_append(Ring_Buffer *ring_buffer, void *data, u64 size);
 
 internal void *ring_buffer_pop(Ring_Buffer *ring_buffer, u64 size);
 #define ring_Buffer_pop_struct(rb, type) \
-  (type *) ring_buffer_pop(rb, sizeof(type))
+  (type *) ring_buffer_pop((rb), sizeof(type))
 
 // implementation
 i64 copy_memory_block(void *dest, void *source, i64 byte_count)
@@ -285,6 +285,12 @@ void *ring_buffer_push(Ring_Buffer *rb, u64 size)
   return(result);
 }
 
+void *ring_buffer_append(Ring_Buffer *rb, void *data, u64 size)
+{
+  void *result = ring_buffer_push(rb, size);
+  copy_memory_block(result, data, size);
+}
+
 void *ring_buffer_pop(Ring_Buffer *rb, u64 size)
 {
   assert(((rb->size % size) == 0) &&
@@ -298,7 +304,6 @@ void *ring_buffer_pop(Ring_Buffer *rb, u64 size)
   rb->read = rb->start + rel_read_pos;
 
   return(result);
-
 }
 
 #define TRADER_MEMORY_H

@@ -213,6 +213,8 @@ typedef i64      b64;
 #define array_count(a) ((sizeof(a))/(sizeof(*a)))
 #define array_initr(a) {(a), array_count(a)}
 
+#define structs_in_size(size, type) (((size) / sizeof(type)) * sizeof(type))
+
 #define line_number_as_string stringify(__LINE__)
 #define file_name_line_number __FILE__ ":" line_number_as_string ":"
 

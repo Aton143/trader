@@ -209,10 +209,31 @@ internal void ui_prepare_render(void)
           parent->computed_size_in_pixels.x += cur_widget->computed_size_in_pixels.x;
         }
       }
+
+      // NOTE(antonio): this needs to be communicated to the parent
+      if (cur_widget->computed_size_in_pixels.y > 0.0f)
+      {
+        if (parent && (parent->size_flags & size_flag_content_size_y))
+        {
+          parent->computed_size_in_pixels.y += cur_widget->computed_size_in_pixels.y;
+        }
+      }
+
+      Widget *first_child = NULL;
+      for (Widget *cur_child = cur_widget->first_child;
+           cur_child != first_child;
+           cur_child = cur_child->next_sibling)
+      {
+        append_struct(widget_stack, cur_child);
+        first_child = cur_child->first_child; // TODO(antonio): not cur_widget->first_child???
+      }
     }
   }
 
   arena_reset(temp_arena);
+  {
+
+  }
 }
 
 #define TRADER_UI_IMPL_H

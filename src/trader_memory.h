@@ -18,10 +18,12 @@ struct Arena
 
 internal Arena arena_alloc(u64 size, u64 alignment, void *start);
 unimplemented void arena_release(Arena *arena);
+internal void arena_reset(Arena *arena);
 
-void *arena_push(Arena *arena, u64 size);
-void *arena_push_zero(Arena *arena, u64 size);
-void *temp_arena_push(Arena *temp_arena, u64 size);
+internal Arena *get_temp_arena(void);
+
+internal void *arena_push(Arena *arena, u64 size);
+internal void *arena_push_zero(Arena *arena, u64 size);
 
 #define push_array(arena, type, count) (type *) arena_push((arena), sizeof(type)*(count))
 #define push_array_zero(arena, type, count) (type *) arena_push_zero((arena), sizeof(type)*(count))
@@ -30,7 +32,10 @@ void *temp_arena_push(Arena *temp_arena, u64 size);
 #define push_struct(arena, type) (type *) arena_push((arena), sizeof(type))
 #define push_struct_zero(arena, type) (type *) arena_push_zero((arena), sizeof(type))
 
-void arena_pop(Arena *arena, u64 size);
+internal void *arena_append(Arena *arena, void *data, u64 size);
+#define append_struct(arena, element) arena_append(arena, element, sizeof(*element))
+
+internal void arena_pop(Arena *arena, u64 size);
 #define arena_reset(arena) arena_pop((arena), (arena)->used)
 
 #define pop_array(arena, type, count) arena_pop((arena), sizeof(type)*(count))
@@ -41,10 +46,34 @@ unimplemented u64 arena_get_pos(Arena *arena);
 unimplemented void arena_set_pos_back(Arena *arena, u64 pos);
 unimplemented void arena_clear(Arena *arena);
 
-i64 copy_memory_block(void *dest, void *source, i64 byte_count);
-i64 set_memory_block(void *dest, u8 val, i64 byte_count);
-i64 move_memory_block(void *dest, void *source, i64 byte_count);
-i64 compare_memory_block(void *a, void *b, i64 byte_count);
+internal void *_arena_get_top_element(Arena *arena, u64 size);
+#define arena_get_top(arena, type) (type *) _arena_get_top((arena), sizeof(type)
+
+struct Ring_Buffer
+{
+  u8 *start;
+
+  union
+  {
+    u8 *read;
+    u8 *front;
+  };
+
+  union
+  {
+    u8 *write;
+    u8 *back;
+  };
+
+  u64 size;
+};
+
+typedef Ring_Buffer Queue;
+
+internal i64 copy_memory_block(void *dest, void *source, i64 byte_count);
+internal i64 set_memory_block(void *dest, u8 val, i64 byte_count);
+internal i64 move_memory_block(void *dest, void *source, i64 byte_count);
+internal i64 compare_memory_block(void *a, void *b, i64 byte_count);
 
 // implementation
 i64 copy_memory_block(void *dest, void *source, i64 byte_count)
@@ -139,22 +168,6 @@ void *arena_push(Arena *arena, u64 size)
   return(memory_given_back);
 }
 
-void *temp_arena_push(Arena *temp_arena, u64 size)
-{
-  void *memory_given_back = NULL;
-
-  size = align(size, temp_arena->alignment);
-  if (size <= temp_arena->size)
-  {
-    void *aligned_ptr = (void *) align((ptr_val) temp_arena->start, temp_arena->alignment);
-    memory_given_back = aligned_ptr;
-
-    temp_arena->used = size;
-  }
-
-  return(memory_given_back);
-}
-
 void *arena_push_zero(Arena *arena, u64 size)
 {
   void *memory_given_back = arena_push(arena, size);
@@ -170,6 +183,36 @@ void *arena_push_zero(Arena *arena, u64 size)
 void arena_pop(Arena *arena, u64 size)
 {
   arena->used -= size;
+}
+
+void *arena_append(Arena *arena, void *data, u64 size)
+{
+  void *result = NULL;
+
+  if ((arena->used + size) <= arena->size)
+  {
+    result = arena->start + arena->used;
+    copy_memory_block(result, data, size);
+    arena->used += size;
+  }
+  else
+  {
+    assert(!"this should work, asshole");
+  }
+
+  return(result);
+}
+
+void *_arena_get_top(Arena *arena, u64 size)
+{
+  void *result = NULL;
+
+  if ((arena->used - size) >= 0)
+  {
+    result = arena->start + (arena->used - size);
+  }
+
+  return(result);
 }
 
 i64 compare_memory_block(void *a, void *b, i64 byte_count)

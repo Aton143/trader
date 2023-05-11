@@ -122,8 +122,10 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
     if (widget_flags & widget_flag_draw_text)
     {
       // NOTE(antonio): calculate text width
+
       // NOTE(antonio): assuming that font height was found when pushed
       stbtt_packedchar *packed_char_start = render->atlas->char_data + render_get_packed_char_start(ui->text_height);
+      f32 font_scale = stbtt_ScaleForPixelHeight(&render->atlas->font_info, ui->text_height);
 
       u64 string_index;
       for (string_index = 0;
@@ -135,8 +137,16 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
         f32 cur_char_height = (f32) (cur_packed_char->yoff2 - cur_packed_char->yoff);
         f32 cur_char_width  = (f32) (cur_packed_char->xoff2 - cur_packed_char->xoff);
 
-        content_height  = max(content_height, cur_char_height);
+        content_height  =  max(content_height, cur_char_height);
         content_width  += (cur_char_width + cur_packed_char->xadvance);
+
+        if (string_index < string.size - 1)
+        {
+          content_width += font_scale *
+                           stbtt_GetCodepointKernAdvance(&render->atlas->font_info,
+                                                         string.str[string_index],
+                                                         string.str[string_index + 1]);
+        }
       }
 
       widget->computed_size_in_pixels = {content_width, content_height};
@@ -148,6 +158,25 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
   }
 }
 
+internal void ui_prepare_render(void)
+{
+  Arena          *temp_arena = get_temp_arena();
+  UI_Context     *ui         = ui_get_context();
+  Render_Context *render     = render_get_context();
+
+  unused(ui);
+  unused(render);
+
+  assert((render->render_data.used == 0) && "for now, assume that the render data is required to be empty");
+
+  {
+    // NOTE(antonio): stack grows from high to low
+  //   Arena *widget_stack     = temp_arena;
+    // arena_push_str(
+  }
+
+  arena_reset(temp_arena);
+}
 
 #define TRADER_UI_IMPL_H
 #endif

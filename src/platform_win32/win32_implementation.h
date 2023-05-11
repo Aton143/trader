@@ -59,6 +59,13 @@ internal Render_Context *render_get_context(void)
   return(context);
 }
 
+internal Arena *get_temp_arena(void)
+{
+  Arena *temp_arena = &win32_global_state.temp_arena;
+  temp_arena->used = 0;
+  return(temp_arena);
+}
+
 struct Socket
 {
   SOCKET socket;
@@ -189,6 +196,7 @@ internal b32 platform_open_file(utf8 *file_path, u64 file_path_size, Handle *out
 internal File_Buffer platform_read_entire_file(Handle *handle)
 {
   File_Buffer file_buffer = {};
+  Arena *temp_arena = get_temp_arena();
 
   assert((handle != NULL) && "idiot! you have to provide a good handle");
 
@@ -198,7 +206,7 @@ internal File_Buffer platform_read_entire_file(Handle *handle)
     u64 file_size = large_file_size.QuadPart;
     unused(file_size);
 
-    u8 *file_buffer_data = (u8 *) temp_arena_push(&win32_global_state.temp_arena, file_size);
+    u8 *file_buffer_data = (u8 *) arena_push(temp_arena, file_size);
     if (file_buffer_data)
     {
       SetFilePointer(handle->file_handle, 0, NULL, FILE_BEGIN);
@@ -890,10 +898,12 @@ internal i64 render_get_packed_char_start(f32 font_height)
 
 internal void render_draw_text(f32 *baseline_x, f32 *baseline_y, utf8 *format, ...)
 {
+  Arena *temp_arena = get_temp_arena();
+
   u64 sprinted_text_cap = 512;
   String_utf8 sprinted_text =
   {
-    (utf8 *) temp_arena_push(&win32_global_state.temp_arena, sprinted_text_cap),
+    (utf8 *) arena_push(temp_arena, sprinted_text_cap),
     0,
     sprinted_text_cap
   };

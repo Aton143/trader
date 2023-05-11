@@ -129,6 +129,7 @@ struct UI_Context
 
 internal UI_Context *ui_get_context(void);
 internal void ui_initialize_frame(void);
+internal void ui_prepare_render(void);
 
 internal void ui_set_text_color(f32 r, f32 g, f32 b, f32 a);
 internal void ui_set_background_color(f32 r, f32 g, f32 b, f32 a);
@@ -139,7 +140,9 @@ internal void ui_pop_parent(void);
 internal UI_Key ui_make_key(String_Const_utf8 string);
 internal b32 ui_is_key_equal(UI_Key a, UI_Key b);
 
-internal void ui_make_widget(Widget_Flag widget_flags, Widget_Size_Flag size_flags, String_Const_utf8 string);
+internal void ui_make_widget(Widget_Flag widget_flags,
+                             Widget_Size_Flag size_flags,
+                             String_Const_utf8 string);
 
 #define TRADER_UI_H
 #endif

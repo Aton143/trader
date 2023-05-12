@@ -89,11 +89,17 @@ internal Ring_Buffer ring_buffer_make(Arena *arena, u64 size);
 internal void *ring_buffer_push(Ring_Buffer *ring_buffer, u64 size);
 #define ring_buffer_push_struct(rb, type)       \
   (type *) ring_buffer_push((rb), sizeof(type))
-internal void *ring_buffer_append(Ring_Buffer *ring_buffer, void *data, u64 size);
+internal void *ring_buffer_append(Ring_Buffer *ring_buffer,
+                                  void        *data,
+                                  u64          size);
 
 internal void *ring_buffer_pop(Ring_Buffer *ring_buffer, u64 size);
 #define ring_Buffer_pop_struct(rb, type) \
   (type *) ring_buffer_pop((rb), sizeof(type))
+
+internal void ring_buffer_pop_and_put(Ring_Buffer *ring_buffer,
+                                      void        *data,
+                                      u64          size);
 
 // implementation
 i64 copy_memory_block(void *dest, void *source, i64 byte_count)
@@ -304,6 +310,14 @@ void *ring_buffer_pop(Ring_Buffer *rb, u64 size)
   rb->read = rb->start + rel_read_pos;
 
   return(result);
+}
+
+void ring_buffer_pop_and_put(Ring_Buffer *rb,
+                              void        *data,
+                              u64          size)
+{
+  void *read = ring_buffer_pop(rb, size);
+  copy_memory_block(data, read, size);
 }
 
 #define TRADER_MEMORY_H

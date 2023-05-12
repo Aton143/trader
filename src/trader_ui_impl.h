@@ -226,7 +226,7 @@ internal void ui_prepare_render(void)
            cur_child = cur_child->next_sibling)
       {
         arena_append(widget_stack, &cur_child, sizeof(Widget *));
-        first_child = cur_child->first_child; // TODO(antonio): not cur_widget->first_child???
+        first_child = cur_widget->first_child;
       }
     }
   }
@@ -234,7 +234,6 @@ internal void ui_prepare_render(void)
   arena_reset(temp_arena);
   {
     Ring_Buffer widget_queue = ring_buffer_make(temp_arena, structs_in_size(temp_arena->size, Widget *));
-    unused(widget_queue);
 
     Widget *first_child = NULL;
     for (Widget *cur_child = ui->allocated_widgets->first_child;
@@ -247,7 +246,80 @@ internal void ui_prepare_render(void)
 
     while (widget_queue.write != widget_queue.read)
     {
+      Widget *cur_widget = NULL;
+      ring_buffer_pop_and_put(&widget_queue, cur_widget, sizeof(cur_widget));
 
+      f32 remaining_width = rect_get_width(&cur_widget->rectangle);
+      f32 max_height = 0.0f;
+
+      u32 to_be_sized_x = 0;
+
+      // NOTE(antonio): if content_size & has children,
+      // then need to know complete children sizes for that dimension
+      // TODO(antonio): check this out for ^
+      first_child = NULL;
+      for (Widget *cur_child = cur_widget->first_child;
+           cur_child != first_child;
+           cur_child = cur_child->next_sibling)
+      {
+        if (cur_child->size_flags & size_flag_content_size_x)
+        {
+          remaining_width -= cur_child->computed_size_in_pixels.x;
+          if (remaining_width < 0.0f)
+          {
+            remaining_width = 0.0f;
+          }
+        }
+
+        if (cur_child->size_flags & size_flag_content_size_y)
+        {
+          max_height = max(max_height, cur_child->computed_size_in_pixels.y);
+        }
+
+        if (cur_child->size_flags & size_flag_to_be_sized_x)
+        {
+          to_be_sized_x++;
+        }
+
+        first_child = cur_widget->first_child;
+      }
+
+      // NOTE(antonio): already know the size
+      {
+        V2_f32 cur_top_left = {cur_widget->rectangle.x0, cur_widget->rectangle.y0};
+
+        first_child = NULL;
+        for (Widget *cur_child = cur_widget->first_child;
+             cur_child != first_child;
+             cur_child = cur_child->next_sibling)
+        {
+          if (cur_child->size_flags & size_flag_to_be_sized_x)
+          {
+            assert(to_be_sized_x > 0);
+            cur_child->computed_size_in_pixels.x = (remaining_width / ((f32) to_be_sized_x));
+          }
+
+          cur_child->computed_size_in_pixels.y = max_height;
+
+          {
+            cur_child->rectangle.x0 = cur_top_left.x;
+            cur_child->rectangle.y0 = cur_top_left.y;
+
+            // TODO(antonio): this could mess up text alignment
+            cur_child->rectangle.x1 = cur_top_left.x + cur_child->computed_size_in_pixels.x;
+            cur_child->rectangle.x1 = cur_top_left.y + cur_child->computed_size_in_pixels.y;
+          }
+
+          cur_top_left.x += cur_child->computed_size_in_pixels.x;
+
+          first_child = cur_widget->first_child;
+
+          if (cur_child->first_child)
+          {
+            ring_buffer_append(&widget_queue, &cur_child, sizeof(Widget *));
+          }
+        }
+      }
     }
   }
 }

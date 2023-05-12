@@ -680,6 +680,9 @@ union Rect_f32_Pair {
 typedef Rect_f32_Pair Quad;
 typedef V4_f32        RGBA_f32;
 
+#define rect_get_width(rect)  (((rect)->x1) - ((rect)->x0))
+#define rect_get_height(rect) (((rect)->y1) - ((rect)->y0))
+
 internal RGBA_f32 rgba(f32 r, f32 g, f32 b, f32 a)
 {
   RGBA_f32 color; 

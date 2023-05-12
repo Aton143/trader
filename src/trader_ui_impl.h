@@ -325,9 +325,6 @@ internal void ui_prepare_render(void)
 
   arena_reset(temp_arena);
   {
-    stbtt_packedchar *packed_char_start = render->atlas->char_data + render_get_packed_char_start(ui->text_height);
-    unused(packed_char_start);
-
     Ring_Buffer widget_queue = ring_buffer_make(temp_arena, structs_in_size(temp_arena->size, Widget *));
     Widget *first_child = NULL;
     for (Widget *cur_child = ui->allocated_widgets->first_child;
@@ -372,78 +369,14 @@ internal void ui_prepare_render(void)
         };
       }
 
-      /*
-      if (CurrentWidget->WidgetFlags & AMAI_UI_WidgetFlag_DrawText)
+      if (cur_widget->widget_flags & widget_flag_draw_text)
       {
-        amai_r32 X = CurrentWidget->Rectangle.TopLeft.X;
-        amai_r32 Baseline = 16.0f;
+        f32 x        = cur_widget->rectangle.x0;
+        f32 baseline = ui->text_height;
 
-        for (amai_u32 StringIndex = 0;
-             (CurrentWidget->String[StringIndex] != '\0') && (StringIndex < CurrentWidget->StringLength);
-             ++StringIndex)
-        {
-          FT_Vector KerningVector = {};
-          amai_u64 GlyphIndex =
-            AMAI_GetGlyphIndexFromASCII(CurrentWidget->String[StringIndex]);
-
-          DrawCall = &UI->DrawCalls[UI->DrawCallCount++];
-          Glyph = &UI->FontAtlas->Glyphs[GlyphIndex];
-
-          AMAI_Assert(((char) Glyph->Character) == CurrentWidget->String[StringIndex]);
-
-          DrawCall->Color[0] = ((amai_r32) ((UI->TextColor >> 24) & 0xff)) / 255.0f;
-          DrawCall->Color[1] = ((amai_r32) ((UI->TextColor >> 16) & 0xff)) / 255.0f;
-          DrawCall->Color[2] = ((amai_r32) ((UI->TextColor >>  8) & 0xff)) / 255.0f;
-          DrawCall->Color[3] = ((amai_r32) ((UI->TextColor >>  0) & 0xff)) / 255.0f;
-
-          if (StringIndex != (CurrentWidget->StringLength - 1))
-          {
-            amai_u32 LeftGlyphIndex = FT_Get_Char_Index(*UI->FontAtlas->FontFace,
-                                                        CurrentWidget->String[StringIndex]);
-            amai_u32 RightGlyphIndex = FT_Get_Char_Index(*UI->FontAtlas->FontFace,
-                                                         CurrentWidget->String[StringIndex + 1]);
-
-            FT_Error FreeTypeError = FT_Get_Kerning(*UI->FontAtlas->FontFace,
-                                                    LeftGlyphIndex, RightGlyphIndex,
-                                                    FT_KERNING_DEFAULT, &KerningVector);
-            if (FreeTypeError == FT_Err_Ok)
-            {
-              X += (KerningVector.x >> 6);
-            }
-            else
-            {
-              // TODO(antonio): logging
-            }
-          }
-
-          {
-            // TODO(antonio): verify size rectangle
-            amai_r32 Top    = Baseline - ((amai_r32) (Glyph->YToTopmost >> 6));
-            amai_r32 Bottom = (Top + ((amai_r32) (Glyph->Height)));
-            amai_r32 Left   = (amai_r32) (Glyph->XToLeftmost >> 6);
-            amai_r32 Right  = (Left + ((amai_r32) Glyph->Width));
-
-            DrawCall->SizeRectangle = {Left, Top, Right, Bottom};
-
-            DrawCall->UVRectangle.TopLeft =
-            {
-              Glyph->U,
-              Glyph->V
-            };
-
-            DrawCall->UVRectangle.BottomRight =
-            {
-              Glyph->U + ((amai_r32) Glyph->Width),
-              Glyph->V + ((amai_r32) Glyph->Height)
-            };
-
-            DrawCall->Position = {X, CurrentWidget->Rectangle.TopLeft.Y};
-          }
-
-          X += Glyph->Advance >> 6;
-        }
+        // NOTE(antonio): this may have performance implications
+        render_draw_text(&x, &baseline, cur_widget->string.str);
       }
-      */
 
       first_child = NULL;
       for (Widget *cur_child = cur_widget->first_child;

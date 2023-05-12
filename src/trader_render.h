@@ -6,13 +6,6 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "./foreign/stb_truetype.h"
 
-union Color_f32 {
-  struct {
-    f32 r, g, b, a;
-  };
-  f32 vals[4];
-};
-
 struct Constant_Buffer
 {
   f32 client_width, client_height;
@@ -22,7 +15,7 @@ struct Constant_Buffer
 struct Instance_Buffer_Element
 {
   Rect_f32  size;
-  Color_f32 color;
+  RGBA_f32 color;
   V3_f32    pos;
   Rect_f32  uv;
 };

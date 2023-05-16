@@ -24,7 +24,7 @@ struct Render_Context
 #pragma pack(push, 4)
 struct Global_Platform_State
 {
-  Arena          temp_arena;
+  Temp_Arena     temp_arena;
 
   Render_Context render_context;
   UI_Context     ui_context;
@@ -61,9 +61,23 @@ internal Render_Context *render_get_context(void)
 
 internal Arena *get_temp_arena(void)
 {
-  Arena *temp_arena = &win32_global_state.temp_arena;
-  temp_arena->used = 0;
+  Arena *temp_arena = &win32_global_state.temp_arena.arena;
+
+  if (win32_global_state.temp_arena.wait > 0)
+  {
+    win32_global_state.temp_arena.wait--;
+  }
+  else
+  {
+    temp_arena->used = 0;
+  }
+
   return(temp_arena);
+}
+
+internal void set_temp_arena_wait(u64 wait)
+{
+  win32_global_state.temp_arena.wait = wait;
 }
 
 struct Socket
@@ -110,63 +124,41 @@ internal Rect_f32 render_get_client_rect(void)
   return(client_rect);
 }
 
-/*
-internal Asset_Handle render_make_texture(Render_Context *context, void *texture_data, u64 width, u64 height, u64 channels)
+internal void meta_init(void)
 {
-  Asset_Handle handle = nil_handle;
+  Arena *temp_arena = get_temp_arena();
+  set_temp_arena_wait(1);
 
-  const DXGI_FORMAT formats[5] =
-  {DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_R8_UNORM, DXGI_FORMAT_R8G8_UNORM, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_R8G8B8A8_UNORM};
+  temp_arena->used =
+    GetDateFormatA(LOCALE_NAME_USER_DEFAULT,
+                    0,
+                    NULL,
+                    "yyyy'_'MM'_'dd'_'",
+                    (char *) temp_arena->start,
+                    (int) (temp_arena->size  - 1));
+  temp_arena->used -= 1;
 
-  assert(is_between_inclusive(1, channels, 4) && (channels != 3));
+  temp_arena->used += 
+    GetTimeFormatA(LOCALE_NAME_USER_DEFAULT,
+                    0,
+                    NULL,
+                    "HH'_'mm'_'ss",
+                    (char *) &temp_arena->start[temp_arena->used],
+                    (int) (temp_arena->size - temp_arena->used - 1));
+  temp_arena->used -= 1;
 
-  ID3D11ShaderResourceView *texture_view = NULL;
-  {
-    D3D11_TEXTURE2D_DESC texture_description = {};
+  temp_arena->used += copy_string_lit(&temp_arena->start[temp_arena->used], ".log");
+  temp_arena->used -= 1;
 
-    texture_description.Width            = (UINT) height;
-    texture_description.Height           = (UINT) width;
-    texture_description.MipLevels        = 1;
-    texture_description.ArraySize        = 1;
-    texture_description.Format           = formats[channels];
-    texture_description.SampleDesc.Count = 1;
-    texture_description.Usage            = D3D11_USAGE_DEFAULT;
-    texture_description.BindFlags        = D3D11_BIND_SHADER_RESOURCE;
-    texture_description.CPUAccessFlags   = 0;
-
-    D3D11_SUBRESOURCE_DATA subresource = {};
-
-    subresource.pSysMem          = texture_data;
-    subresource.SysMemPitch      = (UINT) (texture_description.Width * channels);
-    subresource.SysMemSlicePitch = 0;
-
-    ID3D11Texture2D *texture_2d = NULL;
-    HRESULT result = context->device->CreateTexture2D(&texture_description, &subresource, &texture_2d);
-
-    assert(SUCCEEDED(result));
-
-    D3D11_SHADER_RESOURCE_VIEW_DESC shader_resource_view_description = {};
-
-    shader_resource_view_description.Format                    = formats[channels];
-    shader_resource_view_description.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
-    shader_resource_view_description.Texture2D.MipLevels       = texture_description.MipLevels;
-    shader_resource_view_description.Texture2D.MostDetailedMip = 0;
-
-    result = context->device->CreateShaderResourceView(texture_2d, &shader_resource_view_description, &texture_view);
-    texture_2d->Release();
-
-    assert(SUCCEEDED(result));
-  }
-
-  return(handle);
+  platform_open_file_for_appending(temp_arena->start, temp_arena->used, &meta_info.log_handle);
 }
-*/
 
 internal b32 platform_open_file(utf8 *file_path, u64 file_path_size, Handle *out_handle)
 {
   b32 result = false;
 
   Arena *temp_arena = get_temp_arena();
+
   utf8 *file_path_copy = (utf8 *) arena_push_zero(temp_arena, file_path_size);
   if (file_path_copy != NULL)
   {

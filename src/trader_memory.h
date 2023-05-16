@@ -11,6 +11,7 @@ global_const u64 global_temp_arena_size = kb(512);
 
 internal i64 copy_memory_block(void *dest, void *source, i64 byte_count);
 #define copy_string(dest, string)       copy_memory_block((dest), (string).str, (string).size)
+#define copy_string_lit(dest, string)   copy_memory_block((dest), (string), sizeof(string))
 #define copy_struct(dest, copy)         copy_memory_block(dest, copy, sizeof(*(copy)))
 #define copy_array(dest, array, length) copy_memory_block(dest, array, sizeof(*(array) * length))
 
@@ -32,11 +33,18 @@ struct Arena
   u64   alignment;
 };
 
+struct Temp_Arena
+{
+  Arena arena;
+  u64   wait;
+};
+
 internal Arena arena_alloc(u64 size, u64 alignment, void *start);
 unimplemented void arena_release(Arena *arena);
 internal void arena_reset(Arena *arena);
 
 internal Arena *get_temp_arena(void);
+internal void   set_temp_arena_wait(u64 wait);
 
 internal void *arena_push(Arena *arena, u64 size);
 internal void *arena_push_zero(Arena *arena, u64 size);

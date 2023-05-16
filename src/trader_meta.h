@@ -1,4 +1,5 @@
 #ifndef TRADER_ASSERT_H
+#include "trader_handle.h"
 
 #if OS_WINDOWS
 # define debug_break() __debugbreak()
@@ -11,12 +12,27 @@
 #if !SHIP_MODE
 #define assert(c)         assert_always(c)
 #define assert_message(m) assert_message_always(m)
-#define assert_once(c)    local_persist b32 __once__ = false; if (!__once__ && !(c)) (__once__ = true, assert_break(m))
+#define assert_once(c)                                    \
+  local_persist b32 concat(__once__, __LINE__) = false;   \
+  if (!concat(__once__, __LINE__) && !(c))                \
+    (concat(__once__, __LINE__) = true, assert_break(m))  \
+
 #else
 #define assert(c)
 #define assert_message(m)
 #define assert_once(c)
 #endif
+
+#if !SHIP_MODE
+struct Meta_Info
+{
+  Handle log_handle;
+};
+
+global Meta_Info meta_info = {};
+#endif
+
+internal void meta_init(void);
 
 #define TRADER_ASSERT_H
 #endif

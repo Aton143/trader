@@ -140,17 +140,17 @@ WinMain(HINSTANCE instance,
   unused(command_line);
   unused(show_command);
 
-  for (int i = 0; i < 2; ++i)
-  {
-    assert_once(false);
-  }
+  win32_global_state.temp_arena.arena = arena_alloc(global_temp_arena_size, 4, NULL);
 
   rng_init();
+
+#if !SHIP_MODE
+  meta_init();
+#endif
 
   utf16 _exe_file_path[MAX_PATH] = {};
   GetModuleFileNameW(NULL, _exe_file_path, array_count(_exe_file_path));
 
-  win32_global_state.temp_arena = arena_alloc(global_temp_arena_size, 4, NULL);
 
   String_Const_utf16 exe_file_path = string_const_utf16((utf16 *) _exe_file_path);
   unused(exe_file_path);

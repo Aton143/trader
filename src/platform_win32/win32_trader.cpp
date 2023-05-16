@@ -140,12 +140,17 @@ WinMain(HINSTANCE instance,
   unused(command_line);
   unused(show_command);
 
+  for (int i = 0; i < 2; ++i)
+  {
+    assert_once(false);
+  }
+
   rng_init();
 
   utf16 _exe_file_path[MAX_PATH] = {};
   GetModuleFileNameW(NULL, _exe_file_path, array_count(_exe_file_path));
 
-  int i; i = array_count(win32_global_state.changed_files[0]);
+  win32_global_state.temp_arena = arena_alloc(global_temp_arena_size, 4, NULL);
 
   String_Const_utf16 exe_file_path = string_const_utf16((utf16 *) _exe_file_path);
   unused(exe_file_path);
@@ -163,13 +168,11 @@ WinMain(HINSTANCE instance,
   {
     asset_pool_start[asset_index].next = &asset_pool_start[asset_index + 1];
   }
+  global_asset_pool.free_list_head = asset_pool_start;
 
   win32_global_state.ui_context.widget_memory =
     push_array_zero(&global_arena, Widget, default_widget_count);
   win32_global_state.ui_context.widget_memory_size = sizeof(Widget) * default_widget_count;
-
-  global_asset_pool.free_list_head = asset_pool_start;
-  win32_global_state.temp_arena    = arena_alloc(global_asset_pool_temp_arena_size, 4, NULL);
 
   HANDLE iocp_handle = INVALID_HANDLE_VALUE;
   {

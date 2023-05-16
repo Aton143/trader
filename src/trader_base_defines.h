@@ -140,18 +140,6 @@ typedef i64      b64;
 #define unused(Variable) (void) (Variable);
 #define macro_do(statement) do { statement; } while (0)
 
-#define assert_break(m) (*((volatile i32 *) 0) = 0xfee1)
-#define assert_always(c) macro_do( if (!(c)) { assert_break(c); } )
-#define assert_message_always(m) assert_break(m)
-
-#if !SHIP_MODE
-#define assert(c) assert_always(c)
-#define assert_message(m) assert_message_always(m)
-#else
-#define assert(c)
-#define assert_message(m)
-#endif
-
 #define concat_(a,b) a##b
 #define concat(a,b) concat_(a,b)
 

@@ -7,6 +7,7 @@ global_const void *global_memory_start_addr = (void *) tb(2);
 #endif
 
 global_const u64 global_memory_size = mb(8);
+global_const u64 global_temp_arena_size = kb(512);
 
 internal i64 copy_memory_block(void *dest, void *source, i64 byte_count);
 #define copy_string(dest, string)       copy_memory_block((dest), (string).str, (string).size)

@@ -10,6 +10,7 @@ struct Render_Context;
 
 #define TRADER_VERSION 1LL
 #include "trader_base_defines.h"
+#include "trader_meta.h"
 
 #include "trader_memory.h"
 #include "trader_handle.h"

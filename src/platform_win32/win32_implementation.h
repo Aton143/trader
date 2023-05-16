@@ -166,7 +166,8 @@ internal b32 platform_open_file(utf8 *file_path, u64 file_path_size, Handle *out
 {
   b32 result = false;
 
-  utf8 *file_path_copy = (utf8 *) arena_push_zero(&win32_global_state.temp_arena, file_path_size);
+  Arena *temp_arena = get_temp_arena();
+  utf8 *file_path_copy = (utf8 *) arena_push_zero(temp_arena, file_path_size);
   if (file_path_copy != NULL)
   {
     copy_memory_block(file_path_copy, file_path, file_path_size);
@@ -180,6 +181,38 @@ internal b32 platform_open_file(utf8 *file_path, u64 file_path_size, Handle *out
     assert(bytes_written == file_path_size);
     HANDLE file_handle = CreateFileW((LPCWSTR) file_path_utf16,
                                      GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                     NULL, OPEN_ALWAYS,
+                                     FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (file_handle != INVALID_HANDLE_VALUE)
+    {
+      out_handle->file_handle = file_handle;
+      result = true;
+    }
+  }
+
+  return(result);
+}
+
+internal b32 platform_open_file_for_appending(utf8 *file_path, u64 file_path_size, Handle *out_handle)
+{
+  b32 result = false;
+
+  Arena *temp_arena = get_temp_arena();
+  utf8 *file_path_copy = (utf8 *) arena_push_zero(temp_arena, file_path_size);
+  if (file_path_copy != NULL)
+  {
+    copy_memory_block(file_path_copy, file_path, file_path_size);
+
+    utf16 file_path_utf16[512] = {};
+    u32 bytes_written =
+      (u32) MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED,
+                                (LPCCH) file_path, (int) file_path_size,
+                                (wchar_t *) file_path_utf16, array_count(file_path_utf16));
+
+    assert(bytes_written == file_path_size);
+    HANDLE file_handle = CreateFileW((LPCWSTR) file_path_utf16,
+                                     GENERIC_READ, FILE_SHARE_READ | FILE_APPEND_DATA,
                                      NULL, OPEN_ALWAYS,
                                      FILE_ATTRIBUTE_NORMAL, NULL);
 

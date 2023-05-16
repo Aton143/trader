@@ -45,7 +45,6 @@ struct Asset_Pool
   Asset_Node *free_list_head;
 };
 
-global_const u64 global_asset_pool_temp_arena_size = kb(512);
 global Asset_Pool global_asset_pool;
 
 typedef Handle Asset_Handle;

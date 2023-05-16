@@ -6,7 +6,14 @@
 #endif
 
 #define assert_break(m) debug_break()
-#define assert_always(c) macro_do( if (!(c)) { assert_break(c); } )
+#define assert_always(c) \
+  macro_do(              \
+   if (!(c))             \
+   {                     \
+     assert_break(c);    \
+     meta_log((utf8 *) "%s failed at line %s in function %s\n", stringify(c), __LINE__, __FUNCTION__); \
+   })
+
 #define assert_message_always(m) assert_break(m)
 
 #if !SHIP_MODE
@@ -33,6 +40,7 @@ global Meta_Info meta_info = {};
 #endif
 
 internal void meta_init(void);
+internal void meta_log(utf8 *format, ...);
 
 #define TRADER_ASSERT_H
 #endif

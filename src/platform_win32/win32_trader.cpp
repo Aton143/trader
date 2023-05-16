@@ -151,7 +151,6 @@ WinMain(HINSTANCE instance,
   utf16 _exe_file_path[MAX_PATH] = {};
   GetModuleFileNameW(NULL, _exe_file_path, array_count(_exe_file_path));
 
-
   String_Const_utf16 exe_file_path = string_const_utf16((utf16 *) _exe_file_path);
   unused(exe_file_path);
 

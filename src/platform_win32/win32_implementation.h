@@ -129,7 +129,10 @@ internal void meta_init(void)
   Arena *temp_arena = get_temp_arena();
   set_temp_arena_wait(1);
 
-  temp_arena->used =
+  temp_arena->used = copy_string_lit(temp_arena->start, ".log");
+  temp_arena->used -= 1;
+
+  temp_arena->used +=
     GetDateFormatA(LOCALE_NAME_USER_DEFAULT,
                     0,
                     NULL,
@@ -151,6 +154,14 @@ internal void meta_init(void)
   temp_arena->used -= 1;
 
   platform_open_file_for_appending(temp_arena->start, temp_arena->used, &meta_info.log_handle);
+}
+
+internal void meta_log(utf8 *format, ...)
+{
+  va_list args;
+  va_start(args, format);
+  platform_append_to_file(&meta_info.log_handle, format, args);
+  va_end(args);
 }
 
 internal b32 platform_open_file(utf8 *file_path, u64 file_path_size, Handle *out_handle)
@@ -321,6 +332,33 @@ internal File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file
   }
 
   return(file_buffer);
+}
+
+internal b32 platform_append_to_file(Handle *handle, utf8 *format, va_list args)
+{
+  b32 result = false;
+  assert((handle != NULL) && "expected a file handle, numbnuts");
+
+  Arena *temp_arena = get_temp_arena();
+  u64 sprinted_text_cap = 512;
+  String_utf8 sprinted_text =
+  {
+    (utf8 *) arena_push(temp_arena, sprinted_text_cap),
+    0,
+    sprinted_text_cap
+  };
+
+  sprinted_text.size = stbsp_vsnprintf((char *) sprinted_text.str, (i32) sprinted_text.cap, (char *) format, args);
+
+  u32 bytes_written = 0;
+  WriteFile(handle->file_handle, sprinted_text.str, (DWORD) sprinted_text.size, (DWORD *) &bytes_written, NULL);
+
+  if (bytes_written == sprinted_text.size)
+  {
+    result = true;
+  }
+
+  return(result);
 }
 
 internal void platform_push_notify_dir(utf8 *dir_path, u64 dir_path_size)

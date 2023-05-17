@@ -1007,5 +1007,21 @@ internal b32 approx_equal(f32 a, f32 b)
   return(result);
 }
 
+internal u64 difference_with_wrap(u64 a, u64 b)
+{
+  u64 b_a_diff;
+
+  if (a >= b)
+  {
+    b_a_diff = b - a;
+  }
+  else
+  {
+    b_a_diff = (max_u64 - b) + a;
+  }
+
+  return(b_a_diff);
+}
+
 #define TRADER_BASE_DEFINES_H
 #endif

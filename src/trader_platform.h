@@ -22,5 +22,8 @@ internal void platform_collect_notifications(void);
 internal b32 platform_did_file_change(utf8 *file_name, u64 file_name_length);
 internal String_Const_utf8 platform_get_file_name_from_path(String_Const_utf8 *path);
 
+internal u64 platform_get_high_precision_timer(void);
+internal u64 platform_get_processor_time_stamp(void);
+
 #define TRADER_PLATFORM_H
 #endif

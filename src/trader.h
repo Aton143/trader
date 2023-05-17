@@ -29,6 +29,7 @@ struct Render_Context;
 #include "platform_win32/win32_implementation.h"
 #endif
 
+#include "trader_meta_impl.h"
 #include "trader_handle_impl.h"
 #include "trader_ui_impl.h"
 

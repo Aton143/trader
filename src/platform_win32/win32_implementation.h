@@ -126,6 +126,11 @@ internal Rect_f32 render_get_client_rect(void)
 
 internal void meta_init(void)
 {
+  LARGE_INTEGER high_precision_timer_frequency = {};
+  QueryPerformanceFrequency(&high_precision_timer_frequency);
+
+  meta_info.high_precision_timer_frequency = high_precision_timer_frequency.QuadPart; 
+
   Arena *temp_arena = get_temp_arena();
   set_temp_arena_wait(1);
 
@@ -1029,6 +1034,23 @@ internal void render_draw_text(f32 *baseline_x, f32 *baseline_y, utf8 *format, .
   }
 
   *baseline_x = cur_x;
+}
+
+internal u64 platform_get_processor_time_stamp(void)
+{
+  u64 time_stamp = (u64) __rdtsc();
+  return(time_stamp);
+}
+
+internal u64 platform_get_high_precision_timer(void)
+{
+  u64 result = {};
+
+  LARGE_INTEGER high_precision_time = {};
+  QueryPerformanceCounter(&high_precision_time);
+  result = high_precision_time.QuadPart;
+
+  return(result);
 }
 
 #define WIN32_IMPLEMENTATION_H

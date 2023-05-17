@@ -13,26 +13,25 @@
      expect_break(c);    \
      if (*m == '\0')     \
      {                   \
-       meta_log((utf8 *) "%s check failed at line %s in function %s\n", \
-              stringify(c), stringify(__LINE__), __FUNCTION__);         \
+       meta_log((utf8 *) "%s(%s): %s check failed\n",             \
+                __FUNCTION__, stringify(__LINE__), stringify(c)); \
      }                   \
      else                \
      {                   \
-       meta_log((utf8 *) "%s check failed at line %s in function %s - %s\n", \
-              stringify(c), stringify(__LINE__), __FUNCTION__, m);           \
+       meta_log((utf8 *) "%s(%s): %s check failed - %s\n",           \
+                __FUNCTION__, stringify(__LINE__), stringify(c), m); \
      }                   \
    })                    \
 
 #define expect_message_always(m) expect_break(m)
 
 #if !SHIP_MODE
-
 #define expect(c)            expect_always(c, "")
 #define expect_message(c, m) expect_always(c, m)
-#define expect_once(c)                                    \
-  local_persist b32 concat(__once__, __LINE__) = false;   \
-  if (!concat(__once__, __LINE__) && !(c))                \
-    (concat(__once__, __LINE__) = true, expect_break(m))  \
+#define expect_once(c)                                      \
+  local_persist b32 concat(__once__, __LINE__) = false;     \
+  if (!concat(__once__, __LINE__) && !(c))                  \
+      (concat(__once__, __LINE__) = true, expect_break(m))  \
 
 #else
 #define expect(c)
@@ -44,6 +43,7 @@
 struct Meta_Info
 {
   Handle log_handle;
+  u64    high_precision_timer_frequency;
 };
 
 global Meta_Info meta_info = {};
@@ -51,6 +51,9 @@ global Meta_Info meta_info = {};
 
 internal void meta_init(void);
 internal void meta_log(utf8 *format, ...);
+
+internal void _start_timing_block(utf8 *block_name, u64 block_name_size);
+internal void _end_timing_block(void);
 
 #define TRADER_META_H
 #endif

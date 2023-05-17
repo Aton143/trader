@@ -2,7 +2,7 @@
 #define NO_MIN_MAX
 #define UNICODE
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
-#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_NO_VA_START_VALIDATION
 #include <windows.h>
 
 #include <memoryapi.h>
@@ -12,8 +12,6 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <mswsock.h>
-
-#include <stdio.h>
 
 #define TLS_MAX_PACKET_SIZE (16384 + 512)
 
@@ -52,7 +50,7 @@ win32_read_clipboard_contents()
         {
           String_Const_utf16 clip_utf16 = string_const_utf16(clip_data_utf16);
 
-          assert(!"unimplemented");
+          expect_message(false, "unimplemented");
 
           got_result = true;
         }
@@ -70,7 +68,7 @@ win32_read_clipboard_contents()
         {
           String_Const_char clip_char = string_const_char(clip_data_char);
 
-          assert(!"unimplemented");
+          expect_message(false, "unimplemented");
 
           got_result = true;
         }
@@ -179,7 +177,7 @@ WinMain(HINSTANCE instance,
     iocp_handle = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 0);
     if (iocp_handle == INVALID_HANDLE_VALUE)
     {
-      assert(!"could not create an I/O completion port");
+      expect_message(false, "could not create an I/O completion port");
     }
 
     win32_global_state.notify_iocp = iocp_handle;
@@ -310,11 +308,11 @@ WinMain(HINSTANCE instance,
       }
 
       result = base_device->QueryInterface(__uuidof(ID3D11Device1), (void **) &device);
-      assert(SUCCEEDED(result));
+      expect(SUCCEEDED(result));
       base_device->Release();
 
       result = base_device_context->QueryInterface(__uuidof(ID3D11DeviceContext1), (void **) &device_context);
-      assert(SUCCEEDED(result));
+      expect(SUCCEEDED(result));
       base_device_context->Release();
     }
 
@@ -341,11 +339,11 @@ WinMain(HINSTANCE instance,
         IDXGIDevice1 *dxgi_device = NULL;
 
         HRESULT result = device->QueryInterface(__uuidof(IDXGIDevice1), (void **) &dxgi_device);
-        assert(SUCCEEDED(result));
+        expect(SUCCEEDED(result));
 
         IDXGIAdapter *dxgi_adapter = NULL;
         result = dxgi_device->GetAdapter(&dxgi_adapter);
-        assert(SUCCEEDED(result));
+        expect(SUCCEEDED(result));
         dxgi_device->Release();
 
         DXGI_ADAPTER_DESC adapter_description = {};
@@ -355,7 +353,7 @@ WinMain(HINSTANCE instance,
         OutputDebugStringW(adapter_description.Description);
 
         result = dxgi_adapter->GetParent(__uuidof(IDXGIFactory2), (void **) &dxgi_factory);
-        assert(SUCCEEDED(result));
+        expect(SUCCEEDED(result));
         dxgi_adapter->Release();
       }
 
@@ -379,7 +377,7 @@ WinMain(HINSTANCE instance,
       HRESULT result = dxgi_factory->CreateSwapChainForHwnd(device, win32_global_state.window_handle,
                                                             &swap_chain_description,
                                                             0, 0, &swap_chain);
-      assert(SUCCEEDED(result));
+      expect(SUCCEEDED(result));
 
       dxgi_factory->Release();
     }
@@ -388,10 +386,10 @@ WinMain(HINSTANCE instance,
     {
       ID3D11Texture2D *frame_buffer = NULL;
       HRESULT result = swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**) &frame_buffer);
-      assert(SUCCEEDED(result));
+      expect(SUCCEEDED(result));
 
       result = device->CreateRenderTargetView(frame_buffer, 0, &frame_buffer_view);
-      assert(SUCCEEDED(result));
+      expect(SUCCEEDED(result));
       frame_buffer->Release();
     }
 
@@ -450,7 +448,7 @@ WinMain(HINSTANCE instance,
       HRESULT result = device->CreateInputLayout(input_element_description, array_count(input_element_description),
                                                  vertex_shader_blob->GetBufferPointer(), vertex_shader_blob->GetBufferSize(),
                                                  &input_layout);
-      assert(SUCCEEDED(result));
+      expect(SUCCEEDED(result));
       vertex_shader_blob->Release();
     }
 
@@ -464,7 +462,7 @@ WinMain(HINSTANCE instance,
       instance_buffer_description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
       HRESULT result = device->CreateBuffer(&instance_buffer_description, NULL, &instance_buffer);
-      assert(SUCCEEDED(result));
+      expect(SUCCEEDED(result));
     }
 
     ID3D11SamplerState *sampler_state = NULL;
@@ -484,7 +482,7 @@ WinMain(HINSTANCE instance,
       sampler_description.MaxLOD         = D3D11_FLOAT32_MAX;
 
       HRESULT result = device->CreateSamplerState(&sampler_description, &sampler_state);
-      assert(SUCCEEDED(result));
+      expect(SUCCEEDED(result));
     }
 
     ID3D11BlendState *transparent_blend_state = NULL;
@@ -503,7 +501,7 @@ WinMain(HINSTANCE instance,
       blend_description.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
       HRESULT result = device->CreateBlendState(&blend_description, &transparent_blend_state);
-      assert(SUCCEEDED(result));
+      expect(SUCCEEDED(result));
     }
 
     ID3D11RasterizerState* rasterizer_state = {};
@@ -516,7 +514,7 @@ WinMain(HINSTANCE instance,
       rasterizer_description.ScissorEnable         = TRUE;
 
       HRESULT result = device->CreateRasterizerState(&rasterizer_description, &rasterizer_state);
-      assert(SUCCEEDED(result));
+      expect(SUCCEEDED(result));
     }
 
     ID3D11ShaderResourceView *font_texture_view = NULL;
@@ -544,7 +542,7 @@ WinMain(HINSTANCE instance,
       ID3D11Texture2D *texture_2d = NULL;
       HRESULT result = device->CreateTexture2D(&texture_description, &subresource, &texture_2d);
 
-      assert(SUCCEEDED(result));
+      expect(SUCCEEDED(result));
 
       D3D11_SHADER_RESOURCE_VIEW_DESC shader_resource_view_description = {};
       {
@@ -557,7 +555,7 @@ WinMain(HINSTANCE instance,
       result = device->CreateShaderResourceView(texture_2d, &shader_resource_view_description, &font_texture_view);
       texture_2d->Release();
 
-      assert(SUCCEEDED(result));
+      expect(SUCCEEDED(result));
     }
 
     ID3D11Buffer *constant_buffer = NULL;
@@ -571,7 +569,7 @@ WinMain(HINSTANCE instance,
       constant_buffer_description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
       HRESULT result = device->CreateBuffer(&constant_buffer_description, NULL, &constant_buffer);
-      assert(SUCCEEDED(result));
+      expect(SUCCEEDED(result));
     }
 
     ID3D11DepthStencilState *depth_stencil_state = NULL;
@@ -591,7 +589,7 @@ WinMain(HINSTANCE instance,
       depth_stencil_state_description.BackFace                     = depth_stencil_state_description.FrontFace;
 
       HRESULT result = device->CreateDepthStencilState(&depth_stencil_state_description, &depth_stencil_state);
-      assert(SUCCEEDED(result));
+      expect(SUCCEEDED(result));
     }
 
     ID3D11Texture2D        *depth_stencil_texture = NULL;
@@ -623,14 +621,14 @@ WinMain(HINSTANCE instance,
         frame_buffer_view->Release();
 
         HRESULT result = swap_chain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
-        assert(SUCCEEDED(result));
+        expect(SUCCEEDED(result));
 
         ID3D11Texture2D* frame_buffer = NULL;
         result = swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **) &frame_buffer);
-        assert(SUCCEEDED(result));
+        expect(SUCCEEDED(result));
 
         result = device->CreateRenderTargetView(frame_buffer, NULL, &frame_buffer_view);
-        assert(SUCCEEDED(result));
+        expect(SUCCEEDED(result));
 
         depth_stencil_texture = NULL;
         {
@@ -651,7 +649,7 @@ WinMain(HINSTANCE instance,
           depth_stencil_texture_desc.MiscFlags          = 0;
 
           result = device->CreateTexture2D(&depth_stencil_texture_desc, NULL, &depth_stencil_texture);
-          assert(SUCCEEDED(result));
+          expect(SUCCEEDED(result));
         }
 
         depth_stencil_view = NULL;
@@ -665,7 +663,7 @@ WinMain(HINSTANCE instance,
           result = device->CreateDepthStencilView(depth_stencil_texture,
                                                   &depth_stencil_view_desc,
                                                   &depth_stencil_view);
-          assert(SUCCEEDED(result));
+          expect(SUCCEEDED(result));
         } 
 
         frame_buffer->Release();

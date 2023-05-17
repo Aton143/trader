@@ -138,7 +138,6 @@ typedef i32      b32;
 typedef i64      b64;
 
 #define unused(Variable) (void) (Variable);
-#define macro_do(statement) do { statement; } while (0)
 
 #define concat_(a,b) a##b
 #define concat(a,b) concat_(a,b)
@@ -150,6 +149,7 @@ typedef i64      b64;
 #undef swap
 #endif
 
+#define macro_do(statement) do { statement; } while (0)
 #define swap(t,a,b) macro_do(t concat(hidden_temp_,__LINE__) = a; a = b; b = concat(hidden_temp_,__LINE__))
 
 #define assert_implies(a,b) assert(!(a) || (b))

@@ -13,7 +13,7 @@ internal Handle *make_handle(utf8 *id, Handle_Kind kind, Handle *previous_handle
   Handle *result = NULL;
 
   Asset_Node *first = global_asset_pool.free_list_head;
-  assert((first != NULL) && "no more assets for you, foolio");
+  expect_message(first != NULL, "no more assets for you, foolio");
 
   u64 id_size = c_string_length(id);
   if (previous_handle == NULL)
@@ -38,8 +38,8 @@ internal Handle *make_handle(utf8 *id, Handle_Kind kind, Handle *previous_handle
   }
   else
   {
-    assert(previous_handle->kind == kind);
-    assert(!copy_memory_block(previous_handle->id, id,
+    expect(previous_handle->kind == kind);
+    expect(!copy_memory_block(previous_handle->id, id,
                               min(id_size, array_count(result->id))));
 
     result = previous_handle;

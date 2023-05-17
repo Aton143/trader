@@ -86,7 +86,7 @@ internal b32 render_atlas_initialize(Arena         *arena,
 {
   b32 result = true;
 
-  assert((font_heights != NULL) &&
+  expect((font_heights != NULL) &&
          ((0 < font_height_count) &&
           (font_height_count <= member_array_count(Texture_Atlas, heights))));
 
@@ -99,7 +99,7 @@ internal b32 render_atlas_initialize(Arena         *arena,
     // NOTE(antonio): fallback font
     if (!stbtt_InitFont(&font_info, font_data->data, font_offset))
     {
-      assert((default_font.data != NULL) && "expected a default font at least...");
+      expect_message(default_font.data != NULL, "expected a default font at least...");
 
       font_data = &default_font;
       stbtt_InitFont(&font_info, font_data->data, 0);
@@ -110,7 +110,7 @@ internal b32 render_atlas_initialize(Arena         *arena,
 
     if (bitmap_data == NULL)
     {
-      assert(!"expected arena allocation to succeed");
+      expect_message(false, "expected arena allocation to succeed");
     }
 
     stbtt_pack_context pack_context;

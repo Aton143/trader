@@ -129,7 +129,7 @@ internal void meta_init(void)
   Arena *temp_arena = get_temp_arena();
   set_temp_arena_wait(1);
 
-  temp_arena->used = copy_string_lit(temp_arena->start, ".log");
+  temp_arena->used = copy_string_lit(temp_arena->start, ".\\logs\\");
   temp_arena->used -= 1;
 
   temp_arena->used +=
@@ -137,8 +137,8 @@ internal void meta_init(void)
                     0,
                     NULL,
                     "yyyy'_'MM'_'dd'_'",
-                    (char *) temp_arena->start,
-                    (int) (temp_arena->size  - 1));
+                    (char *) &temp_arena->start[temp_arena->used],
+                    (int) (temp_arena->size - temp_arena->used - 1));
   temp_arena->used -= 1;
 
   temp_arena->used += 
@@ -158,10 +158,10 @@ internal void meta_init(void)
 
 internal void meta_log(utf8 *format, ...)
 {
-  va_list args;
-  va_start(args, format);
-  platform_append_to_file(&meta_info.log_handle, format, args);
-  va_end(args);
+  va_list arguments;
+  va_start(arguments, format);
+  platform_append_to_file(&meta_info.log_handle, format, arguments);
+  va_end(arguments);
 }
 
 internal b32 platform_open_file(utf8 *file_path, u64 file_path_size, Handle *out_handle)
@@ -181,7 +181,7 @@ internal b32 platform_open_file(utf8 *file_path, u64 file_path_size, Handle *out
                                 (LPCCH) file_path, (int) file_path_size,
                                 (wchar_t *) file_path_utf16, array_count(file_path_utf16));
 
-    assert(bytes_written == file_path_size);
+    expect(bytes_written == file_path_size);
     HANDLE file_handle = CreateFileW((LPCWSTR) file_path_utf16,
                                      GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
                                      NULL, OPEN_ALWAYS,
@@ -213,9 +213,9 @@ internal b32 platform_open_file_for_appending(utf8 *file_path, u64 file_path_siz
                                 (LPCCH) file_path, (int) file_path_size,
                                 (wchar_t *) file_path_utf16, array_count(file_path_utf16));
 
-    assert(bytes_written == file_path_size);
+    expect(bytes_written == file_path_size);
     HANDLE file_handle = CreateFileW((LPCWSTR) file_path_utf16,
-                                     GENERIC_READ, FILE_SHARE_READ | FILE_APPEND_DATA,
+                                     GENERIC_WRITE | FILE_APPEND_DATA, FILE_SHARE_READ,
                                      NULL, OPEN_ALWAYS,
                                      FILE_ATTRIBUTE_NORMAL, NULL);
 
@@ -234,7 +234,7 @@ internal File_Buffer platform_read_entire_file(Handle *handle)
   File_Buffer file_buffer = {};
   Arena *temp_arena = get_temp_arena();
 
-  assert((handle != NULL) && "idiot! you have to provide a good handle");
+  expect_message(handle != NULL, "idiot! you have to provide a good handle");
 
   LARGE_INTEGER large_file_size;
   if (GetFileSizeEx(handle->file_handle, &large_file_size))
@@ -250,20 +250,20 @@ internal File_Buffer platform_read_entire_file(Handle *handle)
       u32 bytes_read = 0;
       if (ReadFile(handle->file_handle, file_buffer_data, (u32) file_size, (LPDWORD) &bytes_read, NULL))
       {
-        assert((bytes_read == file_size) && "Win32 Error: bytes read does not match expected");
+        expect_message(bytes_read == file_size, "Win32 Error: bytes read does not match expected");
 
         file_buffer.data           = file_buffer_data;
         file_buffer.size           = file_size;
       }
       else
       {
-        assert(!"Win32 Error: could not read file");
+        expect_message(false, "Win32 Error: could not read file");
       }
     }
   }
   else
   {
-    assert(!"could not get file size");
+    expect_message(false, "could not get file size");
   }
 
   return(file_buffer);
@@ -299,7 +299,7 @@ internal File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file
           u32 bytes_read = 0;
           if (ReadFile(file_handle, file_buffer_data, (u32) file_size, (LPDWORD) &bytes_read, NULL))
           {
-            assert((bytes_read == file_size) || !"Win32 Error: bytes read does not match expected");
+            expect_message(bytes_read == file_size, "Win32 Error: bytes read does not match expected");
 
             file_buffer.data           = file_buffer_data;
             file_buffer.size           = file_size;
@@ -308,27 +308,27 @@ internal File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file
           }
           else
           {
-            assert(!"Win32 Error: could not read file");
+            expect_message(false, "Win32 Error: could not read file");
           }
         }
         else
         {
-          assert(!"expected arena allocation to succeed");
+          expect_message(false, "expected arena allocation to succeed");
         }
       }
       else
       {
-        assert(!"Win32 Error: could not get file size");
+        expect_message(false, "Win32 Error: could not get file size");
       }
     }
     else
     {
-      assert(!"Win32 Error: could not open file");
+      expect_message(false, "Win32 Error: could not open file");
     }
   }
   else
   {
-    assert(!"Win32 Error: could not convert the file path to UTF-16");
+    expect_message(false, "Win32 Error: could not convert the file path to UTF-16");
   }
 
   return(file_buffer);
@@ -337,18 +337,17 @@ internal File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file
 internal b32 platform_append_to_file(Handle *handle, utf8 *format, va_list args)
 {
   b32 result = false;
-  assert((handle != NULL) && "expected a file handle, numbnuts");
+  expect_message(handle != NULL, "expected a file handle, numbnuts");
 
   Arena *temp_arena = get_temp_arena();
-  u64 sprinted_text_cap = 512;
   String_utf8 sprinted_text =
   {
-    (utf8 *) arena_push(temp_arena, sprinted_text_cap),
+    (utf8 *) arena_push(temp_arena, temp_arena->size),
     0,
-    sprinted_text_cap
+    temp_arena->size
   };
 
-  sprinted_text.size = stbsp_vsnprintf((char *) sprinted_text.str, (i32) sprinted_text.cap, (char *) format, args);
+  sprinted_text.size = stbsp_vsnprintf((char *) sprinted_text.str, (i32) sprinted_text.cap - 1, (char *) format, args);
 
   u32 bytes_written = 0;
   WriteFile(handle->file_handle, sprinted_text.str, (DWORD) sprinted_text.size, (DWORD *) &bytes_written, NULL);
@@ -411,7 +410,7 @@ internal void platform_start_collect_notifications(void)
   win32_global_state.notify_overlapped = {};
 
   FILE_NOTIFY_INFORMATION *changes = (FILE_NOTIFY_INFORMATION *) win32_global_state._changed_files;
-  assert(((ptr_val) changes & 0x3) == 0);
+  expect(((ptr_val) changes & 0x3) == 0);
 
   DWORD notify_filter = FILE_NOTIFY_CHANGE_LAST_WRITE  | FILE_NOTIFY_CHANGE_CREATION   |
                         FILE_NOTIFY_CHANGE_SIZE        | FILE_NOTIFY_CHANGE_ATTRIBUTES |
@@ -430,7 +429,7 @@ internal void platform_start_collect_notifications(void)
   if (!got_changes)
   {
     DWORD error; error = GetLastError();
-    assert(!"expected ReadDirectoryChangesW to succeed");
+    expect_message(false, "expected ReadDirectoryChangesW to succeed");
   }
 }
 
@@ -547,16 +546,16 @@ internal Network_Return_Code network_startup(Network_State *out_state)
 
   WSADATA winsock_metadata = {};
   i32 winsock_result = WSAStartup(MAKEWORD(2, 2), &winsock_metadata);
-  assert((winsock_result == 0) && "expected winsock dll to load");
+  expect_message(winsock_result == 0, "expected winsock dll to load");
 
   {
-    assert((out_state != NULL) && "expected out_state to be valid");
+    expect_message(out_state != NULL, "expected out_state to be valid");
 
     const SSL_METHOD *client_method = NULL;
     client_method = TLS_client_method();
 
     out_state->ssl_context = SSL_CTX_new(client_method);
-    assert((out_state->ssl_context != NULL) && "expected to create an ssl context");
+    expect_message(out_state->ssl_context != NULL, "expected to create an ssl context");
 
     SSL_CTX_set_verify(out_state->ssl_context, SSL_VERIFY_PEER, NULL);
 
@@ -578,8 +577,8 @@ internal Network_Return_Code network_connect(Network_State *state, Socket *out_s
 
   Network_Return_Code result = network_ok;
 
-  assert(out_socket    != NULL);
-  assert(host_name.str != NULL);
+  expect(out_socket    != NULL);
+  expect(host_name.str != NULL);
 
   make_nil(out_socket);
 
@@ -596,7 +595,7 @@ internal Network_Return_Code network_connect(Network_State *state, Socket *out_s
   }
 
   i32 found_addr = getaddrinfo((char *) host_name.str, (char *) port_name, &addr_hints, &addr_found);
-  assert((found_addr == 0) && (addr_found != NULL) && "could not get address info for the given host name");
+  expect_message((found_addr == 0) && (addr_found != NULL), "could not get address info for the given host name");
 
   // TODO(antonio): WSA_FLAG_OVERLAPPED
   out_socket->socket = WSASocket(addr_found->ai_family,
@@ -605,7 +604,7 @@ internal Network_Return_Code network_connect(Network_State *state, Socket *out_s
                                  NULL,
                                  0, 0); 
 
-  assert((out_socket->socket != INVALID_SOCKET) && "expected connection");
+  expect_message(out_socket->socket != INVALID_SOCKET, "expected connection");
 
   // TODO(antonio): investigate how the following may change the performance of the socket
 #if 0
@@ -615,7 +614,7 @@ internal Network_Return_Code network_connect(Network_State *state, Socket *out_s
                               SO_SNDBUF,
                               (char *) &send_no_buffering,
                               sizeof(send_no_buffering));
-  assert((set_result == 0) && "could not disable send buffering");
+  expect_message(set_result == 0, "could not disable send buffering");
 #endif
 
   i32 ssl_result;
@@ -630,18 +629,18 @@ internal Network_Return_Code network_connect(Network_State *state, Socket *out_s
 
     SSL_set_connect_state(out_socket->ssl_state);
 
-    assert((host_name.size <= SSL_MAX_HOST_NAME_LENGTH) && "the host name is too long");
+    expect_message(host_name.size <= SSL_MAX_HOST_NAME_LENGTH, "the host name is too long");
     ssl_result = SSL_set_tlsext_host_name(out_socket->ssl_state, (char *) host_name.str);
-    assert((ssl_result == 1) && "no tls extension :(");
+    expect_message(ssl_result == 1, "no tls extension :(");
 
     ssl_result = SSL_add1_host(out_socket->ssl_state, (char *) host_name.str);
-    assert((ssl_result == 1) && "could not add host name");
+    expect_message(ssl_result == 1, "could not add host name");
   }
 
   b32 connected = WSAConnectByNameA(out_socket->socket,
                                    (char *) host_name.str, (char *) port_name,
                                    0, NULL, 0, NULL, NULL, NULL);
-  assert(connected && "expected connection");
+  expect_message(connected, "expected connection");
 
   // TODO(antonio): wrap up? resumption?
   ssl_result = SSL_do_handshake(out_socket->ssl_state);
@@ -658,7 +657,7 @@ internal Network_Return_Code network_send_simple(Network_State *state, Socket *i
   Network_Return_Code result = network_ok;
 
   unused(state);
-  assert(to_send->data != NULL);
+  expect(to_send->data != NULL);
 
   if (!is_nil(in_socket))
   {
@@ -679,8 +678,8 @@ internal Network_Return_Code network_receive_simple(Network_State *state, Socket
 
   Network_Return_Code result = network_ok;
 
-  assert(in_socket          != NULL);
-  assert(receive_buffer != NULL);
+  expect(in_socket          != NULL);
+  expect(receive_buffer != NULL);
 
   if (!is_nil(in_socket))
   {
@@ -766,7 +765,7 @@ internal Network_Return_Code network_disconnect(Network_State *state, Socket *in
 
   Network_Return_Code result = network_ok;
 
-  assert(in_out_socket != NULL);
+  expect(in_out_socket != NULL);
   shutdown(in_out_socket->socket, SD_BOTH);
   closesocket(in_out_socket->socket);
 
@@ -807,7 +806,7 @@ internal Arena arena_alloc(u64 size, u64 alignment, void *start)
 
   u8 *allocated = (u8 *) VirtualAlloc(start, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 
-  assert((allocated != NULL) && "virtual alloc failed");
+  expect_message(allocated != NULL, "virtual alloc failed");
 
   arena.start     = allocated;
   arena.size      = size;
@@ -857,7 +856,7 @@ internal void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *s
                                           vertex_shader_blob->GetBufferSize(),
                                           NULL, &shader->shader);
 
-      assert(SUCCEEDED(result));
+      expect(SUCCEEDED(result));
       safe_release(shader_compile_errors_blob);
 
       blob = (void *) vertex_shader_blob;
@@ -905,7 +904,7 @@ internal void render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shad
                                               NULL,
                                               &shader->shader);
 
-      assert(SUCCEEDED(return_code));
+      expect(SUCCEEDED(return_code));
 
       safe_release(shader_compile_errors_blob);
       pixel_shader_blob->Release();

@@ -188,8 +188,8 @@ i64 compare_memory_block(void *a, void *b, i64 byte_count)
   u8 *a_bytes = (u8 *) a;
   u8 *b_bytes = (u8 *) b;
 
-  assert(a_bytes != NULL);
-  assert(b_bytes != NULL);
+  expect(a_bytes != NULL);
+  expect(b_bytes != NULL);
 
   for (i64 byte_index = 0;
        byte_index < byte_count;
@@ -249,7 +249,7 @@ void *arena_append(Arena *arena, void *data, u64 size)
   }
   else
   {
-    assert(!"this should work, asshole");
+    expect_message(false, "this should work, asshole");
   }
 
   return(result);
@@ -279,7 +279,7 @@ Ring_Buffer ring_buffer_make(Arena *arena, u64 size)
   }
   else
   {
-    assert(!"expected to successfully make ring buffer");
+    expect_message(false, "expected to successfully make ring buffer");
   }
 
   return(ring_buffer);
@@ -287,8 +287,7 @@ Ring_Buffer ring_buffer_make(Arena *arena, u64 size)
 
 void *ring_buffer_push(Ring_Buffer *rb, u64 size)
 {
-  assert(((rb->size % size) == 0) &&
-         "expcted ring buffer size to be a multiple of input");
+  expect_message(((rb->size % size) == 0), "expected ring buffer size to be a multiple of input");
 
   void *result = (void *) rb->write;
 
@@ -308,8 +307,7 @@ void *ring_buffer_append(Ring_Buffer *rb, void *data, u64 size)
 
 void *ring_buffer_pop(Ring_Buffer *rb, u64 size)
 {
-  assert(((rb->size % size) == 0) &&
-         "expcted ring buffer size to be a multiple of input");
+  expect_message(((rb->size % size) == 0), "expcted ring buffer size to be a multiple of input");
 
   void *result = (void *) rb->read;
 

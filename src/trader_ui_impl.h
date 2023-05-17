@@ -167,7 +167,7 @@ internal void ui_prepare_render(void)
   unused(ui);
   unused(render);
 
-  assert((render->render_data.used == 0) && "for now, assume that the render data is required to be empty");
+  expect_message(render->render_data.used == 0, "for now, assume that the render data is required to be empty");
 
   {
     // NOTE(antonio): stack grows from high to low
@@ -295,7 +295,7 @@ internal void ui_prepare_render(void)
         {
           if (cur_child->size_flags & size_flag_to_be_sized_x)
           {
-            assert(to_be_sized_x > 0);
+            expect(to_be_sized_x > 0);
             cur_child->computed_size_in_pixels.x = (remaining_width / ((f32) to_be_sized_x));
           }
 

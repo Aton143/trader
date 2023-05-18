@@ -55,8 +55,5 @@ global Meta_Info meta_info = {};
 internal void meta_init(void);
 internal void meta_log(utf8 *format, ...);
 
-internal void _start_timing_block(utf8 *block_name, u64 block_name_size);
-internal void _end_timing_block(void);
-
 #define TRADER_META_H
 #endif

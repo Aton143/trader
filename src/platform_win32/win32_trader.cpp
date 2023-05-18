@@ -138,6 +138,8 @@ WinMain(HINSTANCE instance,
   unused(command_line);
   unused(show_command);
 
+  TIMED_BLOCK();
+
   win32_global_state.temp_arena.arena = arena_alloc(global_temp_arena_size, 4, NULL);
 
   rng_init();
@@ -777,9 +779,15 @@ WinMain(HINSTANCE instance,
 
       arena_reset(&win32_global_state.render_context.render_data);
 
+      // TODO(antonio): should this be zeroed out every frame?
+      zero_memory_block(timing_records, sizeof(*timing_records) * timing_records_count);
+
       swap_chain->Present(1, 0);
     }
   }
 
   return(0);
 }
+
+const u32 timing_records_count = __COUNTER__;
+Timing_Record timing_records[timing_records_count] = {};

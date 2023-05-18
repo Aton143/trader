@@ -1013,7 +1013,7 @@ internal u64 difference_with_wrap(u64 a, u64 b)
 
   if (a >= b)
   {
-    b_a_diff = b - a;
+    b_a_diff = a - b;
   }
   else
   {

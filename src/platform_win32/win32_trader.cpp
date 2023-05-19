@@ -779,8 +779,7 @@ WinMain(HINSTANCE instance,
 
       arena_reset(&win32_global_state.render_context.render_data);
 
-      // TODO(antonio): should this be zeroed out every frame?
-      zero_memory_block(timing_records, sizeof(*timing_records) * timing_records_count);
+      meta_collate_timing_records();
 
       swap_chain->Present(1, 0);
     }

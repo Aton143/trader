@@ -52,6 +52,7 @@ internal void *arena_push_zero(Arena *arena, u64 size);
 #define push_array(arena, type, count) (type *) arena_push((arena), sizeof(type)*(count))
 #define push_array_zero(arena, type, count) (type *) arena_push_zero((arena), sizeof(type)*(count))
 #define push_buffer(arena, size) {(u8 * ) arena_push(arena, size), size}
+#define push_string(arena, char_type, cap) {push_array(arena, char_type, cap), 0, cap}
 
 #define push_struct(arena, type) (type *) arena_push((arena), sizeof(type))
 #define push_struct_zero(arena, type) (type *) arena_push_zero((arena), sizeof(type))

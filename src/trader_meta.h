@@ -55,5 +55,7 @@ global Meta_Info meta_info = {};
 internal void meta_init(void);
 internal void meta_log(utf8 *format, ...);
 
+internal void meta_collate_timing_records(void);
+
 #define TRADER_META_H
 #endif

@@ -173,6 +173,7 @@ WinMain(HINSTANCE instance,
     push_array_zero(&global_arena, Widget, default_widget_count);
   win32_global_state.ui_context.widget_memory_size = sizeof(Widget) * default_widget_count;
 
+
   HANDLE iocp_handle = INVALID_HANDLE_VALUE;
   {
     // TODO(antonio): use completion key to distinguish handles?
@@ -672,6 +673,8 @@ WinMain(HINSTANCE instance,
       }
 
       platform_collect_notifications();
+
+      /*
       V2_f32 text_pos_start, text_pos_end;
       text_pos_start = text_pos_end =  {0.0f, 24.0f};
 
@@ -693,6 +696,16 @@ WinMain(HINSTANCE instance,
         (f32) win32_global_state.render_context.atlas->solid_color_rect.x1,
         (f32) win32_global_state.render_context.atlas->solid_color_rect.y1,
       };
+      */
+
+      ui_initialize_frame();
+      ui_set_background_color(1.0f, 1.0f, 1.0f, 1.0f);
+
+      ui_make_widget(widget_flag_draw_background,
+                     size_flag_text_content,
+                     string_literal_init_type("Centered text parent", utf8));
+
+      ui_prepare_render();
 
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
       device_context->ClearRenderTargetView(frame_buffer_view, background_color);

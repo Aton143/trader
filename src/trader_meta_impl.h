@@ -35,6 +35,7 @@ struct Timed_Block
     this->record->file_name   = (utf8 *) file_name;
     this->record->function    = (utf8 *) function;
     this->record->line_number = line_number;
+    this->record->hit_count   = 0;
 
     this->cycle_count_start   = platform_get_processor_time_stamp();
     this->high_precision_time = platform_get_high_precision_timer();
@@ -84,7 +85,7 @@ internal void meta_collate_timing_records(void)
         ((double) cur_collated->high_precision_time) / ((double) meta_info.high_precision_timer_frequency);
 
       sprinted_text.size = stbsp_snprintf(sprinted_text.str, (int) sprinted_text.cap,
-                                         "%s (%lld): %lld cycles (%fs) - %lld times\n",
+                                         "%s (%lld): %lld cycles (%fs) - %d times\n",
                                          cur_collated->function,
                                          cur_collated->line_number,
                                          cur_collated->time_stamp,

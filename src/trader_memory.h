@@ -71,8 +71,8 @@ unimplemented u64 arena_get_pos(Arena *arena);
 unimplemented void arena_set_pos_back(Arena *arena, u64 pos);
 unimplemented void arena_clear(Arena *arena);
 
-internal void *_arena_get_top_element(Arena *arena, u64 size);
-#define arena_get_top(arena, type) (type *) _arena_get_top((arena), sizeof(*type))
+internal void *_arena_get_top(Arena *arena, u64 size);
+#define arena_get_top(arena, type) (type *) _arena_get_top((arena), sizeof(type))
 
 struct Ring_Buffer
 {
@@ -104,12 +104,13 @@ internal void *ring_buffer_append(Ring_Buffer *ring_buffer,
                                   u64          size);
 
 internal void *ring_buffer_pop(Ring_Buffer *ring_buffer, u64 size);
-#define ring_Buffer_pop_struct(rb, type) \
+#define ring_buffer_pop_struct(rb, type) \
   (type *) ring_buffer_pop((rb), sizeof(type))
 
 internal void ring_buffer_pop_and_put(Ring_Buffer *ring_buffer,
                                       void        *data,
                                       u64          size);
+#define ring_buffer_pop_and_put_struct(rb, copy) ring_buffer_pop_and_put(rb, copy, sizeof(*(copy)))
 
 // implementation
 i64 copy_memory_block(void *dest, void *source, i64 byte_count)
@@ -260,9 +261,11 @@ void *_arena_get_top(Arena *arena, u64 size)
 {
   void *result = NULL;
 
-  if ((arena->used - size) >= 0)
+  i64 top_start = (i64) (arena->used - size);
+  if (top_start >= 0)
   {
-    result = arena->start + (arena->used - size);
+    expect(((u64) top_start) < arena->size);
+    result = arena->start + top_start;
   }
 
   return(result);
@@ -304,6 +307,7 @@ void *ring_buffer_append(Ring_Buffer *rb, void *data, u64 size)
 {
   void *result = ring_buffer_push(rb, size);
   copy_memory_block(result, data, size);
+  return(result);
 }
 
 void *ring_buffer_pop(Ring_Buffer *rb, u64 size)
@@ -321,8 +325,8 @@ void *ring_buffer_pop(Ring_Buffer *rb, u64 size)
 }
 
 void ring_buffer_pop_and_put(Ring_Buffer *rb,
-                              void        *data,
-                              u64          size)
+                              void       *data,
+                              u64         size)
 {
   void *read = ring_buffer_pop(rb, size);
   copy_memory_block(data, read, size);

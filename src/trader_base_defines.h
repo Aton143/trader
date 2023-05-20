@@ -820,7 +820,7 @@ struct String_Any {
 #include "trader_string_utilities.h"
 
 #define string_literal_init(s) {(s), sizeof(s) - sizeof(*s)}
-#define string_literal_init_type(s, t) {(t *) (s), sizeof(s) - 1}
+#define string_literal_init_type(s, t) concat(String_Const_, t) {(t *) (s), sizeof(s) - 1}
 #define string_from_c_string(type, s, capacity) {(type *) s, concat(get_length_c_string_, type)((type *) s), (capacity)}
 #define string_from_fixed_size(type, buffer) {(type *) (buffer), 0, sizeof(buffer) - sizeof(type)}
 #define buffer_from_fixed_size(buffer) {(u8 *) (buffer), 0, sizeof(buffer)}

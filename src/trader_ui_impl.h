@@ -164,20 +164,22 @@ internal void ui_prepare_render(void)
   UI_Context     *ui         = ui_get_context();
   Render_Context *render     = render_get_context();
 
-  unused(ui);
-  unused(render);
-
-  expect_message(render->render_data.used == 0, "for now, assume that the render data is required to be empty");
+  expect_message(render->render_data.used == 0, "expected no render data");
 
   {
     // NOTE(antonio): stack grows from high to low
     Arena *widget_stack = temp_arena;
-    append_struct(widget_stack, &ui->allocated_widgets);
+    Widget **data = &ui->allocated_widgets;
+    arena_append(widget_stack, data, sizeof(Widget *));
 
     // NOTE(antonio): THIS HAS TO BE A STACK OF POINTERS
+    Widget **stack_top = NULL;
     Widget *cur_widget = NULL;
-    while ((cur_widget = (Widget *) _arena_get_top(widget_stack, sizeof(Widget *))))
+    while ((stack_top = arena_get_top(widget_stack, Widget *)))
     {
+      cur_widget = *stack_top;
+      arena_pop(widget_stack, sizeof(Widget **));
+
       Widget *parent = cur_widget->parent;
 
       if (cur_widget->size_flags & size_flag_copy_parent_size_x)
@@ -235,6 +237,7 @@ internal void ui_prepare_render(void)
   {
     Ring_Buffer widget_queue = ring_buffer_make(temp_arena, structs_in_size(temp_arena->size, Widget *));
 
+    // NOTE(antonio): don't care about the sentinel
     Widget *first_child = NULL;
     for (Widget *cur_child = ui->allocated_widgets->first_child;
          cur_child != first_child;
@@ -247,7 +250,7 @@ internal void ui_prepare_render(void)
     while (widget_queue.write != widget_queue.read)
     {
       Widget *cur_widget = NULL;
-      ring_buffer_pop_and_put(&widget_queue, cur_widget, sizeof(cur_widget));
+      ring_buffer_pop_and_put_struct(&widget_queue, &cur_widget);
 
       f32 remaining_width = rect_get_width(&cur_widget->rectangle);
       f32 max_height = 0.0f;
@@ -339,7 +342,7 @@ internal void ui_prepare_render(void)
     while (widget_queue.read != widget_queue.write)
     {
       Widget *cur_widget = NULL;
-      ring_buffer_pop_and_put(&widget_queue, cur_widget, sizeof(cur_widget));
+      ring_buffer_pop_and_put_struct(&widget_queue, &cur_widget);
 
       if (cur_widget->widget_flags & widget_flag_draw_background)
       {

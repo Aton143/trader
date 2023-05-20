@@ -90,7 +90,7 @@ float4 PS_Main(PS_Input input): SV_Target
 {
   float4 texture_sample = global_texture.Sample(global_sampler, input.uv);
   float4 alpha_sample   = float4(texture_sample.r, texture_sample.r, texture_sample.r, texture_sample.r);
-  float4 out_color      = alpha_sample * input.color;
+  float4 out_color      = pow(alpha_sample * input.color, 1);
   return out_color;
 }
 

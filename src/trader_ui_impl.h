@@ -123,10 +123,6 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
   UI_Context     *ui     = ui_get_context();
   Render_Context *render = render_get_context();
 
-  unused(widget_flags);
-  unused(string);
-  unused(size_flags);
-
   if (ui->current_widget_count < ui->max_widget_count)
   {
     Widget *widget = ui->widget_free_list_head;
@@ -178,10 +174,10 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
       {
         stbtt_packedchar *cur_packed_char = packed_char_start + (string.str[string_index] - starting_code_point);
         f32 cur_char_height = (f32) (cur_packed_char->yoff2 - cur_packed_char->yoff);
-        f32 cur_char_width  = (f32) (cur_packed_char->xoff2 - cur_packed_char->xoff);
+        // f32 cur_char_width  = (f32) (cur_packed_char->xoff2 - cur_packed_char->xoff);
 
         content_height  =  max(content_height, cur_char_height);
-        content_width  += (cur_char_width + cur_packed_char->xadvance);
+        content_width  += (/*cur_char_width + */ cur_packed_char->xadvance);
 
         if (string_index < string.size - 1)
         {
@@ -266,9 +262,9 @@ internal void ui_prepare_render(void)
       }
 
       Widget *first_child = NULL;
-      for (Widget *cur_child = cur_widget->first_child;
-           cur_child != first_child;
-           cur_child = cur_child->next_sibling)
+      for (Widget *cur_child  = cur_widget->first_child;
+           cur_child         != first_child;
+           cur_child          = cur_child->next_sibling)
       {
         arena_append(widget_stack, &cur_child, sizeof(Widget *));
         first_child = cur_widget->first_child;
@@ -282,14 +278,15 @@ internal void ui_prepare_render(void)
 
     // NOTE(antonio): don't care about the sentinel
     Widget *first_child = NULL;
-    for (Widget *cur_child = ui->allocated_widgets->first_child;
-         cur_child != first_child;
-         cur_child = cur_child->next_sibling)
+    for (Widget *cur_child  = ui->allocated_widgets->first_child;
+         cur_child         != first_child;
+         cur_child          = cur_child->next_sibling)
     {
       ring_buffer_append(&widget_queue, &cur_child, sizeof(Widget *));
       first_child = ui->allocated_widgets->first_child;
     }
 
+    // NOTE(antonio): resolve "implicit" sizes with current information, level-order 
     while (widget_queue.write != widget_queue.read)
     {
       Widget *cur_widget = NULL;
@@ -304,9 +301,9 @@ internal void ui_prepare_render(void)
       // then need to know complete children sizes for that dimension
       // TODO(antonio): check this out for ^
       first_child = NULL;
-      for (Widget *cur_child = cur_widget->first_child;
-           cur_child != first_child;
-           cur_child = cur_child->next_sibling)
+      for (Widget *cur_child  = cur_widget->first_child;
+           cur_child         != first_child;
+           cur_child          = cur_child->next_sibling)
       {
         if (cur_child->size_flags & size_flag_content_size_x)
         {
@@ -335,9 +332,9 @@ internal void ui_prepare_render(void)
         V2_f32 cur_top_left = {cur_widget->rectangle.x0, cur_widget->rectangle.y0};
 
         first_child = NULL;
-        for (Widget *cur_child = cur_widget->first_child;
-             cur_child != first_child;
-             cur_child = cur_child->next_sibling)
+        for (Widget *cur_child  = cur_widget->first_child;
+             cur_child         != first_child;
+             cur_child          = cur_child->next_sibling)
         {
           if (cur_child->size_flags & size_flag_to_be_sized_x)
           {
@@ -411,7 +408,7 @@ internal void ui_prepare_render(void)
         draw_call->pos =
         {
           cur_widget->rectangle.x0,
-          cur_widget->rectangle.y0
+          cur_widget->rectangle.y0,
         };
       }
 

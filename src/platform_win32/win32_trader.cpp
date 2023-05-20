@@ -715,28 +715,36 @@ WinMain(HINSTANCE instance,
       ui_initialize_frame();
       ui_set_background_color(1.0f, 1.0f, 1.0f, 1.0f);
 
-      /*
       ui_make_widget(widget_flag_draw_background,
-                     size_flag_text_content,
-                     string_literal_init_type("Centered text parent", utf8));
+                     size_flag_copy_parent_size_x | 
+                     size_flag_content_size_y,
+                     string_literal_init_type("centered text parent", utf8));
 
       ui_push_parent(win32_global_state.ui_context.current_parent->last_child);
 
       ui_make_widget(widget_flag_draw_background,
                      size_flag_fill_rest_of_axis_x,
-                     string_literal_init_type("Left", utf8));
-                     */
+                     string_literal_init_type("left", utf8));
 
-      local_persist u32 counter = 67;
-      counter++;
+      local_persist i32 counter = 0;
+      local_persist i32 adder = 1;
+      counter += adder;
 
-      String_Const_utf8 copy_string = {text_to_render.str, (counter >> 0) % (text_to_render.size + 1)};
+      if (counter >=  text_to_render.size)
+      {
+        adder = -1;
+      }
+      else if (counter <= 0)
+      {
+        adder = 1;
+      }
+
+      String_Const_utf8 copy_string = {text_to_render.str, (((u32) counter) >> 0) % (text_to_render.size + 1)};
       ui_do_text(copy_string);
 
-      /*
-      AMAI_MakeWidget(ui, AMAI_UI_WidgetFlag_DrawBackground,
-                      AMAI_UI_SizeFlag_FillRestOfAxis_X, "Right", 5);
-                      */
+      ui_make_widget(widget_flag_draw_background,
+                     size_flag_fill_rest_of_axis_x,
+                     string_literal_init_type("right", utf8));
 
       ui_pop_parent();
 

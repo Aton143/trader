@@ -75,7 +75,8 @@ internal void ui_pop_parent(void)
   }
 }
 
-internal void ui_do_text(String_Const_utf8 string)
+// TODO(antonio): consider what to do for format and string
+internal void ui_do_string(String_Const_utf8 string)
 {
   UI_Context *ui = ui_get_context();
   Widget *last_parent = ui->current_parent;
@@ -96,8 +97,43 @@ internal void ui_do_text(String_Const_utf8 string)
   copy_string.size = string.size + 1;
 
   ui_make_widget(widget_flag_draw_text,
+                 size_flag_text_content,
+                 copy_string);
+
+  ui_pop_parent();
+  ui_push_parent(last_parent);
+}
+
+internal void ui_do_formatted_string(char *format, ...)
+{
+  UI_Context *ui = ui_get_context();
+
+  Widget *last_parent = ui->current_parent;
+
+  ui_make_widget(widget_flag_draw_background,
+                 size_flag_text_content,
+                 string_literal_init_type("Text parent", utf8));
+
+  Widget *text_parent = ui->current_parent->last_child;
+  ui_push_parent(text_parent);
+
+  va_list args;
+  va_start(args, format);
+
+  // NOTE(antonio): string pool gets cleared out every frame
+  // NOTE(antonio): speculative "sprintf'ing"
+  String_Const_utf8 sprinted_text;
+
+  char *string_start = (char *) (ui->string_pool->start + ui->string_pool->used);
+  sprinted_text.size = stbsp_vsnprintf(string_start, 512, format, args);
+  sprinted_text.str  = (utf8 *) string_start;
+
+  arena_push(ui->string_pool, sprinted_text.size + 1);
+  va_end(args);
+
+  ui_make_widget(widget_flag_draw_text,
               size_flag_text_content,
-              copy_string);
+              sprinted_text);
 
   ui_pop_parent();
   ui_push_parent(last_parent);
@@ -172,19 +208,27 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
            (string.str[string_index] != '\0') && (string_index < string.size);
            ++string_index)
       {
-        stbtt_packedchar *cur_packed_char = packed_char_start + (string.str[string_index] - starting_code_point);
-        f32 cur_char_height = (f32) (cur_packed_char->yoff2 - cur_packed_char->yoff);
-        // f32 cur_char_width  = (f32) (cur_packed_char->xoff2 - cur_packed_char->xoff);
-
-        content_height  =  max(content_height, cur_char_height);
-        content_width  += (/*cur_char_width + */ cur_packed_char->xadvance);
-
-        if (string_index < string.size - 1)
+        // TODO(antonio): deal with new lines more gracefully
+        if (is_newline(string.str[string_index])) 
         {
-          content_width += font_scale *
-                           stbtt_GetCodepointKernAdvance(&render->atlas->font_info,
-                                                         string.str[string_index],
-                                                         string.str[string_index + 1]);
+          continue;
+        }
+        else
+        {
+          stbtt_packedchar *cur_packed_char = packed_char_start + (string.str[string_index] - starting_code_point);
+          f32 cur_char_height = (f32) (cur_packed_char->yoff2 - cur_packed_char->yoff);
+          // f32 cur_char_width  = (f32) (cur_packed_char->xoff2 - cur_packed_char->xoff);
+
+          content_height  =  max(content_height, cur_char_height);
+          content_width  += (/*cur_char_width + */ cur_packed_char->xadvance);
+
+          if (string_index < string.size - 1)
+          {
+            content_width += font_scale *
+              stbtt_GetCodepointKernAdvance(&render->atlas->font_info,
+                                            string.str[string_index],
+                                            string.str[string_index + 1]);
+          }
         }
       }
 

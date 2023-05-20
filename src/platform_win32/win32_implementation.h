@@ -993,44 +993,52 @@ internal void render_draw_text(f32 *baseline_x, f32 *baseline_y, utf8 *format, .
        (sprinted_text.str[text_index] != '\0') && (text_index < sprinted_text.size);
        ++text_index)
   {
-    Instance_Buffer_Element *cur_element     = render_elements  +  text_index;
-    stbtt_packedchar        *cur_packed_char = atlas->char_data + (sprinted_text.str[text_index] - starting_code_point);
-
-    cur_element->pos = 
+    // TODO(antonio): deal with new lines more gracefully
+    if (is_newline(sprinted_text.str[text_index]))
     {
-      cur_x + cur_packed_char->xoff,
-      cur_y + cur_packed_char->yoff,
-      1.0f
-    };
-
-    cur_element->size = 
-    {
-      0.0f,
-      0.0f,
-      (f32) (cur_packed_char->xoff2 - cur_packed_char->xoff),
-      (f32) (cur_packed_char->yoff2 - cur_packed_char->yoff)
-    };
-
-    cur_element->uv = 
-    {
-      (f32) cur_packed_char->x0,
-      (f32) cur_packed_char->y0,
-      (f32) cur_packed_char->x1,
-      (f32) cur_packed_char->y1,
-    };
-
-    cur_element->color = {1.0f, 1.0f, 1.0f, 1.0f};
-
-    f32 kern_advance = 0.0f;
-    if (text_index < (sprinted_text.size - 1))
-    {
-      kern_advance = font_scale *
-                     stbtt_GetCodepointKernAdvance(&atlas->font_info,
-                                                   sprinted_text.str[text_index],
-                                                   sprinted_text.str[text_index + 1]);
+      continue;
     }
+    else
+    {
+      Instance_Buffer_Element *cur_element     = render_elements  +  text_index;
+      stbtt_packedchar        *cur_packed_char = atlas->char_data + (sprinted_text.str[text_index] - starting_code_point);
 
-    cur_x += kern_advance + cur_packed_char->xadvance;
+      cur_element->pos = 
+      {
+        cur_x + cur_packed_char->xoff,
+        cur_y + cur_packed_char->yoff,
+        1.0f
+      };
+
+      cur_element->size = 
+      {
+        0.0f,
+        0.0f,
+        (f32) (cur_packed_char->xoff2 - cur_packed_char->xoff),
+        (f32) (cur_packed_char->yoff2 - cur_packed_char->yoff)
+      };
+
+      cur_element->uv = 
+      {
+        (f32) cur_packed_char->x0,
+        (f32) cur_packed_char->y0,
+        (f32) cur_packed_char->x1,
+        (f32) cur_packed_char->y1,
+      };
+
+      cur_element->color = {1.0f, 1.0f, 1.0f, 1.0f};
+
+      f32 kern_advance = 0.0f;
+      if (text_index < (sprinted_text.size - 1))
+      {
+        kern_advance = font_scale *
+          stbtt_GetCodepointKernAdvance(&atlas->font_info,
+                                        sprinted_text.str[text_index],
+                                        sprinted_text.str[text_index + 1]);
+      }
+
+      cur_x += kern_advance + cur_packed_char->xadvance;
+    }
   }
 
   *baseline_x = cur_x;

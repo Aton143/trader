@@ -726,11 +726,13 @@ WinMain(HINSTANCE instance,
                      size_flag_fill_rest_of_axis_x,
                      string_literal_init_type("left", utf8));
 
+      /*
       local_persist i32 counter = 0;
       local_persist i32 adder = 1;
+
       counter += adder;
 
-      if (counter >=  text_to_render.size)
+      if (counter >= text_to_render.size)
       {
         adder = -1;
       }
@@ -741,6 +743,11 @@ WinMain(HINSTANCE instance,
 
       String_Const_utf8 copy_string = {text_to_render.str, (((u32) counter) >> 0) % (text_to_render.size + 1)};
       ui_do_text(copy_string);
+      */
+
+      local_persist u32 counter = 0;
+      ui_do_formatted_string("Current frame index: %d\n", counter++);
+
 
       ui_make_widget(widget_flag_draw_background,
                      size_flag_fill_rest_of_axis_x,

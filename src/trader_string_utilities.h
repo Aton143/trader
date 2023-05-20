@@ -1,6 +1,8 @@
 #ifndef TRADER_STRING_H
 #include <wchar.h>
 
+internal b32 is_newline(char c);
+
 internal u64 c_string_length(char *string);
 internal u64 c_string_length(char *string, u64 max_length);
 
@@ -15,6 +17,13 @@ internal String_Const_utf16 string_const_utf16(utf16 *string);
 internal u64 base64_encode(u8 *out_buffer, u8 *data, u64 data_length);
 
 // Implementation
+internal b32 is_newline(char c)
+{
+  b32 result = ((c == '\r') || 
+                (c == '\n'));
+  return(result);
+}
+
 internal u64 c_string_length(char *string)
 {
   u64 result = 0;

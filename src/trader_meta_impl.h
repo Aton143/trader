@@ -82,7 +82,7 @@ internal void meta_collate_timing_records(void)
     if (cur_collated->file_name != NULL)
     {
       double high_precision_time_in_seconds =
-        ((double) cur_collated->high_precision_time) / ((double) meta_info.high_precision_timer_frequency);
+        platform_convert_high_precision_time_to_seconds(cur_collated->high_precision_time);
 
       sprinted_text.size = stbsp_snprintf(sprinted_text.str, (int) sprinted_text.cap,
                                          "%s (%lld): %lld cycles (%fs) - %d times\n",
@@ -92,7 +92,7 @@ internal void meta_collate_timing_records(void)
                                          high_precision_time_in_seconds,
                                          cur_collated->hit_count);
 
-      OutputDebugStringA(sprinted_text.str);
+      // OutputDebugStringA(sprinted_text.str);
 
       sprinted_text.size = 0;
     }

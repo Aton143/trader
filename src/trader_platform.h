@@ -25,5 +25,7 @@ internal String_Const_utf8 platform_get_file_name_from_path(String_Const_utf8 *p
 internal u64 platform_get_high_precision_timer(void);
 internal u64 platform_get_processor_time_stamp(void);
 
+internal double platform_convert_high_precision_time_to_seconds(u64 high_precision_time);
+
 #define TRADER_PLATFORM_H
 #endif

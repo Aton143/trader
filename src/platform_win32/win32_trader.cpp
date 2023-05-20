@@ -615,6 +615,10 @@ WinMain(HINSTANCE instance,
     global_running = true;
     global_window_resized = true;
 
+    u64 last_hpt = platform_get_high_precision_timer();
+    u64 last_pts = platform_get_processor_time_stamp();
+    double last_frame_time = platform_convert_high_precision_time_to_seconds(last_hpt);
+
     String_Const_utf8 text_to_render = string_literal_init_type("abcdefghijklmnopqrstuvwxyz"
                                                                 "ABCDEFGHIJKLMNOPQRSTUVWXYZ "
                                                                 "1234567890"
@@ -715,6 +719,7 @@ WinMain(HINSTANCE instance,
       ui_initialize_frame();
       ui_set_background_color(1.0f, 1.0f, 1.0f, 1.0f);
 
+      /*
       ui_make_widget(widget_flag_draw_background,
                      size_flag_copy_parent_size_x | 
                      size_flag_content_size_y,
@@ -726,7 +731,6 @@ WinMain(HINSTANCE instance,
                      size_flag_fill_rest_of_axis_x,
                      string_literal_init_type("left", utf8));
 
-      /*
       local_persist i32 counter = 0;
       local_persist i32 adder = 1;
 
@@ -745,15 +749,15 @@ WinMain(HINSTANCE instance,
       ui_do_text(copy_string);
       */
 
-      local_persist u32 counter = 0;
-      ui_do_formatted_string("Current frame index: %d\n", counter++);
+      ui_do_formatted_string("Last frame time: %10.6fs", last_frame_time);
 
-
+      /*
       ui_make_widget(widget_flag_draw_background,
                      size_flag_fill_rest_of_axis_x,
                      string_literal_init_type("right", utf8));
 
       ui_pop_parent();
+      */
 
       ui_prepare_render();
 
@@ -845,6 +849,16 @@ WinMain(HINSTANCE instance,
       meta_collate_timing_records();
 
       swap_chain->Present(1, 0);
+
+      {
+        u64 cur_hpt = platform_get_high_precision_timer();
+        u64 cur_pts = platform_get_processor_time_stamp();
+
+        last_frame_time = platform_convert_high_precision_time_to_seconds(cur_hpt - last_hpt);
+
+        last_hpt = cur_hpt;
+        last_pts = cur_pts;
+      }
     }
   }
 

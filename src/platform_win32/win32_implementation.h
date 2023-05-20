@@ -1061,5 +1061,11 @@ internal u64 platform_get_high_precision_timer(void)
   return(result);
 }
 
+internal double platform_convert_high_precision_time_to_seconds(u64 hpt)
+{
+  double result = ((double) hpt) / ((double) meta_info.high_precision_timer_frequency);
+  return(result);
+}
+
 #define WIN32_IMPLEMENTATION_H
 #endif

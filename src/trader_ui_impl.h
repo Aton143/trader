@@ -131,6 +131,8 @@ internal void ui_do_formatted_string(char *format, ...)
   arena_push(ui->string_pool, sprinted_text.size + 1);
   va_end(args);
 
+  OutputDebugStringA(string_start);
+
   ui_make_widget(widget_flag_draw_text,
               size_flag_text_content,
               sprinted_text);

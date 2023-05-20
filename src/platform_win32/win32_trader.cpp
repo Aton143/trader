@@ -727,12 +727,10 @@ WinMain(HINSTANCE instance,
                      string_literal_init_type("Left", utf8));
                      */
 
-      String_Const_utf8 string = string_literal_init_type("Hello, I'm a string", utf8);
-
-      local_persist u32 counter = 0;
+      local_persist u32 counter = 67;
       counter++;
 
-      String_Const_utf8 copy_string = {string.str, counter % (string.size + 1)};
+      String_Const_utf8 copy_string = {text_to_render.str, (counter >> 0) % (text_to_render.size + 1)};
       ui_do_text(copy_string);
 
       /*

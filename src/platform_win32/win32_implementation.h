@@ -990,7 +990,7 @@ internal void render_draw_text(f32 *baseline_x, f32 *baseline_y, utf8 *format, .
   f32 cur_y = *baseline_y;
 
   for (u64 text_index = 0;
-       text_index < sprinted_text.size;
+       (sprinted_text.str[text_index] != '\0') && (text_index < sprinted_text.size);
        ++text_index)
   {
     Instance_Buffer_Element *cur_element     = render_elements  +  text_index;

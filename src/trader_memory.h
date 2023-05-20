@@ -61,7 +61,6 @@ internal void *arena_push_zero(Arena *arena, u64 size);
 
 internal void *arena_append(Arena *arena, void *data, u64 size);
 #define append_struct(arena, element) arena_append(arena, element, sizeof(*element))
-#define append_string(arena, string)  arena_append(arena, (string).str, (string).size + 1)
 
 internal void arena_pop(Arena *arena, u64 size);
 #define arena_reset(arena) arena_pop((arena), (arena)->used)

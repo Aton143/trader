@@ -88,8 +88,12 @@ internal void ui_do_text(String_Const_utf8 string)
   ui_push_parent(text_parent);
 
   String_Const_utf8 copy_string;
-  copy_string.str  = (utf8 *) append_string(ui->string_pool, string);
-  copy_string.size = string.size;
+
+  // NOTE(antonio): string pool gets cleared out every frame
+  copy_string.str  = (utf8 *) arena_push(ui->string_pool, string.size + 1);
+  copy_memory_block(copy_string.str, string.str, string.size);
+
+  copy_string.size = string.size + 1;
 
   ui_make_widget(widget_flag_draw_text,
               size_flag_text_content,

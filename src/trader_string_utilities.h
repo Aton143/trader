@@ -3,6 +3,8 @@
 
 internal b32 is_newline(char c);
 
+internal b32 compare_string_utf8(String_Const_utf8 a, String_Const_utf8 b);
+
 internal u64 c_string_length(char *string);
 internal u64 c_string_length(char *string, u64 max_length);
 
@@ -21,6 +23,31 @@ internal b32 is_newline(char c)
 {
   b32 result = ((c == '\r') || 
                 (c == '\n'));
+  return(result);
+}
+
+internal b32 compare_string_utf8(String_Const_utf8 a, String_Const_utf8 b)
+{
+  b32 result = true;
+
+  if (a.size == b.size)
+  {
+    for (u64 index = 0;
+         index < a.size;
+         ++index)
+    {
+      if (a.str[index] != b.str[index])
+      {
+        result = false;
+        break;
+      }
+    }
+  }
+  else
+  {
+    result = false;
+  }
+
   return(result);
 }
 

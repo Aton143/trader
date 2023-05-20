@@ -77,6 +77,7 @@ unimplemented void arena_clear(Arena *arena);
 internal void *_arena_get_top(Arena *arena, u64 size);
 #define arena_get_top(arena, type) (type *) _arena_get_top((arena), sizeof(type))
 
+// NOTE(antonio): write is ahead of read
 struct Ring_Buffer
 {
   u8 *start;

@@ -253,10 +253,12 @@ internal void ui_prepare_render(void)
   Render_Context *render     = render_get_context();
 
   expect_message(render->render_data.used == 0, "expected no render data");
-
+  expect_message(compare_string_utf8(ui->allocated_widgets->string, string_literal_init_type("sentinel", utf8)),
+                 "expected first widget to be sentinel widget");
   {
     // NOTE(antonio): stack grows from high to low
     Arena *widget_stack = temp_arena;
+
     Widget **data = &ui->allocated_widgets;
     arena_append(widget_stack, data, sizeof(Widget *));
 
@@ -430,6 +432,15 @@ internal void ui_prepare_render(void)
     // NOTE(antonio): create draw calls in parent->child level traversal
     while (widget_queue.read != widget_queue.write)
     {
+      OutputDebugStringA("\n");
+      for (Widget **widget = (Widget **) widget_queue.read;
+           widget != (Widget **) widget_queue.write;
+           widget++)
+      {
+        OutputDebugStringA((char *) (*widget)->string.str);
+        OutputDebugStringA("\n");
+      }
+
       Widget *cur_widget = NULL;
       ring_buffer_pop_and_put_struct(&widget_queue, &cur_widget);
 
@@ -474,7 +485,7 @@ internal void ui_prepare_render(void)
            cur_child != first_child;
            cur_child = cur_child->next_sibling)
       {
-        ring_buffer_append(&widget_queue, &cur_child, sizeof(&cur_child));
+        ring_buffer_append(&widget_queue, &cur_child, sizeof(Widget *));
         first_child = cur_widget->first_child;
       }
     }

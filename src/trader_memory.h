@@ -1,5 +1,8 @@
 #ifndef TRADER_MEMORY_H
 
+// TODO(antonio): store_ptr/load_ptr versions
+// i.e. ring_buffer_append(..., &widget) caused issues in the past
+
 #if SHIP_MODE
 global_const void *global_memory_start_addr = NULL;
 #else

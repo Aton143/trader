@@ -60,6 +60,26 @@ internal void ui_pop_parent(void)
   }
 }
 
+internal void ui_do_text(String_Const_utf8 string)
+{
+  UI_Context *ui = ui_get_context();
+  Widget *last_parent = ui->current_parent;
+
+  ui_make_widget(widget_flag_draw_background,
+                 size_flag_text_content,
+                 string_literal_init_type("Text parent", utf8));
+
+  Widget *text_parent = ui->current_parent->last_child;
+  ui_push_parent(text_parent);
+
+  ui_make_widget(widget_flag_draw_text,
+              size_flag_text_content,
+              string);
+
+  ui_pop_parent();
+  ui_push_parent(last_parent);
+}
+
 internal UI_Key ui_make_key(String_Const_utf8 string)
 {
   UI_Key key = hash(string.str, string.size);

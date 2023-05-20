@@ -173,6 +173,15 @@ WinMain(HINSTANCE instance,
     push_array_zero(&global_arena, Widget, default_widget_count);
   win32_global_state.ui_context.widget_memory_size = sizeof(Widget) * default_widget_count;
 
+  // TODO(antonio): do I need to do back links?
+  Widget *free_widget_list = win32_global_state.ui_context.widget_memory;
+  for (u64 widget_index = 0;
+       widget_index < default_widget_count - 1;
+       ++widget_index)
+  {
+    free_widget_list[widget_index].next_sibling = &free_widget_list[widget_index + 1];
+  }
+
 
   HANDLE iocp_handle = INVALID_HANDLE_VALUE;
   {
@@ -701,9 +710,26 @@ WinMain(HINSTANCE instance,
       ui_initialize_frame();
       ui_set_background_color(1.0f, 1.0f, 1.0f, 1.0f);
 
+      /*
       ui_make_widget(widget_flag_draw_background,
                      size_flag_text_content,
                      string_literal_init_type("Centered text parent", utf8));
+
+      ui_push_parent(win32_global_state.ui_context.current_parent->last_child);
+
+      ui_make_widget(widget_flag_draw_background,
+                     size_flag_fill_rest_of_axis_x,
+                     string_literal_init_type("Left", utf8));
+                     */
+
+      ui_do_text(string_literal_init_type("Hello, I'm a string", utf8));
+      /*
+      AMAI_MakeWidget(ui, AMAI_UI_WidgetFlag_DrawBackground,
+                      AMAI_UI_SizeFlag_FillRestOfAxis_X, "Right", 5);
+                      */
+
+      ui_pop_parent();
+
 
       ui_prepare_render();
 

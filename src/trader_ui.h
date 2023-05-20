@@ -137,6 +137,8 @@ internal void ui_set_background_color(f32 r, f32 g, f32 b, f32 a);
 internal void ui_push_parent(Widget *widget);
 internal void ui_pop_parent(void);
 
+internal void ui_do_text(String_Const_utf8 string);
+
 internal UI_Key ui_make_key(String_Const_utf8 string);
 internal b32 ui_is_key_equal(UI_Key a, UI_Key b);
 

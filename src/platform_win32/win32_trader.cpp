@@ -169,20 +169,6 @@ WinMain(HINSTANCE instance,
   }
   global_asset_pool.free_list_head = asset_pool_start;
 
-  win32_global_state.ui_context.widget_memory =
-    push_array_zero(&global_arena, Widget, default_widget_count);
-  win32_global_state.ui_context.widget_memory_size = sizeof(Widget) * default_widget_count;
-
-  // TODO(antonio): do I need to do back links?
-  Widget *free_widget_list = win32_global_state.ui_context.widget_memory;
-  for (u64 widget_index = 0;
-       widget_index < default_widget_count - 1;
-       ++widget_index)
-  {
-    free_widget_list[widget_index].next_sibling = &free_widget_list[widget_index + 1];
-  }
-
-
   HANDLE iocp_handle = INVALID_HANDLE_VALUE;
   {
     // TODO(antonio): use completion key to distinguish handles?
@@ -218,6 +204,25 @@ WinMain(HINSTANCE instance,
                           512, 512);
 
   Texture_Atlas *atlas = win32_global_state.render_context.atlas;
+
+  // NOTE(antonio): ui init
+  win32_global_state.ui_context.widget_memory =
+    push_array_zero(&global_arena, Widget, default_widget_count);
+  win32_global_state.ui_context.widget_memory_size = sizeof(Widget) * default_widget_count;
+
+  Arena ui_string_pool = arena_alloc(default_string_pool_size, 1, NULL);
+  win32_global_state.ui_context.string_pool = &ui_string_pool;
+
+  // TODO(antonio): do I need to do back links?
+  Widget *free_widget_list = win32_global_state.ui_context.widget_memory;
+  for (u64 widget_index = 0;
+       widget_index < default_widget_count - 1;
+       ++widget_index)
+  {
+    free_widget_list[widget_index].next_sibling = &free_widget_list[widget_index + 1];
+  }
+  ui_set_default_text_height(default_font_heights[0]);
+
   {
     WNDCLASSEXW window_class = {};
 
@@ -722,14 +727,20 @@ WinMain(HINSTANCE instance,
                      string_literal_init_type("Left", utf8));
                      */
 
-      ui_do_text(string_literal_init_type("Hello, I'm a string", utf8));
+      String_Const_utf8 string = string_literal_init_type("Hello, I'm a string", utf8);
+
+      local_persist u32 counter = 0;
+      counter++;
+
+      String_Const_utf8 copy_string = {string.str, counter % (string.size + 1)};
+      ui_do_text(copy_string);
+
       /*
       AMAI_MakeWidget(ui, AMAI_UI_WidgetFlag_DrawBackground,
                       AMAI_UI_SizeFlag_FillRestOfAxis_X, "Right", 5);
                       */
 
       ui_pop_parent();
-
 
       ui_prepare_render();
 

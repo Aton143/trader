@@ -44,7 +44,6 @@ struct Temp_Arena
 
 internal Arena arena_alloc(u64 size, u64 alignment, void *start);
 unimplemented void arena_release(Arena *arena);
-internal void arena_reset(Arena *arena);
 
 internal Arena *get_temp_arena(void);
 internal void   set_temp_arena_wait(u64 wait);
@@ -62,9 +61,11 @@ internal void *arena_push_zero(Arena *arena, u64 size);
 
 internal void *arena_append(Arena *arena, void *data, u64 size);
 #define append_struct(arena, element) arena_append(arena, element, sizeof(*element))
+#define append_string(arena, string)  arena_append(arena, (string).str, (string).size + 1)
 
 internal void arena_pop(Arena *arena, u64 size);
 #define arena_reset(arena) arena_pop((arena), (arena)->used)
+#define arena_reset_zero(arena) zero_memory_block((arena)->start, (arena)->used); arena_pop((arena), (arena)->used)
 
 #define pop_array(arena, type, count) arena_pop((arena), sizeof(type)*(count))
 #define pop_struct(arena, type) arena_pop((arena), sizeof(type))

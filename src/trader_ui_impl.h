@@ -4,6 +4,7 @@ internal void ui_initialize_frame(void)
 {
   UI_Context *ui = ui_get_context();
 
+  arena_reset_zero(ui->string_pool);
   zero_memory_block(ui->widget_memory, sizeof(Widget) * ui->current_widget_count);
 
   Widget *current_free;
@@ -20,17 +21,31 @@ internal void ui_initialize_frame(void)
   sentinel_widget->rectangle = render_get_client_rect();
   sentinel_widget->string    = string_literal_init_type("sentinel", utf8);
 
-  ui->text_gutter_dim       = default_text_gutter_dim;
-  ui->text_color            = default_text_color;
-  ui->background_color      = default_background_color;
-  ui->max_widget_count      = (u32) (ui->widget_memory_size / sizeof(Widget));
-  ui->current_widget_count  = 1;
+  ui->text_height            = ui->default_text_height;
+  ui->text_gutter_dim        = default_text_gutter_dim;
+  ui->text_color             = default_text_color;
+  ui->background_color       = default_background_color;
 
-  ui->widget_free_list_head = ui->widget_memory + 1;
-  ui->allocated_widgets     = sentinel_widget;
-  ui->current_parent        = sentinel_widget;
+  ui->max_widget_count       = (u32) (ui->widget_memory_size / sizeof(Widget));
+  ui->current_widget_count   = 1;
 
-  ui->drag_delta            = {0, 0};
+  ui->widget_free_list_head  = ui->widget_memory + 1;
+  ui->allocated_widgets      = sentinel_widget;
+  ui->current_parent         = sentinel_widget;
+
+  ui->drag_delta             = {0, 0};
+}
+
+internal void ui_set_default_text_height(f32 height)
+{
+  UI_Context *ui          = ui_get_context();
+  ui->default_text_height = height;
+}
+
+internal void ui_set_text_height(f32 height)
+{
+  UI_Context *ui  = ui_get_context();
+  ui->text_height = height;
 }
 
 internal void ui_set_text_color(f32 r, f32 g, f32 b, f32 a)
@@ -72,9 +87,13 @@ internal void ui_do_text(String_Const_utf8 string)
   Widget *text_parent = ui->current_parent->last_child;
   ui_push_parent(text_parent);
 
+  String_Const_utf8 copy_string;
+  copy_string.str  = (utf8 *) append_string(ui->string_pool, string);
+  copy_string.size = string.size;
+
   ui_make_widget(widget_flag_draw_text,
               size_flag_text_content,
-              string);
+              copy_string);
 
   ui_pop_parent();
   ui_push_parent(last_parent);
@@ -397,7 +416,6 @@ internal void ui_prepare_render(void)
         f32 x        = cur_widget->rectangle.x0;
         f32 baseline = ui->text_height;
 
-        // NOTE(antonio): this may have performance implications
         render_draw_text(&x, &baseline, cur_widget->string.str);
       }
 

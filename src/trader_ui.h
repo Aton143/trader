@@ -90,6 +90,7 @@ global_const Rect_i16 default_text_gutter_dim  = {10, 5};
 global_const RGBA_f32 default_text_color       = rgba(1.0f, 1.0f, 1.0f, 1.0);
 global_const RGBA_f32 default_background_color = rgba(1.0f, 1.0f, 1.0f, 1.0);
 global_const u64      default_widget_count     = 4096;
+global_const u64      default_string_pool_size = kb(16);
 
 struct UI_Context
 {
@@ -104,6 +105,8 @@ struct UI_Context
   Widget   *allocated_widgets;
   Widget   *widget_free_list_head;
 
+  Arena    *string_pool;
+
   u32       max_widget_count;
   u32       current_widget_count;
 
@@ -111,7 +114,9 @@ struct UI_Context
 
   V2_f32    drag_delta;
 
+  f32       default_text_height;
   f32       text_height;
+
   RGBA_f32  text_color;
   RGBA_f32  background_color;
 
@@ -131,6 +136,7 @@ internal UI_Context *ui_get_context(void);
 internal void ui_initialize_frame(void);
 internal void ui_prepare_render(void);
 
+internal void ui_set_text_height(f32 height);
 internal void ui_set_text_color(f32 r, f32 g, f32 b, f32 a);
 internal void ui_set_background_color(f32 r, f32 g, f32 b, f32 a);
 

@@ -10,7 +10,6 @@
   macro_do(              \
    if (!(c))             \
    {                     \
-     expect_break(c);    \
      if (*m == '\0')     \
      {                   \
        meta_log((utf8 *) "%s(%s): %s check failed\n",             \
@@ -21,6 +20,7 @@
        meta_log((utf8 *) "%s(%s): %s check failed - %s\n",           \
                 __FUNCTION__, stringify(__LINE__), stringify(c), m); \
      }                   \
+     expect_break(c);    \
    })                    \
 
 #define expect_message_always(m) expect_break(m)

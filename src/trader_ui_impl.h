@@ -12,11 +12,14 @@ internal void ui_initialize_frame(void)
        widget_index < ui->current_widget_count;
        ++widget_index)
   {
-    current_free = &ui->widget_memory[widget_index];
+    current_free               = &ui->widget_memory[widget_index];
     current_free->next_sibling = &ui->widget_memory[widget_index + 1];
+    current_free->string       = string_literal_init_type("you reset this one", utf8);
   }
 
   Widget *sentinel_widget    = ui->widget_memory;
+
+  zero_struct(sentinel_widget);
 
   sentinel_widget->rectangle = render_get_client_rect();
   sentinel_widget->string    = string_literal_init_type("sentinel", utf8);
@@ -83,7 +86,7 @@ internal void ui_do_string(String_Const_utf8 string)
 
   ui_make_widget(widget_flag_draw_background,
                  size_flag_text_content,
-                 string_literal_init_type("Text parent", utf8));
+                 string_literal_init_type("String parent", utf8));
 
   Widget *text_parent = ui->current_parent->last_child;
   ui_push_parent(text_parent);
@@ -461,7 +464,7 @@ internal void ui_prepare_render(void)
       if (cur_widget->widget_flags & widget_flag_draw_text)
       {
         f32 x        = cur_widget->rectangle.x0;
-        f32 baseline = ui->text_height;
+        f32 baseline = cur_widget->rectangle.y0 + ui->text_height;
 
         render_draw_text(&x, &baseline, cur_widget->string.str);
       }

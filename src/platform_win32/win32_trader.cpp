@@ -220,6 +220,7 @@ WinMain(HINSTANCE instance,
        ++widget_index)
   {
     free_widget_list[widget_index].next_sibling = &free_widget_list[widget_index + 1];
+    free_widget_list[widget_index].string       = string_literal_init_type("no widgets here, buddy :)", utf8);
   }
   ui_set_default_text_height(default_font_heights[0]);
 
@@ -750,6 +751,8 @@ WinMain(HINSTANCE instance,
       */
 
       ui_do_formatted_string("Last frame time: %10.6fs", last_frame_time);
+
+      ui_do_string(text_to_render);
 
       /*
       ui_make_widget(widget_flag_draw_background,

@@ -133,6 +133,8 @@ struct UI_Context
 #include "trader_render.h"
 
 internal UI_Context *ui_get_context(void);
+internal Widget     *ui_get_sentinel(void);
+
 internal void ui_initialize_frame(void);
 internal void ui_prepare_render(void);
 

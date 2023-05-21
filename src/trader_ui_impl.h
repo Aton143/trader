@@ -1,5 +1,12 @@
 #if !defined(TRADER_UI_IMPL_H)
 
+internal Widget *ui_get_sentinel(void)
+{
+  UI_Context *ui       = ui_get_context();
+  Widget     *sentinel = ui->allocated_widgets;
+  return(sentinel);
+}
+
 internal void ui_initialize_frame(void)
 {
   UI_Context *ui = ui_get_context();
@@ -134,8 +141,6 @@ internal void ui_do_formatted_string(char *format, ...)
   arena_push(ui->string_pool, sprinted_text.size + 1);
   va_end(args);
 
-  OutputDebugStringA(string_start);
-
   ui_make_widget(widget_flag_draw_text,
               size_flag_text_content,
               sprinted_text);
@@ -252,6 +257,8 @@ internal void ui_prepare_render(void)
   UI_Context     *ui         = ui_get_context();
   Render_Context *render     = render_get_context();
 
+  u64 ring_buffer_size       = temp_arena->size / 2;
+
   expect_message(render->render_data.used == 0, "expected no render data");
   expect_message(compare_string_utf8(ui->allocated_widgets->string, string_literal_init_type("sentinel", utf8)),
                  "expected first widget to be sentinel widget");
@@ -262,7 +269,7 @@ internal void ui_prepare_render(void)
     Widget **data = &ui->allocated_widgets;
     arena_append(widget_stack, data, sizeof(Widget *));
 
-    // NOTE(antonio): THIS HAS TO BE A STACK OF POINTERS
+    // NOTE(antonio): first-child biased loop
     Widget **stack_top = NULL;
     Widget *cur_widget = NULL;
     while ((stack_top = arena_get_top(widget_stack, Widget *)))
@@ -308,7 +315,8 @@ internal void ui_prepare_render(void)
       {
         if (parent && (parent->size_flags & size_flag_content_size_y))
         {
-          parent->computed_size_in_pixels.y += cur_widget->computed_size_in_pixels.y;
+          parent->computed_size_in_pixels.y = max(parent->computed_size_in_pixels.y,
+                                                  cur_widget->computed_size_in_pixels.y);
         }
       }
 
@@ -323,7 +331,6 @@ internal void ui_prepare_render(void)
     }
   }
 
-  u64 ring_buffer_size = temp_arena->size / 2;
   arena_reset_zero(temp_arena);
   {
     Ring_Buffer widget_queue = ring_buffer_make(temp_arena, structs_in_size(ring_buffer_size, Widget **));
@@ -337,6 +344,8 @@ internal void ui_prepare_render(void)
       ring_buffer_append(&widget_queue, &cur_child, sizeof(Widget *));
       first_child = ui->allocated_widgets->first_child;
     }
+
+    V2_f32 cur_top_left = rect_get_top_left(&ui_get_sentinel()->rectangle);
 
     // NOTE(antonio): resolve "implicit" sizes with current information, level-order 
     while (widget_queue.write != widget_queue.read)
@@ -379,10 +388,8 @@ internal void ui_prepare_render(void)
         first_child = cur_widget->first_child;
       }
 
-      // NOTE(antonio): already know the size
+      // NOTE(antonio): already know the size for those "to be sized"
       {
-        V2_f32 cur_top_left = {cur_widget->rectangle.x0, cur_widget->rectangle.y0};
-
         first_child = NULL;
         for (Widget *cur_child  = cur_widget->first_child;
              cur_child         != first_child;
@@ -402,7 +409,7 @@ internal void ui_prepare_render(void)
 
             // TODO(antonio): this could mess up text alignment
             cur_child->rectangle.x1 = cur_top_left.x + cur_child->computed_size_in_pixels.x;
-            cur_child->rectangle.x1 = cur_top_left.y + cur_child->computed_size_in_pixels.y;
+            cur_child->rectangle.y1 = cur_top_left.y + cur_child->computed_size_in_pixels.y;
           }
 
           cur_top_left.x += cur_child->computed_size_in_pixels.x;
@@ -415,6 +422,9 @@ internal void ui_prepare_render(void)
           }
         }
       }
+
+      cur_top_left.x  = 0.0f;
+      cur_top_left.y += cur_widget->computed_size_in_pixels.y;
     }
   }
 

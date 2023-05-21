@@ -750,8 +750,11 @@ WinMain(HINSTANCE instance,
       ui_do_text(copy_string);
       */
 
-      ui_do_formatted_string("Last frame time: %10.6fs", last_frame_time);
+      local_persist u64 frame_count = 0;
+      frame_count++;
 
+      ui_do_formatted_string("Last frame time: %10.6fs", last_frame_time);
+      ui_do_formatted_string("Frame count: %lld", frame_count);
       ui_do_string(text_to_render);
 
       /*

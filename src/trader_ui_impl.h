@@ -323,9 +323,10 @@ internal void ui_prepare_render(void)
     }
   }
 
-  arena_reset(temp_arena);
+  u64 ring_buffer_size = temp_arena->size / 2;
+  arena_reset_zero(temp_arena);
   {
-    Ring_Buffer widget_queue = ring_buffer_make(temp_arena, structs_in_size(temp_arena->size, Widget *));
+    Ring_Buffer widget_queue = ring_buffer_make(temp_arena, structs_in_size(ring_buffer_size, Widget **));
 
     // NOTE(antonio): don't care about the sentinel
     Widget *first_child = NULL;
@@ -417,9 +418,9 @@ internal void ui_prepare_render(void)
     }
   }
 
-  arena_reset(temp_arena);
+  arena_reset_zero(temp_arena);
   {
-    Ring_Buffer widget_queue = ring_buffer_make(temp_arena, structs_in_size(temp_arena->size, Widget *));
+    Ring_Buffer widget_queue = ring_buffer_make(temp_arena, structs_in_size(ring_buffer_size, Widget *));
     Widget *first_child = NULL;
     for (Widget *cur_child = ui->allocated_widgets->first_child;
          cur_child != first_child;
@@ -432,17 +433,8 @@ internal void ui_prepare_render(void)
     // NOTE(antonio): create draw calls in parent->child level traversal
     while (widget_queue.read != widget_queue.write)
     {
-      OutputDebugStringA("\n");
-      for (Widget **widget = (Widget **) widget_queue.read;
-           widget != (Widget **) widget_queue.write;
-           widget++)
-      {
-        OutputDebugStringA((char *) (*widget)->string.str);
-        OutputDebugStringA("\n");
-      }
-
       Widget *cur_widget = NULL;
-      ring_buffer_pop_and_put_struct(&widget_queue, &cur_widget);
+      ring_buffer_pop_and_put(&widget_queue, &cur_widget, sizeof(Widget **));
 
       if (cur_widget->widget_flags & widget_flag_draw_background)
       {
@@ -477,6 +469,7 @@ internal void ui_prepare_render(void)
         f32 x        = cur_widget->rectangle.x0;
         f32 baseline = cur_widget->rectangle.y0 + ui->text_height;
 
+        set_temp_arena_wait(1);
         render_draw_text(&x, &baseline, cur_widget->string.str);
       }
 

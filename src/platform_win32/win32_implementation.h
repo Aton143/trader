@@ -32,6 +32,8 @@ struct Global_Platform_State
   V2_f32         mouse;
   V2_f32         drag_delta;
 
+  f64            dt;
+
   HWND           window_handle;
 
   HANDLE         notify_iocp;

@@ -233,7 +233,7 @@ WinMain(HINSTANCE instance,
     window_class.hInstance     = instance;
     window_class.hIcon         = LoadIcon(0, IDI_APPLICATION);
     window_class.hCursor       = LoadCursor(0, IDC_ARROW);
-    window_class.lpszClassName = L"Windows Prototype";
+    window_class.lpszClassName = L"trader";
     window_class.hIconSm       = LoadIconW(0, (LPCWSTR) IDI_APPLICATION);
 
     ATOM register_class_result = RegisterClassExW(&window_class);
@@ -247,7 +247,7 @@ WinMain(HINSTANCE instance,
     win32_global_state.window_handle =
       CreateWindowExW(WS_EX_OVERLAPPEDWINDOW,
                       window_class.lpszClassName,
-                      L"Windows Prototype",
+                      L"trader",
                       WS_OVERLAPPEDWINDOW | WS_VISIBLE,
                       CW_USEDEFAULT, CW_USEDEFAULT,
                       CW_USEDEFAULT, CW_USEDEFAULT,
@@ -618,7 +618,9 @@ WinMain(HINSTANCE instance,
 
     u64 last_hpt = platform_get_high_precision_timer();
     u64 last_pts = platform_get_processor_time_stamp();
-    double last_frame_time = platform_convert_high_precision_time_to_seconds(last_hpt);
+
+    f64 last_frame_time           = platform_convert_high_precision_time_to_seconds(last_hpt);
+    u64 last_frame_time_in_cycles = 0;
 
     String_Const_utf8 text_to_render = string_literal_init_type("abcdefghijklmnopqrstuvwxyz"
                                                                 "ABCDEFGHIJKLMNOPQRSTUVWXYZ "
@@ -652,7 +654,10 @@ WinMain(HINSTANCE instance,
         result = device->CreateRenderTargetView(frame_buffer, NULL, &frame_buffer_view);
         expect(SUCCEEDED(result));
 
+        frame_buffer->Release();
+
         depth_stencil_texture = NULL;
+        safe_release(depth_stencil_texture);
         {
           D3D11_TEXTURE2D_DESC depth_stencil_texture_desc = {};
 
@@ -675,6 +680,7 @@ WinMain(HINSTANCE instance,
         }
 
         depth_stencil_view = NULL;
+        safe_release(depth_stencil_view);
         {
           D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc = {};
 
@@ -688,82 +694,48 @@ WinMain(HINSTANCE instance,
           expect(SUCCEEDED(result));
         } 
 
-        frame_buffer->Release();
       }
 
       platform_collect_notifications();
 
-      /*
-      V2_f32 text_pos_start, text_pos_end;
-      text_pos_start = text_pos_end =  {0.0f, 24.0f};
-
-      render_draw_text(&text_pos_end.x, &text_pos_end.y, text_to_render.str);
-
-      Instance_Buffer_Element *element = push_struct(&win32_global_state.render_context.render_data,
-                                                     Instance_Buffer_Element);
-      element->size =
-      {
-        0.0f, 0.0f,
-        1024.0f, 30.0f,
-      };
-      element->color = {1.0f, 0.0f, 0.0f, 1.0f};
-      element->pos   = {0.0f, 0.0f, 0.5f};
-      element->uv    = 
-      {
-        (f32) win32_global_state.render_context.atlas->solid_color_rect.x0,
-        (f32) win32_global_state.render_context.atlas->solid_color_rect.y0,
-        (f32) win32_global_state.render_context.atlas->solid_color_rect.x1,
-        (f32) win32_global_state.render_context.atlas->solid_color_rect.y1,
-      };
-      */
-
       ui_initialize_frame();
       ui_set_background_color(1.0f, 1.0f, 1.0f, 1.0f);
-
-      /*
-      ui_make_widget(widget_flag_draw_background,
-                     size_flag_copy_parent_size_x | 
-                     size_flag_content_size_y,
-                     string_literal_init_type("centered text parent", utf8));
-
-      ui_push_parent(win32_global_state.ui_context.current_parent->last_child);
-
-      ui_make_widget(widget_flag_draw_background,
-                     size_flag_fill_rest_of_axis_x,
-                     string_literal_init_type("left", utf8));
-
-      local_persist i32 counter = 0;
-      local_persist i32 adder = 1;
-
-      counter += adder;
-
-      if (counter >= text_to_render.size)
-      {
-        adder = -1;
-      }
-      else if (counter <= 0)
-      {
-        adder = 1;
-      }
-
-      String_Const_utf8 copy_string = {text_to_render.str, (((u32) counter) >> 0) % (text_to_render.size + 1)};
-      ui_do_text(copy_string);
-      */
 
       local_persist u64 frame_count = 0;
       frame_count++;
 
-      ui_do_formatted_string("Last frame time: %10.6fs", last_frame_time);
+      ui_do_formatted_string("Last frame time: %.6fs", last_frame_time);
+      ui_do_formatted_string("Last frame time in cycles: %lld", last_frame_time_in_cycles);
       ui_do_formatted_string("Frame count: %lld", frame_count);
       ui_do_string(text_to_render);
 
-      /*
-      ui_make_widget(widget_flag_draw_background,
-                     size_flag_fill_rest_of_axis_x,
-                     string_literal_init_type("right", utf8));
+      local_persist b32 wait_after_first_frame = false;
+      local_persist f32 time_to_wait = 2.0f;
+      local_persist f32 time_on_screen = 0.0f;
 
-      ui_pop_parent();
-      */
+      if (wait_after_first_frame)
+      {
+        if (time_to_wait > 0.0f) 
+        {
+          time_to_wait -= (f32) last_frame_time;
+        }
+
+        if (time_to_wait < 0.0f)
+        {
+          time_to_wait = 0.0f;
+          time_on_screen = 4.0f;
+        }
+
+        if (time_on_screen > 0.0f)
+        {
+          ui_do_formatted_string("This will last for another %5.2fs", time_on_screen);
+          time_on_screen -= (f32) last_frame_time;
+        }
+      }
+      else
+      {
+        wait_after_first_frame = true;
+      }
 
       ui_prepare_render();
 
@@ -857,10 +829,11 @@ WinMain(HINSTANCE instance,
       swap_chain->Present(1, 0);
 
       {
-        u64 cur_hpt = platform_get_high_precision_timer();
         u64 cur_pts = platform_get_processor_time_stamp();
+        u64 cur_hpt = platform_get_high_precision_timer();
 
-        last_frame_time = platform_convert_high_precision_time_to_seconds(cur_hpt - last_hpt);
+        last_frame_time           = platform_convert_high_precision_time_to_seconds(cur_hpt - last_hpt);
+        last_frame_time_in_cycles = cur_pts - last_pts;
 
         last_hpt = cur_hpt;
         last_pts = cur_pts;

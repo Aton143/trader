@@ -12,3 +12,11 @@ The Immediate Mode GUI library works to write text with support for left-, cente
 - [ ] Immediate Mode GUI with real-time data visualization and manipulation
 - [ ] Multi-threaded architecture
 - [ ] Embedded Python Interpreter to conduct trades
+
+## To-Do
+- [ ] Draw backgrounds
+- [ ] User-created UI "workspace"
+- [ ] JSON and HTTP response parsing
+- [ ] Move towards "memory-usage-announcing functions"
+- [ ] Complete a WebSocket handshake and read data
+- [ ] Visualize the tick data

@@ -4,6 +4,7 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #define _CRT_NO_VA_START_VALIDATION
 #include <windows.h>
+#include <windowsx.h>
 
 #include <memoryapi.h>
 #include <sysinfoapi.h>
@@ -88,13 +89,66 @@ win32_window_procedure(HWND window_handle, UINT message,
 {
   LRESULT result = 0;
 
+  UI_Context *ui = ui_get_context();
   switch (message)
   {
+
+    case WM_MOUSEMOVE:
+    case WM_NCMOUSEMOVE: // NOTE(antonio): NC - non-client
+    {
+      Mouse_Area cur_mouse_area = (message == WM_MOUSEMOVE) ? mouse_area_in_client : mouse_area_other;
+      if (ui->mouse_area != cur_mouse_area)
+      {
+        b32 tracking_result = false;
+        if (ui->mouse_area != mouse_area_out_client)
+        {
+          TRACKMOUSEEVENT cancel_previous_tracking = {sizeof(cancel_previous_tracking), TME_CANCEL, window_handle, 0};
+
+          tracking_result = TrackMouseEvent(&cancel_previous_tracking);
+          expect_message(tracking_result, "expected to cancel previous tracking");
+        }
+
+        DWORD new_tracking_flags = (cur_mouse_area == mouse_area_other) ? (TME_LEAVE | TME_NONCLIENT) : (TME_LEAVE);
+        TRACKMOUSEEVENT new_tracking = {sizeof(new_tracking), new_tracking_flags, window_handle, 0};
+
+        tracking_result = TrackMouseEvent(&new_tracking);
+        expect_message(tracking_result, "expected to begin new tracking");
+
+        ui->mouse_area = cur_mouse_area;
+      }
+
+      POINT mouse_pos =
+      {
+        (LONG) GET_X_LPARAM(lparam),
+        (LONG) GET_Y_LPARAM(lparam)
+      };
+
+      // WM_NCMOUSEMOVE are provided in absolute coordinates.
+      if ((message == WM_NCMOUSEMOVE) && (ScreenToClient(window_handle, &mouse_pos) == FALSE))
+      {
+        break;
+      }
+
+      ui->mouse_pos = 
+      {
+        (f32) mouse_pos.x,
+        (f32) mouse_pos.y
+      };
+    } break;
+
+    case WM_MOUSELEAVE:
+    case WM_NCMOUSELEAVE:
+    {
+      ui->mouse_pos = {max_f32, max_f32};
+      ui->mouse_area = mouse_area_out_client;
+    } break;
+
     case WM_KEYUP:
     case WM_KEYDOWN:
     case WM_SYSKEYUP:
     case WM_SYSKEYDOWN:
     {
+
       if (wparam == VK_ESCAPE)
       {
         global_running = false;
@@ -613,6 +667,8 @@ WinMain(HINSTANCE instance,
     ID3D11Texture2D        *depth_stencil_texture = NULL;
     ID3D11DepthStencilView *depth_stencil_view = NULL;
 
+    UI_Context *ui = &win32_global_state.ui_context;
+
     global_running = true;
     global_window_resized = true;
 
@@ -693,7 +749,6 @@ WinMain(HINSTANCE instance,
                                                   &depth_stencil_view);
           expect(SUCCEEDED(result));
         } 
-
       }
 
       platform_collect_notifications();
@@ -735,6 +790,22 @@ WinMain(HINSTANCE instance,
       else
       {
         wait_after_first_frame = true;
+      }
+
+
+      if (ui->mouse_area == mouse_area_out_client)
+      {
+        ui_do_string(string_literal_init_type("mouse is not in client", utf8));
+      }
+      else if (ui->mouse_area == mouse_area_in_client)
+      {
+        ui_do_string(string_literal_init_type("mouse is in client", utf8));
+        ui_do_formatted_string("Mouse position: (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
+      }
+      else
+      {
+        ui_do_string(string_literal_init_type("mouse is in client but not really, if you know what I mean", utf8));
+        ui_do_formatted_string("Mouse position: (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
       }
 
       ui_prepare_render();

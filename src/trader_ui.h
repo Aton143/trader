@@ -92,41 +92,52 @@ global_const RGBA_f32 default_background_color = rgba(1.0f, 1.0f, 1.0f, 1.0);
 global_const u64      default_widget_count     = 4096;
 global_const u64      default_string_pool_size = kb(16);
 
+typedef u32 Mouse_Area;
+enum
+{
+  mouse_area_out_client,
+  mouse_area_in_client,
+  mouse_area_other,
+  mouse_area_count
+};
+
 struct UI_Context
 {
-  UI_Key    hot_key;
-  UI_Key    active_key;
+  UI_Key      hot_key;
+  UI_Key      active_key;
 
-  Widget   *current_parent;
+  Widget     *current_parent;
 
-  Widget   *widget_memory;
-  u64       widget_memory_size;
+  Widget     *widget_memory;
+  u64         widget_memory_size;
 
-  Widget   *allocated_widgets;
-  Widget   *widget_free_list_head;
+  Widget     *allocated_widgets;
+  Widget     *widget_free_list_head;
 
-  Arena    *string_pool;
+  Arena      *string_pool;
 
-  u32       max_widget_count;
-  u32       current_widget_count;
+  u32         max_widget_count;
+  u32         current_widget_count;
 
-  Rect_i16  text_gutter_dim;
+  Rect_i16    text_gutter_dim;
 
-  V2_f32    drag_delta;
+  Mouse_Area  mouse_area;
+  V2_f32      mouse_pos;
+  V2_f32      drag_delta;
 
-  f32       default_text_height;
-  f32       text_height;
+  f32         default_text_height;
+  f32         text_height;
 
-  RGBA_f32  text_color;
-  RGBA_f32  background_color;
+  RGBA_f32    text_color;
+  RGBA_f32    background_color;
 
-  b8        clicked;
-  b8        double_clicked;
-  b8        right_clicked;
-  b8        pressed;
-  b8        released;
-  b8        dragging;
-  b8        hovering;
+  b8          clicked;
+  b8          double_clicked;
+  b8          right_clicked;
+  b8          pressed;
+  b8          released;
+  b8          dragging;
+  b8          hovering;
 };
 
 #include "trader_platform.h"

@@ -20,3 +20,15 @@ The Immediate Mode GUI library works to write text with support for left-, cente
 - [ ] Move towards "memory-usage-announcing functions"
 - [ ] Complete a WebSocket handshake and read data
 - [ ] Visualize the tick data
+
+## Special Thanks
+- [Casey Muratori](https://mollyrocket.com)
+- [Mārtiņš Možeiko](https://github.com/mmozeiko)
+- [d7samurai](https://github.com/d7samurai)
+- [Ryan Fleury](https://www.rfleury.com/)
+- [nothings](http://nothings.org/)
+- [Tom Forsyth](https://tomforsyth1000.github.io/blog.wiki.html)
+- [Omar Cornut](https://github.com/ocornut)
+- [Jonathan Blow](http://number-none.com/blow/)
+- [Kevin Moran](https://github.com/kevinmoran)
+- [Allen Webster](https://mr4th.com/)

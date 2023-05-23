@@ -92,7 +92,7 @@ win32_window_procedure(HWND window_handle, UINT message,
   UI_Context *ui = ui_get_context();
   switch (message)
   {
-
+    // TODO(antonio): when y ~= 0, mouse is registered as not in client
     case WM_MOUSEMOVE:
     case WM_NCMOUSEMOVE: // NOTE(antonio): NC - non-client
     {
@@ -143,6 +143,48 @@ win32_window_procedure(HWND window_handle, UINT message,
       ui->mouse_area = mouse_area_out_client;
     } break;
 
+    case WM_LBUTTONDOWN: case WM_LBUTTONDBLCLK:
+    case WM_RBUTTONDOWN: case WM_RBUTTONDBLCLK:
+    case WM_MBUTTONDOWN: case WM_MBUTTONDBLCLK:
+    case WM_XBUTTONDOWN: case WM_XBUTTONDBLCLK:
+    {
+      Mouse_Event mouse_event = mouse_event_none;
+      if ((message == WM_LBUTTONDOWN) || (message == WM_LBUTTONDBLCLK)) {mouse_event = mouse_event_lclick;}
+      if ((message == WM_RBUTTONDOWN) || (message == WM_RBUTTONDBLCLK)) {mouse_event = mouse_event_rclick;}
+      if ((message == WM_MBUTTONDOWN) || (message == WM_MBUTTONDBLCLK)) {mouse_event = mouse_event_mclick;}
+
+      ui->mouse_event |= mouse_event;
+
+      if ((ui->mouse_event == mouse_event_none) && (GetCapture == NULL))
+      {
+        SetCapture(window_handle);
+      }
+    } break;
+
+    case WM_LBUTTONUP:
+    case WM_RBUTTONUP:
+    case WM_MBUTTONUP:
+    case WM_XBUTTONUP:
+    {
+      Mouse_Event mouse_event_to_remove = mouse_event_none;
+      if (message == WM_LBUTTONUP) {mouse_event_to_remove = mouse_event_lclick;}
+      if (message == WM_RBUTTONUP) {mouse_event_to_remove = mouse_event_rclick;}
+      if (message == WM_MBUTTONUP) {mouse_event_to_remove = mouse_event_mclick;}
+
+      ui->mouse_event &= ~mouse_event_to_remove;
+
+      if ((ui->mouse_event == mouse_event_none) && (GetCapture() == window_handle))
+      {
+        ReleaseCapture();
+      }
+    }
+
+    case WM_SETFOCUS:  // NOTE(antonio): after the window has gained focus
+    case WM_KILLFOCUS: // NOTE(antonio): right *before* the window loses focus
+    {
+      win32_global_state.focus_event = (message == WM_SETFOCUS) ? focus_event_gain : focus_event_lose;
+    } break;
+
     case WM_KEYUP:
     case WM_KEYDOWN:
     case WM_SYSKEYUP:
@@ -166,10 +208,6 @@ win32_window_procedure(HWND window_handle, UINT message,
     case WM_CLOSE:
     {
       global_running = false;
-    } break;
-
-    case WM_LBUTTONDOWN:
-    {
     } break;
 
     default:
@@ -898,6 +936,9 @@ WinMain(HINSTANCE instance,
       meta_collate_timing_records();
 
       swap_chain->Present(1, 0);
+
+      // Post-frame
+      win32_global_state.focus_event = focus_event_none;
 
       {
         u64 cur_pts = platform_get_processor_time_stamp();

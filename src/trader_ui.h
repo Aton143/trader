@@ -95,10 +95,22 @@ global_const u64      default_string_pool_size = kb(16);
 typedef u32 Mouse_Area;
 enum
 {
+  mouse_area_none,
   mouse_area_out_client,
   mouse_area_in_client,
   mouse_area_other,
   mouse_area_count
+};
+
+typedef u32 Mouse_Event;
+enum
+{
+  mouse_event_none   = 0,
+  mouse_event_lclick = 1,
+  mouse_event_rclick = (1 << 1),
+  mouse_event_mclick = (1 << 2),
+
+  // TODO(antonio): other types?
 };
 
 struct UI_Context
@@ -122,6 +134,7 @@ struct UI_Context
   Rect_i16    text_gutter_dim;
 
   Mouse_Area  mouse_area;
+  Mouse_Event mouse_event;
   V2_f32      mouse_pos;
   V2_f32      drag_delta;
 

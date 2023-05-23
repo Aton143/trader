@@ -21,6 +21,17 @@ struct Render_Context
   Arena                render_data;
 };
 
+typedef u64 Focus_Event;
+enum
+{
+  focus_event_none,
+
+  focus_event_gain,
+  focus_event_lose,
+
+  focus_event_count
+};
+
 #pragma pack(push, 4)
 struct Global_Platform_State
 {
@@ -29,9 +40,7 @@ struct Global_Platform_State
   Render_Context render_context;
   UI_Context     ui_context;
 
-  V2_f32         mouse;
-  V2_f32         drag_delta;
-
+  Focus_Event    focus_event;
   f64            dt;
 
   HWND           window_handle;

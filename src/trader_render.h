@@ -65,7 +65,7 @@ internal void  render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *sha
 internal i64 render_get_font_height_index(f32 font_height);
 internal i64 render_get_packed_char_start(f32 font_height);
 
-internal void render_draw_text(f32 *x, f32 *y, utf8 *format, ...);
+internal void render_draw_text(f32 *x, f32 *y, RGBA_f32 color, utf8 *format, ...);
 
 internal b32 render_atlas_initialize(Arena         *arena,
                                      Texture_Atlas *atlas,

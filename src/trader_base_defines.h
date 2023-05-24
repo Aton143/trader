@@ -209,23 +209,26 @@ typedef i64      b64;
 #define is_between_exclusive(a,x,b) (((a) <  (x)) && ((x) < (b)))
 #define is_between_inclusive(a,x,b) (((a) <= (x)) && ((x) <= (b)))
 
-global_const u8  max_u8      =  0xFF;
-global_const u16 max_u16     =  0xFFFF;
-global_const u32 max_u32     =  0xFFFFFFFF;
-global_const u64 max_u64     =  0xFFFFFFFFFFFFFFFF;
+global_const u8  max_u8       =  0xFF;
+global_const u16 max_u16      =  0xFFFF;
+global_const u32 max_u32      =  0xFFFFFFFF;
+global_const u64 max_u64      =  0xFFFFFFFFFFFFFFFF;
 
-global_const i8  max_i8      =  127;
-global_const i16 max_i16     =  32767;
-global_const i32 max_i32     =  2147483647;
-global_const i64 max_i64     =  9223372036854775807;
+global_const i8  max_i8       =  127;
+global_const i16 max_i16      =  32767;
+global_const i32 max_i32      =  2147483647;
+global_const i64 max_i64      =  9223372036854775807;
 
-global_const i8  min_i8      = -127 - 1;
-global_const i16 min_i16     = -32767 - 1;
-global_const i32 min_i32     = -2147483647 - 1;
-global_const i64 min_i64     = -9223372036854775807 - 1;
+global_const i8  min_i8       = -127 - 1;
+global_const i16 min_i16      = -32767 - 1;
+global_const i32 min_i32      = -2147483647 - 1;
+global_const i64 min_i64      = -9223372036854775807 - 1;
 
-global_const f32 max_f32     =  3.402823466e+38f;
-global_const f32 min_f32     = -3.402823466e+38f;
+global_const f32 max_f32      =  3.402823466e+38f;
+global_const f32 min_f32      = -3.402823466e+38f;
+
+global_const u32 infinity_f32_bits = 0x7f800000;
+global_const f32 infinity_f32      = *((f32 *) &infinity_f32_bits);
 
 global_const f32 smallest_positive_f32 = 1.1754943508e-38f;
 global_const f32 epsilon_f32 =  5.96046448e-8f;

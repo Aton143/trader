@@ -75,6 +75,9 @@ struct Widget
 
   String_Const_utf8 string;
 
+  RGBA_f32          text_color;
+  f32               font_height;
+
   // NOTE(antonio): computed every frame
   V2_f32            computed_position_relative_to_parent;
   V2_f32            computed_size_in_pixels;
@@ -83,9 +86,10 @@ struct Widget
   // NOTE(antonio): persistent data
   f32               hot_time;
   f32               active_time;
-  f32               font_height;
+  f32               time_alive;
 };
 
+global_const f32      default_text_height      = 24.0f;
 global_const Rect_i16 default_text_gutter_dim  = {10, 5};
 global_const RGBA_f32 default_text_color       = rgba(1.0f, 1.0f, 1.0f, 1.0);
 global_const RGBA_f32 default_background_color = rgba(1.0f, 1.0f, 1.0f, 1.0);
@@ -137,10 +141,11 @@ struct UI_Context
   Mouse_Event mouse_event;
   V2_f32      mouse_pos;
   V2_f32      drag_delta;
+  V2_f32      mouse_wheel_delta;
 
-  f32         default_text_height;
+  f32         widget_time_alive;
+
   f32         text_height;
-
   RGBA_f32    text_color;
   RGBA_f32    background_color;
 
@@ -163,7 +168,10 @@ internal void ui_initialize_frame(void);
 internal void ui_prepare_render(void);
 
 internal void ui_set_text_height(f32 height);
-internal void ui_set_text_color(f32 r, f32 g, f32 b, f32 a);
+
+internal void ui_push_text_color(f32 r, f32 g, f32 b, f32 a);
+internal void ui_pop_text_color(void);
+
 internal void ui_set_background_color(f32 r, f32 g, f32 b, f32 a);
 
 internal void ui_push_parent(Widget *widget);

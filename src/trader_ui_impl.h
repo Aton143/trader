@@ -31,7 +31,7 @@ internal void ui_initialize_frame(void)
   sentinel_widget->rectangle = render_get_client_rect();
   sentinel_widget->string    = string_literal_init_type("sentinel", utf8);
 
-  ui->text_height            = ui->default_text_height;
+  ui->text_height            = default_text_height;
   ui->text_gutter_dim        = default_text_gutter_dim;
   ui->text_color             = default_text_color;
   ui->background_color       = default_background_color;
@@ -43,13 +43,8 @@ internal void ui_initialize_frame(void)
   ui->allocated_widgets      = sentinel_widget;
   ui->current_parent         = sentinel_widget;
 
-  ui->drag_delta             = {0, 0};
-}
-
-internal void ui_set_default_text_height(f32 height)
-{
-  UI_Context *ui          = ui_get_context();
-  ui->default_text_height = height;
+  ui->drag_delta             = {0.0f, 0.0f};
+  ui->widget_time_alive      = 0.0f;
 }
 
 internal void ui_set_text_height(f32 height)
@@ -58,10 +53,16 @@ internal void ui_set_text_height(f32 height)
   ui->text_height = height;
 }
 
-internal void ui_set_text_color(f32 r, f32 g, f32 b, f32 a)
+internal void ui_push_text_color(f32 r, f32 g, f32 b, f32 a)
 {
   UI_Context *ui = ui_get_context();
   ui->text_color = rgba(r, g, b, a);
+}
+
+internal void ui_pop_text_color(void)
+{
+  UI_Context *ui = ui_get_context();
+  ui->text_color = default_text_color;
 }
 
 internal void ui_set_background_color(f32 r, f32 g, f32 b, f32 a)
@@ -248,6 +249,8 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
     widget->widget_flags  = widget_flags;
     widget->size_flags    = size_flags;
     widget->string        = string;
+    widget->text_color    = ui->text_color;
+    widget->time_alive    = ui->widget_time_alive;
   }
 }
 
@@ -480,7 +483,7 @@ internal void ui_prepare_render(void)
         f32 baseline = cur_widget->rectangle.y0 + ui->text_height;
 
         set_temp_arena_wait(1);
-        render_draw_text(&x, &baseline, cur_widget->string.str);
+        render_draw_text(&x, &baseline, cur_widget->text_color, cur_widget->string.str);
       }
 
       first_child = NULL;

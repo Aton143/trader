@@ -179,6 +179,15 @@ win32_window_procedure(HWND window_handle, UINT message,
       }
     }
 
+    case WM_MOUSEWHEEL:
+    {
+      ui->mouse_wheel_delta = {0.0f, (f32) GET_WHEEL_DELTA_WPARAM(wparam) / (f32) WHEEL_DELTA};
+    } break;
+    case WM_MOUSEHWHEEL:
+    {
+      ui->mouse_wheel_delta = {(f32) -GET_WHEEL_DELTA_WPARAM(wparam) / (f32) WHEEL_DELTA, 0.0f};
+    } break;
+
     case WM_SETFOCUS:  // NOTE(antonio): after the window has gained focus
     case WM_KILLFOCUS: // NOTE(antonio): right *before* the window loses focus
     {
@@ -314,7 +323,6 @@ WinMain(HINSTANCE instance,
     free_widget_list[widget_index].next_sibling = &free_widget_list[widget_index + 1];
     free_widget_list[widget_index].string       = string_literal_init_type("no widgets here, buddy :)", utf8);
   }
-  ui_set_default_text_height(default_font_heights[0]);
 
   {
     WNDCLASSEXW window_class = {};
@@ -706,6 +714,7 @@ WinMain(HINSTANCE instance,
     ID3D11DepthStencilView *depth_stencil_view = NULL;
 
     UI_Context *ui = &win32_global_state.ui_context;
+    unused(ui);
 
     global_running = true;
     global_window_resized = true;
@@ -716,11 +725,13 @@ WinMain(HINSTANCE instance,
     f64 last_frame_time           = platform_convert_high_precision_time_to_seconds(last_hpt);
     u64 last_frame_time_in_cycles = 0;
 
-    String_Const_utf8 text_to_render = string_literal_init_type("abcdefghijklmnopqrstuvwxyz"
-                                                                "ABCDEFGHIJKLMNOPQRSTUVWXYZ "
-                                                                "1234567890"
-                                                                "!@#$%^&*()"
-                                                                "{}|[]\\;':\",./<>?-=_+`~", utf8);
+    String_Const_utf8 text_to_render = string_literal_init_type("abcdefg", utf8);
+      /*string_literal_init_type("abcdefghijklmnopqrstuvwxyz"
+                                 "ABCDEFGHIJKLMNOPQRSTUVWXYZ "
+                                 "1234567890"
+                                 "!@#$%^&*()"
+                                 "{}|[]\\;':\",./<>?-=_+`~", utf8);*/
+
     while (global_running)
     {
       MSG message;
@@ -800,8 +811,10 @@ WinMain(HINSTANCE instance,
       ui_do_formatted_string("Last frame time: %.6fs", last_frame_time);
       ui_do_formatted_string("Last frame time in cycles: %lld", last_frame_time_in_cycles);
       ui_do_formatted_string("Frame count: %lld", frame_count);
+
       ui_do_string(text_to_render);
 
+      /*
       local_persist b32 wait_after_first_frame = false;
       local_persist f32 time_to_wait = 2.0f;
       local_persist f32 time_on_screen = 0.0f;
@@ -829,22 +842,43 @@ WinMain(HINSTANCE instance,
       {
         wait_after_first_frame = true;
       }
+      */
 
+      ui_push_text_color(ui->mouse_pos.x / render_get_client_rect().x1,
+                         ui->mouse_pos.y / render_get_client_rect().y1,
+                         1.0f, 1.0f);
 
       if (ui->mouse_area == mouse_area_out_client)
       {
-        ui_do_string(string_literal_init_type("mouse is not in client", utf8));
+        ui_do_string(string_literal_init_type("Mouse is not in client", utf8));
       }
       else if (ui->mouse_area == mouse_area_in_client)
       {
-        ui_do_string(string_literal_init_type("mouse is in client", utf8));
+        ui_do_string(string_literal_init_type("Mouse is in client", utf8));
         ui_do_formatted_string("Mouse position: (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
       }
       else
       {
-        ui_do_string(string_literal_init_type("mouse is in client but not really, if you know what I mean", utf8));
+        ui_do_string(string_literal_init_type("Mouse is in client but not really, if you know what I mean", utf8));
         ui_do_formatted_string("Mouse position: (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
       }
+
+      ui_pop_text_color();
+
+      if (ui->mouse_event & mouse_event_lclick)
+      {
+        ui_do_string(string_literal_init_type("Mouse left clicked", utf8));
+      }
+      if (ui->mouse_event & mouse_event_rclick)
+      {
+        ui_do_string(string_literal_init_type("Mouse right clicked", utf8));
+      }
+      if (ui->mouse_event & mouse_event_mclick)
+      {
+        ui_do_string(string_literal_init_type("Mouse middle clicked", utf8));
+      }
+
+      ui_do_formatted_string("Mouse wheel delta: (%f, %f)", ui->mouse_wheel_delta.x, ui->mouse_wheel_delta.y);
 
       ui_prepare_render();
 
@@ -939,6 +973,7 @@ WinMain(HINSTANCE instance,
 
       // Post-frame
       win32_global_state.focus_event = focus_event_none;
+      ui->mouse_wheel_delta = {0.0f, 0.0f};
 
       {
         u64 cur_pts = platform_get_processor_time_stamp();

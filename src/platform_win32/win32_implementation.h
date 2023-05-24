@@ -974,7 +974,7 @@ internal i64 render_get_packed_char_start(f32 font_height)
   return(found ? result : -1);
 }
 
-internal void render_draw_text(f32 *baseline_x, f32 *baseline_y, utf8 *format, ...)
+internal void render_draw_text(f32 *baseline_x, f32 *baseline_y, RGBA_f32 color, utf8 *format, ...)
 {
   Arena *temp_arena = get_temp_arena();
 
@@ -1037,7 +1037,7 @@ internal void render_draw_text(f32 *baseline_x, f32 *baseline_y, utf8 *format, .
         (f32) cur_packed_char->y1,
       };
 
-      cur_element->color = {1.0f, 1.0f, 1.0f, 1.0f};
+      cur_element->color = color;
 
       f32 kern_advance = 0.0f;
       if (text_index < (sprinted_text.size - 1))

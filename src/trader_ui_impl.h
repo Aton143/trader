@@ -209,7 +209,7 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
     widget->parent = cur_par;
 
     f32 content_height = ui->text_height;
-    f32 content_width  = 0;
+    f32 content_width  = (f32) ui->text_gutter_dim.x;
 
     if (widget_flags & widget_flag_draw_text)
     {
@@ -217,7 +217,7 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
 
       // NOTE(antonio): assuming that font height was found when pushed
       stbtt_packedchar *packed_char_start = render->atlas->char_data + render_get_packed_char_start(ui->text_height);
-      f32 font_scale = stbtt_ScaleForPixelHeight(&render->atlas->font_info, ui->text_height);
+      // f32 font_scale = stbtt_ScaleForPixelHeight(&render->atlas->font_info, ui->text_height);
 
       u64 string_index;
       for (string_index = 0;
@@ -233,12 +233,13 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
         else
         {
           stbtt_packedchar *cur_packed_char = packed_char_start + (string.str[string_index] - starting_code_point);
-          f32 cur_char_height = (f32) (cur_packed_char->yoff2 - cur_packed_char->yoff);
+          // f32 cur_char_height = (f32) (cur_packed_char->yoff2 - cur_packed_char->yoff);
           // f32 cur_char_width  = (f32) (cur_packed_char->xoff2 - cur_packed_char->xoff);
 
-          content_height  = max(content_height, cur_char_height);
+          content_height  = max(content_height, ui->text_height + cur_packed_char->yoff2);
           content_width  += cur_packed_char->xadvance;
 
+          /*
           if (string_index < string.size - 1)
           {
             content_width += font_scale *
@@ -246,11 +247,15 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
                                             string.str[string_index],
                                             string.str[string_index + 1]);
           }
+          */
         }
       }
 
-      // TODO(antonio); this is a hack to avoid having to do the text correctly
-      widget->computed_size_in_pixels = {content_width, content_height + 5};
+      widget->computed_size_in_pixels =
+      {
+        content_width  + (f32) (2 * ui->text_gutter_dim.x),
+        content_height + (f32) (2 * ui->text_gutter_dim.y)
+      };
     }
 
     widget->widget_flags     = widget_flags;
@@ -490,13 +495,13 @@ internal void ui_prepare_render(void)
         {
           cur_widget->rectangle.x0,
           cur_widget->rectangle.y0,
-          0.25f,
+          0.00f,
         };
       }
 
       if (cur_widget->widget_flags & widget_flag_draw_text)
       {
-        f32 x        = cur_widget->rectangle.x0;
+        f32 x        = cur_widget->rectangle.x0 + ui->text_gutter_dim.x;
         f32 baseline = cur_widget->rectangle.y0 + ui->text_height;
 
         set_temp_arena_wait(1);

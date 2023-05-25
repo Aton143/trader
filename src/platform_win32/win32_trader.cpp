@@ -294,7 +294,7 @@ WinMain(HINSTANCE instance,
   // NOTE(antonio): default font on Windows is Arial
   default_font = platform_open_and_read_entire_file(&global_arena, default_font_path.str, default_font_path.size);
 
-  f32 default_font_heights[] = {24.0f, 30.0f};
+  f32 default_font_heights[] = {24.0f};//, 30.0f};
 
   win32_global_state.render_context.atlas  = push_struct_zero(&global_arena, Texture_Atlas);
   render_atlas_initialize(&global_arena,
@@ -607,14 +607,14 @@ WinMain(HINSTANCE instance,
     {
       D3D11_BLEND_DESC blend_description = {};
 
-      blend_description.AlphaToCoverageEnable                 = TRUE;
-      blend_description.IndependentBlendEnable                = TRUE;        
+      blend_description.AlphaToCoverageEnable                 = FALSE;
+      blend_description.IndependentBlendEnable                = FALSE;        
       blend_description.RenderTarget[0].BlendEnable           = TRUE;
       blend_description.RenderTarget[0].SrcBlend              = D3D11_BLEND_SRC_ALPHA;
       blend_description.RenderTarget[0].DestBlend             = D3D11_BLEND_INV_SRC_ALPHA;
       blend_description.RenderTarget[0].BlendOp               = D3D11_BLEND_OP_ADD;
-      blend_description.RenderTarget[0].SrcBlendAlpha         = D3D11_BLEND_SRC_ALPHA;
-      blend_description.RenderTarget[0].DestBlendAlpha        = D3D11_BLEND_DEST_ALPHA;
+      blend_description.RenderTarget[0].SrcBlendAlpha         = D3D11_BLEND_ONE;// D3D11_BLEND_SRC_ALPHA;
+      blend_description.RenderTarget[0].DestBlendAlpha        = D3D11_BLEND_INV_SRC_ALPHA;// D3D11_BLEND_DEST_ALPHA;
       blend_description.RenderTarget[0].BlendOpAlpha          = D3D11_BLEND_OP_ADD;
       blend_description.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
@@ -808,7 +808,7 @@ WinMain(HINSTANCE instance,
       local_persist u64 frame_count = 0;
       frame_count++;
 
-      ui_do_formatted_string("Last frame time: %.6fs", last_frame_time);
+      ui_do_formatted_string("@Last frame time: %.6fs", last_frame_time);
       ui_do_formatted_string("Last frame time in cycles: %lld", last_frame_time_in_cycles);
       ui_do_formatted_string("Frame count: %lld", frame_count);
 

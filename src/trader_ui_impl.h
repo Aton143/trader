@@ -490,7 +490,7 @@ internal void ui_prepare_render(void)
         {
           cur_widget->rectangle.x0,
           cur_widget->rectangle.y0,
-          0.0f,
+          0.25f,
         };
       }
 

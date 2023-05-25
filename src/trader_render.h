@@ -140,7 +140,7 @@ internal b32 render_atlas_initialize(Arena         *arena,
         pack_ranges[pack_range_index].num_chars                        = code_point_count;
         pack_ranges[pack_range_index].chardata_for_range               = packed_chars_being_packed;
         
-        if (font_heights[pack_range_index] < 15.0f) stbtt_PackSetOversampling(&pack_context, 2, 2);
+        if (font_heights[pack_range_index] < 30.0f) stbtt_PackSetOversampling(&pack_context, 2, 2);
         else                                        stbtt_PackSetOversampling(&pack_context, 1, 1);
 
         stbtt_PackFontRangesGatherRects(&pack_context,

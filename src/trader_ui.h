@@ -76,6 +76,7 @@ struct Widget
   String_Const_utf8 string;
 
   RGBA_f32          text_color;
+  RGBA_f32          background_color;
   f32               font_height;
 
   // NOTE(antonio): computed every frame
@@ -172,7 +173,8 @@ internal void ui_set_text_height(f32 height);
 internal void ui_push_text_color(f32 r, f32 g, f32 b, f32 a);
 internal void ui_pop_text_color(void);
 
-internal void ui_set_background_color(f32 r, f32 g, f32 b, f32 a);
+internal void ui_push_background_color(f32 r, f32 g, f32 b, f32 a);
+internal void ui_push_background_color();
 
 internal void ui_push_parent(Widget *widget);
 internal void ui_pop_parent(void);

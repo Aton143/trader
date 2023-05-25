@@ -65,10 +65,16 @@ internal void ui_pop_text_color(void)
   ui->text_color = default_text_color;
 }
 
-internal void ui_set_background_color(f32 r, f32 g, f32 b, f32 a)
+internal void ui_push_background_color(f32 r, f32 g, f32 b, f32 a)
 {
   UI_Context *ui = ui_get_context();
   ui->background_color = rgba(r, g, b, a);
+}
+
+internal void ui_pop_background_color()
+{
+  UI_Context *ui = ui_get_context();
+  ui->background_color = default_background_color;
 }
 
 internal void ui_push_parent(Widget *widget)
@@ -202,8 +208,8 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
 
     widget->parent = cur_par;
 
-    f32 content_height = 0;
-    f32 content_width = 0;
+    f32 content_height = ui->text_height;
+    f32 content_width  = 0;
 
     if (widget_flags & widget_flag_draw_text)
     {
@@ -230,8 +236,8 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
           f32 cur_char_height = (f32) (cur_packed_char->yoff2 - cur_packed_char->yoff);
           // f32 cur_char_width  = (f32) (cur_packed_char->xoff2 - cur_packed_char->xoff);
 
-          content_height  =  max(content_height, cur_char_height);
-          content_width  += (/*cur_char_width + */ cur_packed_char->xadvance);
+          content_height  = max(content_height, cur_char_height);
+          content_width  += cur_packed_char->xadvance;
 
           if (string_index < string.size - 1)
           {
@@ -243,14 +249,16 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
         }
       }
 
-      widget->computed_size_in_pixels = {content_width, content_height};
+      // TODO(antonio); this is a hack to avoid having to do the text correctly
+      widget->computed_size_in_pixels = {content_width, content_height + 5};
     }
 
-    widget->widget_flags  = widget_flags;
-    widget->size_flags    = size_flags;
-    widget->string        = string;
-    widget->text_color    = ui->text_color;
-    widget->time_alive    = ui->widget_time_alive;
+    widget->widget_flags     = widget_flags;
+    widget->size_flags       = size_flags;
+    widget->string           = string;
+    widget->text_color       = ui->text_color;
+    widget->background_color = ui->background_color;
+    widget->time_alive       = ui->widget_time_alive;
   }
 }
 
@@ -356,6 +364,8 @@ internal void ui_prepare_render(void)
       Widget *cur_widget = NULL;
       ring_buffer_pop_and_put_struct(&widget_queue, &cur_widget);
 
+      V2_f32 pre_sizing_top_left = cur_top_left;
+
       f32 remaining_width = rect_get_width(&cur_widget->rectangle);
       f32 max_height = 0.0f;
 
@@ -426,6 +436,12 @@ internal void ui_prepare_render(void)
         }
       }
 
+      cur_widget->rectangle.x0 = pre_sizing_top_left.x;
+      cur_widget->rectangle.y0 = pre_sizing_top_left.y;
+
+      cur_widget->rectangle.x1 = pre_sizing_top_left.x + cur_widget->computed_size_in_pixels.x;
+      cur_widget->rectangle.y1 = pre_sizing_top_left.y + cur_widget->computed_size_in_pixels.y;
+
       cur_top_left.x  = 0.0f;
       cur_top_left.y += cur_widget->computed_size_in_pixels.y;
     }
@@ -453,7 +469,7 @@ internal void ui_prepare_render(void)
       {
         Instance_Buffer_Element *draw_call = push_struct(&render->render_data, Instance_Buffer_Element);
 
-        draw_call->color = ui->background_color;
+        draw_call->color = cur_widget->background_color;
 
         draw_call->size = 
         {
@@ -474,6 +490,7 @@ internal void ui_prepare_render(void)
         {
           cur_widget->rectangle.x0,
           cur_widget->rectangle.y0,
+          0.0f,
         };
       }
 

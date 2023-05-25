@@ -607,8 +607,8 @@ WinMain(HINSTANCE instance,
     {
       D3D11_BLEND_DESC blend_description = {};
 
-      blend_description.AlphaToCoverageEnable                 = FALSE;
-      blend_description.IndependentBlendEnable                = FALSE;        
+      blend_description.AlphaToCoverageEnable                 = TRUE;
+      blend_description.IndependentBlendEnable                = TRUE;        
       blend_description.RenderTarget[0].BlendEnable           = TRUE;
       blend_description.RenderTarget[0].SrcBlend              = D3D11_BLEND_SRC_ALPHA;
       blend_description.RenderTarget[0].DestBlend             = D3D11_BLEND_INV_SRC_ALPHA;
@@ -750,14 +750,14 @@ WinMain(HINSTANCE instance,
         frame_buffer_view->Release();
 
         HRESULT result = swap_chain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
-        expect(SUCCEEDED(result));
+        // expect(SUCCEEDED(result));
 
         ID3D11Texture2D* frame_buffer = NULL;
         result = swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **) &frame_buffer);
-        expect(SUCCEEDED(result));
+        // expect(SUCCEEDED(result));
 
         result = device->CreateRenderTargetView(frame_buffer, NULL, &frame_buffer_view);
-        expect(SUCCEEDED(result));
+        // expect(SUCCEEDED(result));
 
         frame_buffer->Release();
 
@@ -781,7 +781,7 @@ WinMain(HINSTANCE instance,
           depth_stencil_texture_desc.MiscFlags          = 0;
 
           result = device->CreateTexture2D(&depth_stencil_texture_desc, NULL, &depth_stencil_texture);
-          expect(SUCCEEDED(result));
+          // expect(SUCCEEDED(result));
         }
 
         depth_stencil_view = NULL;
@@ -796,14 +796,14 @@ WinMain(HINSTANCE instance,
           result = device->CreateDepthStencilView(depth_stencil_texture,
                                                   &depth_stencil_view_desc,
                                                   &depth_stencil_view);
-          expect(SUCCEEDED(result));
+          // expect(SUCCEEDED(result));
         } 
       }
 
       platform_collect_notifications();
 
       ui_initialize_frame();
-      ui_set_background_color(1.0f, 1.0f, 1.0f, 1.0f);
+      ui_push_background_color(1.0f, 0.0f, 0.0f, 1.0f);
 
       local_persist u64 frame_count = 0;
       frame_count++;

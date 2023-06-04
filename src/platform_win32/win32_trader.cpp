@@ -608,14 +608,17 @@ WinMain(HINSTANCE instance,
       D3D11_BLEND_DESC blend_description = {};
 
       blend_description.AlphaToCoverageEnable                 = FALSE;
-      blend_description.IndependentBlendEnable                = FALSE;        
+      blend_description.IndependentBlendEnable                = FALSE;
       blend_description.RenderTarget[0].BlendEnable           = TRUE;
+
       blend_description.RenderTarget[0].SrcBlend              = D3D11_BLEND_SRC_ALPHA;
       blend_description.RenderTarget[0].DestBlend             = D3D11_BLEND_INV_SRC_ALPHA;
       blend_description.RenderTarget[0].BlendOp               = D3D11_BLEND_OP_ADD;
-      blend_description.RenderTarget[0].SrcBlendAlpha         = D3D11_BLEND_SRC_ALPHA;
-      blend_description.RenderTarget[0].DestBlendAlpha        = D3D11_BLEND_DEST_ALPHA;
+
+      blend_description.RenderTarget[0].SrcBlendAlpha         = D3D11_BLEND_ONE;//SRC_ALPHA;
+      blend_description.RenderTarget[0].DestBlendAlpha        = D3D11_BLEND_INV_SRC_ALPHA;//DEST_ALPHA;
       blend_description.RenderTarget[0].BlendOpAlpha          = D3D11_BLEND_OP_ADD;
+
       blend_description.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
       HRESULT result = device->CreateBlendState(&blend_description, &transparent_blend_state);
@@ -803,7 +806,7 @@ WinMain(HINSTANCE instance,
       platform_collect_notifications();
 
       ui_initialize_frame();
-      ui_push_background_color(0.0f, 0.0f, 0.0f, 1.0f);
+      ui_push_background_color(1.0f, 0.0f, 0.0f, 1.0f);
 
       local_persist u64 frame_count = 0;
       frame_count++;

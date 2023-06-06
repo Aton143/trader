@@ -153,9 +153,9 @@ win32_window_procedure(HWND window_handle, UINT message,
       if ((message == WM_RBUTTONDOWN) || (message == WM_RBUTTONDBLCLK)) {mouse_event = mouse_event_rclick;}
       if ((message == WM_MBUTTONDOWN) || (message == WM_MBUTTONDBLCLK)) {mouse_event = mouse_event_mclick;}
 
-      ui->mouse_event |= mouse_event;
+      ui->cur_frame_mouse_event |= mouse_event;
 
-      if ((ui->mouse_event == mouse_event_none) && (GetCapture == NULL))
+      if ((ui->cur_frame_mouse_event == mouse_event_none) && (GetCapture == NULL))
       {
         SetCapture(window_handle);
       }
@@ -171,9 +171,9 @@ win32_window_procedure(HWND window_handle, UINT message,
       if (message == WM_RBUTTONUP) {mouse_event_to_remove = mouse_event_rclick;}
       if (message == WM_MBUTTONUP) {mouse_event_to_remove = mouse_event_mclick;}
 
-      ui->mouse_event &= ~mouse_event_to_remove;
+      ui->cur_frame_mouse_event &= ~mouse_event_to_remove;
 
-      if ((ui->mouse_event == mouse_event_none) && (GetCapture() == window_handle))
+      if ((ui->cur_frame_mouse_event == mouse_event_none) && (GetCapture() == window_handle))
       {
         ReleaseCapture();
       }
@@ -806,7 +806,7 @@ WinMain(HINSTANCE instance,
       platform_collect_notifications();
 
       ui_initialize_frame();
-      ui_push_background_color(1.0f, 0.0f, 0.0f, 1.0f);
+      ui_push_background_color(0.0f, 0.0f, 0.0f, 1.0f);
 
       local_persist u64 frame_count = 0;
       frame_count++;
@@ -847,8 +847,8 @@ WinMain(HINSTANCE instance,
       }
       */
 
-      ui_push_text_color(ui->mouse_pos.x / render_get_client_rect().x1,
-                         ui->mouse_pos.y / render_get_client_rect().y1,
+      ui_push_text_color(clamp(0.0f, ui->mouse_pos.x / render_get_client_rect().x1, 1.0f),
+                         clamp(0.0f, ui->mouse_pos.y / render_get_client_rect().y1, 1.0f),
                          1.0f, 1.0f);
 
       if (ui->mouse_area == mouse_area_out_client)
@@ -868,15 +868,15 @@ WinMain(HINSTANCE instance,
 
       ui_pop_text_color();
 
-      if (ui->mouse_event & mouse_event_lclick)
+      if (ui->cur_frame_mouse_event & mouse_event_lclick)
       {
         ui_do_string(string_literal_init_type("Mouse left clicked", utf8));
       }
-      if (ui->mouse_event & mouse_event_rclick)
+      if (ui->cur_frame_mouse_event & mouse_event_rclick)
       {
         ui_do_string(string_literal_init_type("Mouse right clicked", utf8));
       }
-      if (ui->mouse_event & mouse_event_mclick)
+      if (ui->cur_frame_mouse_event & mouse_event_mclick)
       {
         ui_do_string(string_literal_init_type("Mouse middle clicked", utf8));
       }
@@ -977,6 +977,18 @@ WinMain(HINSTANCE instance,
       // Post-frame
       win32_global_state.focus_event = focus_event_none;
       ui->mouse_wheel_delta = {0.0f, 0.0f};
+
+      u32 interaction_next_available = 0;
+      for (u32 interaction_index = 0;
+           interaction_index = ui->interaction_index;
+           ++interaction_index) 
+      {
+        ui->interactions[interaction_index].frames_left--;
+        if (ui->interactions[interaction_index].frames_left > 0)
+        {
+          ui->interactions[interaction_next_available] = ui->interactions[interaction_index];
+        }
+      }
 
       {
         u64 cur_pts = platform_get_processor_time_stamp();

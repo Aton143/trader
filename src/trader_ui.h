@@ -54,6 +54,15 @@ enum
 };
 
 typedef u64 UI_Key;
+global_const UI_Key nil_key = 0;
+
+struct UI_Interaction
+{
+  UI_Key key;
+  u32    event;
+  i32    frames_left;
+};
+
 struct Widget
 {
   Widget          *first_child;
@@ -91,7 +100,7 @@ struct Widget
 };
 
 global_const f32      default_text_height      = 24.0f;
-global_const V2_i16   default_text_gutter_dim  = {2, 2};
+global_const V2_i16   default_text_gutter_dim  = {2, 0};
 global_const RGBA_f32 default_text_color       = rgba(1.0f, 1.0f, 1.0f, 1.0);
 global_const RGBA_f32 default_background_color = rgba(1.0f, 1.0f, 1.0f, 1.0);
 global_const u64      default_widget_count     = 4096;
@@ -120,8 +129,8 @@ enum
 
 struct UI_Context
 {
-  UI_Key      hot_key;
-  UI_Key      active_key;
+  UI_Key      hot_key;    // NOTE(antonio): about to interact
+  UI_Key      active_key; // NOTE(antonio): interacting
 
   Widget     *current_parent;
 
@@ -139,7 +148,10 @@ struct UI_Context
   V2_i16      text_gutter_dim;
 
   Mouse_Area  mouse_area;
-  Mouse_Event mouse_event;
+
+  Mouse_Event prev_frame_mouse_event;
+  Mouse_Event cur_frame_mouse_event;
+
   V2_f32      mouse_pos;
   V2_f32      drag_delta;
   V2_f32      mouse_wheel_delta;
@@ -150,6 +162,9 @@ struct UI_Context
   RGBA_f32    text_color;
   RGBA_f32    background_color;
 
+  UI_Interaction    interactions[4];
+  u32               interaction_index;
+  /*
   b8          clicked;
   b8          double_clicked;
   b8          right_clicked;
@@ -157,6 +172,7 @@ struct UI_Context
   b8          released;
   b8          dragging;
   b8          hovering;
+  */
 };
 
 #include "trader_platform.h"
@@ -182,12 +198,13 @@ internal void ui_pop_parent(void);
 internal void ui_do_string(String_Const_utf8 string);
 internal void ui_do_formatted_string(char *format, ...);
 
+internal b32 ui_do_button(String_Const_utf8 string);
+
 internal UI_Key ui_make_key(String_Const_utf8 string);
 internal b32 ui_is_key_equal(UI_Key a, UI_Key b);
 
 internal void ui_make_widget(Widget_Flag widget_flags,
                              Widget_Size_Flag size_flags,
                              String_Const_utf8 string);
-
 #define TRADER_UI_H
 #endif

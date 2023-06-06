@@ -43,6 +43,7 @@ internal void ui_initialize_frame(void)
   ui->allocated_widgets      = sentinel_widget;
   ui->current_parent         = sentinel_widget;
 
+  ui->prev_frame_mouse_event = ui->cur_frame_mouse_event;
   ui->drag_delta             = {0.0f, 0.0f};
   ui->widget_time_alive      = 0.0f;
 }
@@ -55,6 +56,11 @@ internal void ui_set_text_height(f32 height)
 
 internal void ui_push_text_color(f32 r, f32 g, f32 b, f32 a)
 {
+  expect(is_between_inclusive(0.0f, r, 1.0f) && 
+         is_between_inclusive(0.0f, g, 1.0f) && 
+         is_between_inclusive(0.0f, b, 1.0f) && 
+         is_between_inclusive(0.0f, a, 1.0f));
+
   UI_Context *ui = ui_get_context();
   ui->text_color = rgba(r, g, b, a);
 }
@@ -67,6 +73,11 @@ internal void ui_pop_text_color(void)
 
 internal void ui_push_background_color(f32 r, f32 g, f32 b, f32 a)
 {
+  expect(is_between_inclusive(0.0f, r, 1.0f) && 
+         is_between_inclusive(0.0f, g, 1.0f) && 
+         is_between_inclusive(0.0f, b, 1.0f) && 
+         is_between_inclusive(0.0f, a, 1.0f));
+
   UI_Context *ui = ui_get_context();
   ui->background_color = rgba(r, g, b, a);
 }
@@ -108,7 +119,7 @@ internal void ui_do_string(String_Const_utf8 string)
   String_Const_utf8 copy_string;
 
   // NOTE(antonio): string pool gets cleared out every frame
-  copy_string.str  = (utf8 *) arena_push(ui->string_pool, string.size + 1);
+  copy_string.str = (utf8 *) arena_push(ui->string_pool, string.size + 1);
   copy_memory_block(copy_string.str, string.str, string.size);
 
   copy_string.size = string.size + 1;
@@ -123,9 +134,8 @@ internal void ui_do_string(String_Const_utf8 string)
 
 internal void ui_do_formatted_string(char *format, ...)
 {
-  UI_Context *ui = ui_get_context();
-
-  Widget *last_parent = ui->current_parent;
+  UI_Context *ui          = ui_get_context();
+  Widget     *last_parent = ui->current_parent;
 
   ui_make_widget(widget_flag_draw_background,
                  size_flag_text_content,
@@ -149,11 +159,46 @@ internal void ui_do_formatted_string(char *format, ...)
   va_end(args);
 
   ui_make_widget(widget_flag_draw_text,
-              size_flag_text_content,
-              sprinted_text);
+                 size_flag_text_content,
+                 sprinted_text);
 
   ui_pop_parent();
   ui_push_parent(last_parent);
+}
+
+internal b32 ui_do_button(String_Const_utf8 string)
+{
+  UI_Context *ui          = ui_get_context();
+  Widget     *last_parent = ui->current_parent;
+  b32         result      = false;
+
+  ui_make_widget(widget_flag_draw_background,
+                 size_flag_text_content | widget_flag_clickable,
+                 string_literal_init_type("Button parent", utf8));
+
+  Widget *button_text_parent = ui->current_parent->last_child;
+  ui_push_parent(button_text_parent);
+
+  String_Const_utf8 copy_string;
+
+  copy_string.str = (utf8 *) arena_push(ui->string_pool, string.size + 1);
+  copy_memory_block(copy_string.str, string.str, string.size);
+
+  ui_make_widget(widget_flag_draw_text,
+                 size_flag_text_content,
+                 copy_string);
+
+  ui_pop_parent();
+  ui_push_parent(last_parent);
+
+  for (u32 interaction_index = 0;
+       interaction_index = ui->interaction_index;
+       ++interaction_index) 
+  {
+    result = (ui->interactions[interaction_index].key == button_text_parent->key);
+  }
+
+  return(result);
 }
 
 internal UI_Key ui_make_key(String_Const_utf8 string)
@@ -208,8 +253,7 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
 
     widget->parent = cur_par;
 
-    f32 content_height = ui->text_height;
-    f32 content_width  = (f32) ui->text_gutter_dim.x;
+    f32 content_width = (f32) ui->text_gutter_dim.x;
 
     if (widget_flags & widget_flag_draw_text)
     {
@@ -236,7 +280,6 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
           // f32 cur_char_height = (f32) (cur_packed_char->yoff2 - cur_packed_char->yoff);
           // f32 cur_char_width  = (f32) (cur_packed_char->xoff2 - cur_packed_char->xoff);
 
-          content_height  = max(content_height, ui->text_height + cur_packed_char->yoff2);
           content_width  += cur_packed_char->xadvance;
 
           /*
@@ -253,8 +296,8 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
 
       widget->computed_size_in_pixels =
       {
-        content_width  + (f32) (2 * ui->text_gutter_dim.x),
-        content_height + (f32) (2 * ui->text_gutter_dim.y)
+        content_width   + (f32) (2 * ui->text_gutter_dim.x),
+        ui->text_height + (f32) (2 * ui->text_gutter_dim.y)
       };
     }
 
@@ -264,6 +307,7 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
     widget->text_color       = ui->text_color;
     widget->background_color = ui->background_color;
     widget->time_alive       = ui->widget_time_alive;
+    widget->key              = ui_make_key(string);
   }
 }
 
@@ -469,6 +513,46 @@ internal void ui_prepare_render(void)
     {
       Widget *cur_widget = NULL;
       ring_buffer_pop_and_put(&widget_queue, &cur_widget, sizeof(Widget **));
+
+      if (cur_widget->widget_flags & widget_flag_clickable)
+      {
+        b32 mouse_left_change = ((ui->prev_frame_mouse_event & mouse_event_lclick) !=
+                                 (ui->cur_frame_mouse_event  & mouse_event_lclick));
+
+        if (ui_is_key_equal(ui->active_key, cur_widget->key))
+        {
+          b32 mouse_left_went_up = mouse_left_change && ((ui->cur_frame_mouse_event & mouse_event_lclick) == 0);
+          if (mouse_left_went_up)
+          {
+            if (ui_is_key_equal(ui->hot_key, cur_widget->key))
+            {
+              ui->interactions[ui->interaction_index++] = {cur_widget->key, 0, mouse_left_went_up};
+            }
+
+            ui->active_key = nil_key;
+          }
+          else if (ui_is_key_equal(ui->hot_key, cur_widget->key))
+          {
+            b32 mouse_left_went_down = (ui->prev_frame_mouse_event & mouse_event_lclick) !=
+              (ui->cur_frame_mouse_event  & mouse_event_lclick);
+            if (mouse_left_went_down)
+            {
+              ui->active_key = cur_widget->key;
+            }
+          }
+        }
+
+        // NOTE(antonio): is mouse over the widget? 
+        V2_f32 mouse_pos = ui->mouse_pos;
+        if (is_between_inclusive(cur_widget->rectangle.x0, mouse_pos.x, cur_widget->rectangle.x1) && 
+            is_between_inclusive(cur_widget->rectangle.y0, mouse_pos.y, cur_widget->rectangle.y1))
+        {
+          if (ui->active_key == nil_key)
+          {
+            ui->hot_key = cur_widget->key;
+          }
+        }
+      }
 
       if (cur_widget->widget_flags & widget_flag_draw_background)
       {

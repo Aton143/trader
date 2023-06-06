@@ -43,7 +43,6 @@ internal void ui_initialize_frame(void)
   ui->allocated_widgets      = sentinel_widget;
   ui->current_parent         = sentinel_widget;
 
-  ui->prev_frame_mouse_event = ui->cur_frame_mouse_event;
   ui->drag_delta             = {0.0f, 0.0f};
   ui->widget_time_alive      = 0.0f;
 }
@@ -172,8 +171,8 @@ internal b32 ui_do_button(String_Const_utf8 string)
   Widget     *last_parent = ui->current_parent;
   b32         result      = false;
 
-  ui_make_widget(widget_flag_draw_background,
-                 size_flag_text_content | widget_flag_clickable,
+  ui_make_widget(widget_flag_draw_background | widget_flag_clickable,
+                 size_flag_text_content,
                  string_literal_init_type("Button parent", utf8));
 
   Widget *button_text_parent = ui->current_parent->last_child;
@@ -192,7 +191,7 @@ internal b32 ui_do_button(String_Const_utf8 string)
   ui_push_parent(last_parent);
 
   for (u32 interaction_index = 0;
-       interaction_index = ui->interaction_index;
+       interaction_index < ui->interaction_index;
        ++interaction_index) 
   {
     result = (ui->interactions[interaction_index].key == button_text_parent->key);
@@ -531,14 +530,13 @@ internal void ui_prepare_render(void)
 
             ui->active_key = nil_key;
           }
-          else if (ui_is_key_equal(ui->hot_key, cur_widget->key))
+        }
+        else if (ui_is_key_equal(ui->hot_key, cur_widget->key))
+        {
+          b32 mouse_left_went_down = mouse_left_change && (ui->cur_frame_mouse_event & mouse_event_lclick);
+          if (mouse_left_went_down)
           {
-            b32 mouse_left_went_down = (ui->prev_frame_mouse_event & mouse_event_lclick) !=
-              (ui->cur_frame_mouse_event  & mouse_event_lclick);
-            if (mouse_left_went_down)
-            {
-              ui->active_key = cur_widget->key;
-            }
+            ui->active_key = cur_widget->key;
           }
         }
 

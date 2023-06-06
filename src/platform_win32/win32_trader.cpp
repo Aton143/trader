@@ -868,6 +868,7 @@ WinMain(HINSTANCE instance,
 
       ui_pop_text_color();
 
+      /*
       if (ui->cur_frame_mouse_event & mouse_event_lclick)
       {
         ui_do_string(string_literal_init_type("Mouse left clicked", utf8));
@@ -880,8 +881,14 @@ WinMain(HINSTANCE instance,
       {
         ui_do_string(string_literal_init_type("Mouse middle clicked", utf8));
       }
+      */
 
       ui_do_formatted_string("Mouse wheel delta: (%f, %f)", ui->mouse_wheel_delta.x, ui->mouse_wheel_delta.y);
+
+      if (ui_do_button(string_literal_init_type("Am I clicked?", utf8)))
+      {
+        ui_do_string(string_literal_init_type("That was the good action", utf8));
+      }
 
       ui_prepare_render();
 
@@ -976,11 +983,13 @@ WinMain(HINSTANCE instance,
 
       // Post-frame
       win32_global_state.focus_event = focus_event_none;
+
       ui->mouse_wheel_delta = {0.0f, 0.0f};
+      ui->prev_frame_mouse_event = ui->cur_frame_mouse_event;
 
       u32 interaction_next_available = 0;
       for (u32 interaction_index = 0;
-           interaction_index = ui->interaction_index;
+           interaction_index < ui->interaction_index;
            ++interaction_index) 
       {
         ui->interactions[interaction_index].frames_left--;

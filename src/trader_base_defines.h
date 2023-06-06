@@ -975,7 +975,8 @@ internal u64 hash(u8 *buffer, u64 length)
 
   u64 current_buffer_value;
   while (buffer_position != buffer_end) {
-    current_buffer_value = (*buffer_position)++;
+    current_buffer_value = *buffer_position;
+    buffer_position++;
     result ^= hash_mix(current_buffer_value);
     result *= multiplier;
   }

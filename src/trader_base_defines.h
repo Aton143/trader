@@ -821,6 +821,10 @@ struct String_Any {
   };
 };
 
+#define align(val, alignment) ((((val) + (alignment) - 1) / (alignment)) * (alignment))
+
+#include "trader_meta.h"
+#include "trader_memory.h"
 #include "trader_string_utilities.h"
 
 #define string_literal_init(s) {(s), sizeof(s) - sizeof(*s)}
@@ -856,8 +860,6 @@ u32 count_set_bits(u64 bits)
     }
     return count;
 }
-
-#define align(val, alignment) ((((val) + (alignment) - 1) / (alignment)) * (alignment))
 
 // WELL512 rng, Chris Lomont, www.lomont.org
 

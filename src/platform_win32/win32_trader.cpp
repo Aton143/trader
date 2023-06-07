@@ -885,6 +885,9 @@ WinMain(HINSTANCE instance,
 
       ui_do_formatted_string("Mouse wheel delta: (%f, %f)", ui->mouse_wheel_delta.x, ui->mouse_wheel_delta.y);
 
+      ui_pop_background_color();
+      ui_push_background_color(1.0f, 0.0f, 0.0f, 1.0f);
+
       if (ui_do_button(string_literal_init_type("Am I clicked?", utf8)))
       {
         ui_do_string(string_literal_init_type("That was the good action", utf8));
@@ -987,7 +990,11 @@ WinMain(HINSTANCE instance,
       ui->mouse_wheel_delta = {0.0f, 0.0f};
       ui->prev_frame_mouse_event = ui->cur_frame_mouse_event;
 
+      ui->prev_frame_hot_key     = ui->hot_key;
+      ui->hot_key = nil_key;
+
       u32 interaction_next_available = 0;
+
       for (u32 interaction_index = 0;
            interaction_index < ui->interaction_index;
            ++interaction_index) 
@@ -996,6 +1003,10 @@ WinMain(HINSTANCE instance,
         if (ui->interactions[interaction_index].frames_left > 0)
         {
           ui->interactions[interaction_next_available] = ui->interactions[interaction_index];
+        }
+        else if (ui->interactions[interaction_index].frames_left < 0)
+        {
+          ui->interactions[interaction_index] = {};
         }
       }
 

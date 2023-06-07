@@ -120,7 +120,6 @@ internal void ui_do_string(String_Const_utf8 string)
   // NOTE(antonio): string pool gets cleared out every frame
   copy_string.str = (utf8 *) arena_push(ui->string_pool, string.size + 1);
   copy_memory_block(copy_string.str, string.str, string.size);
-
   copy_string.size = string.size + 1;
 
   ui_make_widget(widget_flag_draw_text,
@@ -171,17 +170,21 @@ internal b32 ui_do_button(String_Const_utf8 string)
   Widget     *last_parent = ui->current_parent;
   b32         result      = false;
 
+  String_Const_utf8 button_parent_to_hash_prefix = string_literal_init_type("Button parent::", utf8);
+  String_Const_utf8 button_parent_to_hash = concat_string_to_c_string(ui->string_pool, button_parent_to_hash_prefix, string);
+
   ui_make_widget(widget_flag_draw_background | widget_flag_clickable,
                  size_flag_text_content,
-                 string_literal_init_type("Button parent", utf8));
+                 button_parent_to_hash);
 
   Widget *button_text_parent = ui->current_parent->last_child;
   ui_push_parent(button_text_parent);
 
   String_Const_utf8 copy_string;
 
-  copy_string.str = (utf8 *) arena_push(ui->string_pool, string.size + 1);
+  copy_string.str  = (utf8 *) arena_push(ui->string_pool, string.size + 1);
   copy_memory_block(copy_string.str, string.str, string.size);
+  copy_string.size = string.size + 1;
 
   ui_make_widget(widget_flag_draw_text,
                  size_flag_text_content,
@@ -194,7 +197,10 @@ internal b32 ui_do_button(String_Const_utf8 string)
        interaction_index < ui->interaction_index;
        ++interaction_index) 
   {
-    result = (ui->interactions[interaction_index].key == button_text_parent->key);
+    if (ui->interactions[interaction_index].key == button_text_parent->key)
+    {
+      result = true;
+    }
   }
 
   return(result);
@@ -523,15 +529,15 @@ internal void ui_prepare_render(void)
           b32 mouse_left_went_up = mouse_left_change && ((ui->cur_frame_mouse_event & mouse_event_lclick) == 0);
           if (mouse_left_went_up)
           {
-            if (ui_is_key_equal(ui->hot_key, cur_widget->key))
+            if (ui_is_key_equal(ui->prev_frame_hot_key, cur_widget->key))
             {
-              ui->interactions[ui->interaction_index++] = {cur_widget->key, 0, mouse_left_went_up};
+              ui->interactions[ui->interaction_index++] = {cur_widget->key, 0, 60};
             }
 
             ui->active_key = nil_key;
           }
         }
-        else if (ui_is_key_equal(ui->hot_key, cur_widget->key))
+        else if (ui_is_key_equal(ui->prev_frame_hot_key, cur_widget->key))
         {
           b32 mouse_left_went_down = mouse_left_change && (ui->cur_frame_mouse_event & mouse_event_lclick);
           if (mouse_left_went_down)
@@ -545,7 +551,7 @@ internal void ui_prepare_render(void)
         if (is_between_inclusive(cur_widget->rectangle.x0, mouse_pos.x, cur_widget->rectangle.x1) && 
             is_between_inclusive(cur_widget->rectangle.y0, mouse_pos.y, cur_widget->rectangle.y1))
         {
-          if (ui->active_key == nil_key)
+          if ((ui->active_key == nil_key) || (ui->prev_frame_hot_key != cur_widget->key))
           {
             ui->hot_key = cur_widget->key;
           }

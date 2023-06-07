@@ -129,8 +129,9 @@ enum
 
 struct UI_Context
 {
-  UI_Key      hot_key;    // NOTE(antonio): about to interact
-  UI_Key      active_key; // NOTE(antonio): interacting
+  UI_Key      hot_key;            // NOTE(antonio): about to interact
+  UI_Key      prev_frame_hot_key; // NOTE(antonio): about to interact
+  UI_Key      active_key;         // NOTE(antonio): interacting
 
   Widget     *current_parent;
 

@@ -3,6 +3,7 @@
 
 internal b32 is_newline(char c);
 
+internal b32 compare_string_utf8(String_Const_utf8 a, String_Const_utf8 b, u64 size);
 internal b32 compare_string_utf8(String_Const_utf8 a, String_Const_utf8 b);
 
 internal u64 c_string_length(char *string);
@@ -18,11 +19,33 @@ internal String_Const_char string_const_char(char *string);
 internal String_Const_utf16 string_const_utf16(utf16 *string);
 internal u64 base64_encode(u8 *out_buffer, u8 *data, u64 data_length);
 
+internal String_Const_utf8 concat_str(Arena *arena, String_Const_utf8 a, String_Const_utf8 b, u64 size);
+
 // Implementation
 internal b32 is_newline(char c)
 {
   b32 result = ((c == '\r') || 
                 (c == '\n'));
+  return(result);
+}
+
+internal b32 compare_string_utf8(String_Const_utf8 a, String_Const_utf8 b, u64 size)
+{
+  b32 result = true;
+
+  expect(a.size >= size);
+  expect(b.size >= size);
+
+  for (u64 index = 0;
+       index < size;
+       ++index)
+  {
+    if (a.str[index] != b.str[index])
+    {
+      result = false;
+      break;
+    }
+  }
   return(result);
 }
 
@@ -161,6 +184,28 @@ internal u64 base64_encode(u8 *out_buffer,
 
   return(result);
 }
+
+internal String_Const_utf8 concat_str(Arena *arena, String_Const_utf8 a, String_Const_utf8 b, u64 size)
+{
+  String_Const_utf8 res = {};
+
+  expect(size >= (a.size + b.size));
+
+  res.str  = push_array_zero(arena, utf8, size);
+  res.size = size;
+
+  expect(res.str != NULL);
+
+  copy_string(res.str, a);
+  copy_string(&res.str[a.size], b);
+
+  expect(compare_string_utf8(res, a, a.size));
+  expect(compare_string_utf8({&res.str[a.size], res.size - a.size}, b, b.size));
+
+  return(res);
+}
+#define concat_string(arena, a, b) concat_str(arena, (a), (b), (a).size + (b).size)
+#define concat_string_to_c_string(arena, a, b) concat_str(arena, (a), (b), (a).size + (b).size + 1)
 
 #define TRADER_STRING_H
 #endif

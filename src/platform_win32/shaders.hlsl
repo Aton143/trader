@@ -9,7 +9,8 @@ struct VS_Input
   float2 top_left:             INSTANCE_SIZE0;
   float2 bottom_right:         INSTANCE_SIZE1;
 
-  float4 color:                INSTANCE_COLOR;
+  float4 color[4]:             INSTANCE_COLOR;
+
   float3 position:             INSTANCE_POSITION;
 
   float2 texture_top_left:     INSTANCE_UV0;
@@ -81,7 +82,8 @@ PS_Input VS_Main(VS_Input input)
 
   output.uv = float2(unnorm_uv_position.x / texture_width,
                      unnorm_uv_position.y / texture_height);
-  output.color = input.color;
+
+  output.color = input.color[input.vertex_id];
 
   return output;
 }

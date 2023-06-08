@@ -1037,7 +1037,10 @@ internal void render_draw_text(f32 *baseline_x, f32 *baseline_y, RGBA_f32 color,
         (f32) cur_packed_char->y1,
       };
 
-      cur_element->color = color;
+      cur_element->color[0] = color;
+      cur_element->color[1] = color;
+      cur_element->color[2] = color;
+      cur_element->color[3] = color;
 
       f32 kern_advance = 0.0f;
       if (text_index < (sprinted_text.size - 1))

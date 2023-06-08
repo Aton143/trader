@@ -15,7 +15,7 @@ struct Constant_Buffer
 struct Instance_Buffer_Element
 {
   Rect_f32  size;
-  RGBA_f32  color;
+  RGBA_f32  color[4];
   V3_f32    pos;
   Rect_f32  uv;
 };

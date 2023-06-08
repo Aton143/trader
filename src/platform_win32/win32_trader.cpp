@@ -551,6 +551,21 @@ WinMain(HINSTANCE instance,
         },
 
         {
+          "INSTANCE_COLOR", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, INSTANCE_BUFFER_SLOT,
+          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1
+        },
+
+        {
+          "INSTANCE_COLOR", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, INSTANCE_BUFFER_SLOT,
+          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1
+        },
+
+        {
+          "INSTANCE_COLOR", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, INSTANCE_BUFFER_SLOT,
+          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1
+        },
+
+        {
           "INSTANCE_POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, INSTANCE_BUFFER_SLOT,
           D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
 
@@ -811,7 +826,7 @@ WinMain(HINSTANCE instance,
       local_persist u64 frame_count = 0;
       frame_count++;
  
-      ui_do_formatted_string("@Last frame time: %.6fs", last_frame_time);
+      ui_do_formatted_string("Last frame time: %.6fs", last_frame_time);
       ui_do_formatted_string("Last frame time in cycles: %lld", last_frame_time_in_cycles);
       ui_do_formatted_string("Frame count: %lld", frame_count);
 
@@ -884,6 +899,22 @@ WinMain(HINSTANCE instance,
       */
 
       ui_do_formatted_string("Mouse wheel delta: (%f, %f)", ui->mouse_wheel_delta.x, ui->mouse_wheel_delta.y);
+
+      ui_do_formatted_string("Active key: %lld", ui->active_key);
+      ui_do_formatted_string("Hot Key: %lld", ui->hot_key);
+
+      ui_do_formatted_string("Interaction Results (%d)", ui->interaction_index);
+
+      for (u32 interaction_index = 0;
+           interaction_index < array_count(ui->interactions);
+           ++interaction_index)
+      {
+        UI_Interaction *cur_interaction = &ui->interactions[interaction_index];
+        ui_do_formatted_string("Key: %d, Value: %d, Frames Left: %d",
+                               (i32) cur_interaction->key,
+                               (i32) cur_interaction->event,
+                               (i32) cur_interaction->frames_left);
+      }
 
       ui_pop_background_color();
       ui_push_background_color(1.0f, 0.0f, 0.0f, 1.0f);
@@ -990,25 +1021,24 @@ WinMain(HINSTANCE instance,
       ui->mouse_wheel_delta = {0.0f, 0.0f};
       ui->prev_frame_mouse_event = ui->cur_frame_mouse_event;
 
-      ui->prev_frame_hot_key     = ui->hot_key;
-      ui->hot_key = nil_key;
-
       u32 interaction_next_available = 0;
 
       for (u32 interaction_index = 0;
-           interaction_index < ui->interaction_index;
+           interaction_index < array_count(ui->interactions);
            ++interaction_index) 
       {
         ui->interactions[interaction_index].frames_left--;
         if (ui->interactions[interaction_index].frames_left > 0)
         {
-          ui->interactions[interaction_next_available] = ui->interactions[interaction_index];
+          ui->interactions[interaction_next_available++] = ui->interactions[interaction_index];
         }
         else if (ui->interactions[interaction_index].frames_left < 0)
         {
           ui->interactions[interaction_index] = {};
         }
       }
+
+      ui->interaction_index = interaction_next_available;
 
       {
         u64 cur_pts = platform_get_processor_time_stamp();

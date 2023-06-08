@@ -34,7 +34,8 @@ internal void ui_initialize_frame(void)
   ui->text_height            = default_text_height;
   ui->text_gutter_dim        = default_text_gutter_dim;
   ui->text_color             = default_text_color;
-  ui->background_color       = default_background_color;
+
+  copy_memory_block(ui->background_color, (void *) default_background_color, sizeof(default_background_color));
 
   ui->max_widget_count       = (u32) (ui->widget_memory_size / sizeof(Widget));
   ui->current_widget_count   = 1;
@@ -78,13 +79,17 @@ internal void ui_push_background_color(f32 r, f32 g, f32 b, f32 a)
          is_between_inclusive(0.0f, a, 1.0f));
 
   UI_Context *ui = ui_get_context();
-  ui->background_color = rgba(r, g, b, a);
+
+  ui->background_color[0] = rgba(r, g, b, a);
+  ui->background_color[1] = rgba(r, g, b, a);
+  ui->background_color[2] = rgba(r, g, b, a);
+  ui->background_color[3] = rgba(r, g, b, a);
 }
 
 internal void ui_pop_background_color()
 {
   UI_Context *ui = ui_get_context();
-  ui->background_color = default_background_color;
+  copy_memory_block(ui->background_color, (void *) default_background_color, sizeof(default_background_color));
 }
 
 internal void ui_push_parent(Widget *widget)
@@ -203,6 +208,11 @@ internal b32 ui_do_button(String_Const_utf8 string)
     }
   }
 
+  button_text_parent->background_color[0] = rgba(0.0f, 0.0f, 0.0f, 1.0f);
+  button_text_parent->background_color[1] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+  button_text_parent->background_color[2] = rgba(0.0f, 0.0f, 0.0f, 1.0f);
+  button_text_parent->background_color[3] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+
   return(result);
 }
 
@@ -310,9 +320,10 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
     widget->size_flags       = size_flags;
     widget->string           = string;
     widget->text_color       = ui->text_color;
-    widget->background_color = ui->background_color;
     widget->time_alive       = ui->widget_time_alive;
     widget->key              = ui_make_key(string);
+
+    copy_memory_block(widget->background_color, ui->background_color, sizeof(ui->background_color));
   }
 }
 
@@ -513,6 +524,8 @@ internal void ui_prepare_render(void)
       first_child = ui->allocated_widgets->first_child;
     }
 
+    b32 hot_key_should_be_kept = false;
+
     // NOTE(antonio): create draw calls in parent->child level traversal
     while (widget_queue.read != widget_queue.write)
     {
@@ -529,15 +542,32 @@ internal void ui_prepare_render(void)
           b32 mouse_left_went_up = mouse_left_change && ((ui->cur_frame_mouse_event & mouse_event_lclick) == 0);
           if (mouse_left_went_up)
           {
-            if (ui_is_key_equal(ui->prev_frame_hot_key, cur_widget->key))
+            if (ui_is_key_equal(ui->hot_key, cur_widget->key))
             {
-              ui->interactions[ui->interaction_index++] = {cur_widget->key, 0, 60};
+              b32 interaction_already_recorded = false;
+
+              for (u32 interaction_index = 0;
+                   interaction_index < array_count(ui->interactions);
+                   ++interaction_index) 
+              {
+                UI_Interaction *cur_interaction = &ui->interactions[interaction_index];
+                if (cur_interaction->key == cur_widget->key)
+                {
+                  interaction_already_recorded = true;
+                  break;
+                }
+              }
+
+              if (!interaction_already_recorded)
+              {
+                ui->interactions[ui->interaction_index++] = {cur_widget->key, 0, 2};
+              }
             }
 
             ui->active_key = nil_key;
           }
         }
-        else if (ui_is_key_equal(ui->prev_frame_hot_key, cur_widget->key))
+        else if (ui_is_key_equal(ui->hot_key, cur_widget->key))
         {
           b32 mouse_left_went_down = mouse_left_change && (ui->cur_frame_mouse_event & mouse_event_lclick);
           if (mouse_left_went_down)
@@ -551,10 +581,21 @@ internal void ui_prepare_render(void)
         if (is_between_inclusive(cur_widget->rectangle.x0, mouse_pos.x, cur_widget->rectangle.x1) && 
             is_between_inclusive(cur_widget->rectangle.y0, mouse_pos.y, cur_widget->rectangle.y1))
         {
-          if ((ui->active_key == nil_key) || (ui->prev_frame_hot_key != cur_widget->key))
+          if (ui->active_key == nil_key)
           {
             ui->hot_key = cur_widget->key;
           }
+
+          hot_key_should_be_kept = true;
+
+          RGBA_f32 top_left  = cur_widget->background_color[0];
+          RGBA_f32 top_right = cur_widget->background_color[2];
+
+          cur_widget->background_color[0] = cur_widget->background_color[1];
+          cur_widget->background_color[2] = cur_widget->background_color[3];
+
+          cur_widget->background_color[1] = top_left;
+          cur_widget->background_color[3] = top_right;
         }
       }
 
@@ -562,7 +603,7 @@ internal void ui_prepare_render(void)
       {
         Instance_Buffer_Element *draw_call = push_struct(&render->render_data, Instance_Buffer_Element);
 
-        draw_call->color = cur_widget->background_color;
+        copy_memory_block(draw_call->color, cur_widget->background_color, sizeof(cur_widget->background_color));
 
         draw_call->size = 
         {
@@ -604,6 +645,11 @@ internal void ui_prepare_render(void)
         ring_buffer_append(&widget_queue, &cur_child, sizeof(Widget *));
         first_child = cur_widget->first_child;
       }
+    }
+
+    if (!hot_key_should_be_kept)
+    {
+      ui->hot_key = nil_key;
     }
   }
 }

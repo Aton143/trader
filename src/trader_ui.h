@@ -85,7 +85,14 @@ struct Widget
   String_Const_utf8 string;
 
   RGBA_f32          text_color;
-  RGBA_f32          background_color;
+
+  // NOTE(antonio): 
+  //   0 - top-left
+  //   1 - bottom-left
+  //   2 - top-right
+  //   3 - bottom-right
+
+  RGBA_f32          background_color[4];
   f32               font_height;
 
   // NOTE(antonio): computed every frame
@@ -99,12 +106,19 @@ struct Widget
   f32               time_alive;
 };
 
-global_const f32      default_text_height      = 24.0f;
-global_const V2_i16   default_text_gutter_dim  = {2, 0};
-global_const RGBA_f32 default_text_color       = rgba(1.0f, 1.0f, 1.0f, 1.0);
-global_const RGBA_f32 default_background_color = rgba(1.0f, 1.0f, 1.0f, 1.0);
-global_const u64      default_widget_count     = 4096;
-global_const u64      default_string_pool_size = kb(16);
+global_const f32      default_text_height         = 24.0f;
+global_const V2_i16   default_text_gutter_dim     = {2, 0};
+global_const RGBA_f32 default_text_color          = rgba(1.0f, 1.0f, 1.0f, 1.0);
+global_const u64      default_widget_count        = 4096;
+global_const u64      default_string_pool_size    = kb(16);
+
+global_const RGBA_f32 default_background_color[4] =
+{
+  rgba(1.0f, 1.0f, 1.0f, 1.0),
+  rgba(1.0f, 1.0f, 1.0f, 1.0),
+  rgba(1.0f, 1.0f, 1.0f, 1.0),
+  rgba(1.0f, 1.0f, 1.0f, 1.0)
+};
 
 typedef u32 Mouse_Area;
 enum
@@ -129,9 +143,9 @@ enum
 
 struct UI_Context
 {
-  UI_Key      hot_key;            // NOTE(antonio): about to interact
-  UI_Key      prev_frame_hot_key; // NOTE(antonio): about to interact
-  UI_Key      active_key;         // NOTE(antonio): interacting
+  // NOTE(antonio): only one can be active at any given time
+  UI_Key      hot_key;    // NOTE(antonio): about to interact
+  UI_Key      active_key; // NOTE(antonio): interacting
 
   Widget     *current_parent;
 
@@ -161,7 +175,7 @@ struct UI_Context
 
   f32         text_height;
   RGBA_f32    text_color;
-  RGBA_f32    background_color;
+  RGBA_f32    background_color[4];
 
   UI_Interaction    interactions[4];
   u32               interaction_index;

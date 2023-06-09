@@ -1083,13 +1083,16 @@ WinMain(HINSTANCE instance,
 
         device_context->Map(copy_frame_buffer_texture, 0, D3D11_MAP_READ, 0, NULL);
 
-        u32 *data = push_array_zero(temp_arena, u32, width * height);
+        u32 *data = push_array(temp_arena, u32, width * height);
         device->ReadFromSubresource(data, width * 4, width * height * 4, copy_frame_buffer_texture, 0, NULL);
 
         int write_result = stbi_write_png("./debug/framebuffer.png", width, height, 4, data, width * 4);
         expect(write_result);
 
         device_context->Unmap(copy_frame_buffer_texture, 0);
+
+        safe_release(copy_frame_buffer_rtv);
+
         save_current_frame_buffer = false;
       }
 #endif

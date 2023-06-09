@@ -312,7 +312,7 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
       widget->computed_size_in_pixels =
       {
         content_width   + (f32) (2 * ui->text_gutter_dim.x),
-        ui->text_height + (f32) (2 * ui->text_gutter_dim.y)
+        ui->text_height // + (f32) (/*2 * */ui->text_gutter_dim.y)
       };
     }
 
@@ -587,7 +587,10 @@ internal void ui_prepare_render(void)
           }
 
           hot_key_should_be_kept = true;
+        }
 
+        if ((cur_widget->key == ui->active_key) && (cur_widget->key == ui->hot_key))
+        {
           RGBA_f32 top_left  = cur_widget->background_color[0];
           RGBA_f32 top_right = cur_widget->background_color[2];
 
@@ -630,8 +633,8 @@ internal void ui_prepare_render(void)
 
       if (cur_widget->widget_flags & widget_flag_draw_text)
       {
-        f32 x        = cur_widget->rectangle.x0 + ui->text_gutter_dim.x;
-        f32 baseline = cur_widget->rectangle.y0 + ui->text_height;
+        f32 x        = cur_widget->rectangle.x0 + ((f32) ui->text_gutter_dim.x);
+        f32 baseline = cur_widget->rectangle.y0 + ui->text_height - ((f32) ui->text_gutter_dim.y);
 
         set_temp_arena_wait(1);
         render_draw_text(&x, &baseline, cur_widget->text_color, cur_widget->string.str);

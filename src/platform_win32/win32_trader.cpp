@@ -16,7 +16,7 @@
 
 #define TLS_MAX_PACKET_SIZE (16384 + 512)
 
-#include <d3d11_1.h>
+#include <d3d11_3.h>
 #include <d3dcompiler.h>
 
 #pragma comment(lib, "Kernel32.lib")
@@ -399,7 +399,10 @@ WinMain(HINSTANCE instance,
   if (ShowWindow(win32_global_state.window_handle, SW_NORMAL) && UpdateWindow(win32_global_state.window_handle))
   {
     // NOTE(antonio): initializing Direct3D 11
-    ID3D11Device1 *device = NULL;
+    ID3D11Device1 *device1 = NULL;
+    ID3D11Device2 *device2 = NULL;
+    ID3D11Device3 *device  = NULL;
+
     ID3D11DeviceContext1 *device_context = NULL;
     {
       ID3D11Device *base_device = NULL;
@@ -425,9 +428,17 @@ WinMain(HINSTANCE instance,
         return GetLastError();
       }
 
-      result = base_device->QueryInterface(__uuidof(ID3D11Device1), (void **) &device);
+      result = base_device->QueryInterface(__uuidof(ID3D11Device1), (void **) &device1);
       expect(SUCCEEDED(result));
       base_device->Release();
+
+      result = device1->QueryInterface(__uuidof(ID3D11Device2), (void **) &device2);
+      expect(SUCCEEDED(result));
+      device1->Release();
+
+      result = device2->QueryInterface(__uuidof(ID3D11Device3), (void **) &device);
+      expect(SUCCEEDED(result));
+      device2->Release();
 
       result = base_device_context->QueryInterface(__uuidof(ID3D11DeviceContext1), (void **) &device_context);
       expect(SUCCEEDED(result));
@@ -479,7 +490,7 @@ WinMain(HINSTANCE instance,
 
       swap_chain_description.Width  = 0;  // use window width
       swap_chain_description.Height = 0;  // use window height
-      swap_chain_description.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+      swap_chain_description.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 
       swap_chain_description.SampleDesc.Count   = 1;
       swap_chain_description.SampleDesc.Quality = 0;
@@ -731,6 +742,11 @@ WinMain(HINSTANCE instance,
     ID3D11Texture2D        *depth_stencil_texture = NULL;
     ID3D11DepthStencilView *depth_stencil_view = NULL;
 
+#if !SHIP_MODE
+    b32              save_current_frame_buffer = false;
+    ID3D11Texture2D *copy_frame_buffer_texture = NULL;
+#endif
+
     UI_Context *ui = &win32_global_state.ui_context;
     unused(ui);
 
@@ -779,8 +795,8 @@ WinMain(HINSTANCE instance,
 
         frame_buffer->Release();
 
-        depth_stencil_texture = NULL;
         safe_release(depth_stencil_texture);
+        depth_stencil_texture = NULL;
         {
           D3D11_TEXTURE2D_DESC depth_stencil_texture_desc = {};
 
@@ -802,8 +818,8 @@ WinMain(HINSTANCE instance,
           // expect(SUCCEEDED(result));
         }
 
-        depth_stencil_view = NULL;
         safe_release(depth_stencil_view);
+        depth_stencil_view = NULL;
         {
           D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc = {};
 
@@ -816,6 +832,30 @@ WinMain(HINSTANCE instance,
                                                   &depth_stencil_view);
           // expect(SUCCEEDED(result));
         } 
+
+#if !SHIP_MODE
+        safe_release(copy_frame_buffer_texture);
+        copy_frame_buffer_texture = NULL;
+        {
+          D3D11_TEXTURE2D_DESC copy_frame_buffer_texture_desc = {};
+
+          Rect_f32 client_rect = render_get_client_rect();
+
+          copy_frame_buffer_texture_desc.Width              = (UINT) client_rect.x1;
+          copy_frame_buffer_texture_desc.Height             = (UINT) client_rect.y1;
+          copy_frame_buffer_texture_desc.MipLevels          = 1;
+          copy_frame_buffer_texture_desc.ArraySize          = 1;
+          copy_frame_buffer_texture_desc.Format             = DXGI_FORMAT_R8G8B8A8_UNORM;
+          copy_frame_buffer_texture_desc.SampleDesc.Count   = 1;
+          copy_frame_buffer_texture_desc.SampleDesc.Quality = 0;
+          copy_frame_buffer_texture_desc.Usage              = D3D11_USAGE_DEFAULT;
+          copy_frame_buffer_texture_desc.BindFlags          = D3D11_BIND_RENDER_TARGET;
+          copy_frame_buffer_texture_desc.CPUAccessFlags     = D3D11_CPU_ACCESS_READ;
+          copy_frame_buffer_texture_desc.MiscFlags          = 0;
+
+          result = device->CreateTexture2D(&copy_frame_buffer_texture_desc, NULL, &copy_frame_buffer_texture);
+        }
+#endif
       }
 
       platform_collect_notifications();
@@ -830,7 +870,10 @@ WinMain(HINSTANCE instance,
       ui_do_formatted_string("Last frame time in cycles: %lld", last_frame_time_in_cycles);
       ui_do_formatted_string("Frame count: %lld", frame_count);
 
-      ui_do_string(text_to_render);
+      if (ui_do_button(string_literal_init_type("click here to save frame buffer", utf8)))
+      {
+        save_current_frame_buffer = true;
+      }
 
       /*
       local_persist b32 wait_after_first_frame = false;
@@ -1012,6 +1055,44 @@ WinMain(HINSTANCE instance,
       arena_reset(&win32_global_state.render_context.render_data);
 
       meta_collate_timing_records();
+
+#if !SHIP_MODE
+      if (save_current_frame_buffer)
+      {
+        ID3D11RenderTargetView* copy_frame_buffer_rtv = NULL;
+        {
+          D3D11_RENDER_TARGET_VIEW_DESC copy_frame_buffer_rtv_desc = {};
+
+          copy_frame_buffer_rtv_desc.Format             = DXGI_FORMAT_R8G8B8A8_UNORM;
+          copy_frame_buffer_rtv_desc.ViewDimension      = D3D11_RTV_DIMENSION_TEXTURE2D;
+          copy_frame_buffer_rtv_desc.Texture2D.MipSlice = 0;
+
+          device->CreateRenderTargetView(copy_frame_buffer_texture,
+                                         &copy_frame_buffer_rtv_desc,
+                                         &copy_frame_buffer_rtv);
+        }
+
+        device_context->OMSetRenderTargets(1, &copy_frame_buffer_rtv, depth_stencil_view);
+        device_context->ClearRenderTargetView(copy_frame_buffer_rtv, background_color);
+        device_context->ClearDepthStencilView(depth_stencil_view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0, 0);
+        device_context->DrawInstanced(4, draw_call_count, 0, 0);
+
+        Arena *temp_arena = get_temp_arena();
+        UINT width  = (UINT) render_get_client_rect().x1;
+        UINT height = (UINT) render_get_client_rect().y1;
+
+        device_context->Map(copy_frame_buffer_texture, 0, D3D11_MAP_READ, 0, NULL);
+
+        u32 *data = push_array_zero(temp_arena, u32, width * height);
+        device->ReadFromSubresource(data, width * 4, width * height * 4, copy_frame_buffer_texture, 0, NULL);
+
+        int write_result = stbi_write_png("./debug/framebuffer.png", width, height, 4, data, width * 4);
+        expect(write_result);
+
+        device_context->Unmap(copy_frame_buffer_texture, 0);
+        save_current_frame_buffer = false;
+      }
+#endif
 
       swap_chain->Present(1, 0);
 

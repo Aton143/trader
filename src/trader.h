@@ -10,6 +10,7 @@ struct Render_Context;
 
 #define TRADER_VERSION 1LL
 #include "trader_base_defines.h"
+#include "trader_math.h"
 #include "trader_meta.h"
 
 #include "trader_memory.h"
@@ -18,6 +19,9 @@ struct Render_Context;
 
 #define STB_SPRINTF_IMPLEMENTATION
 #include "./foreign/stb_sprintf.h"
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "./foreign/stb_image_write.h"
 
 #include "trader_render.h"
 #include "trader_font.h"

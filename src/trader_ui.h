@@ -107,7 +107,7 @@ struct Widget
 };
 
 global_const f32      default_text_height         = 24.0f;
-global_const V2_i16   default_text_gutter_dim     = {2, 0};
+global_const V2_i16   default_text_gutter_dim     = {2, 4};
 global_const RGBA_f32 default_text_color          = rgba(1.0f, 1.0f, 1.0f, 1.0);
 global_const u64      default_widget_count        = 4096;
 global_const u64      default_string_pool_size    = kb(16);

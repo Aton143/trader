@@ -45,7 +45,46 @@ internal void ui_initialize_frame(void)
   ui->current_parent         = sentinel_widget;
 
   ui->drag_delta             = {0.0f, 0.0f};
-  ui->widget_time_alive      = 0.0f;
+
+  default_persistent_data    = {};
+}
+
+internal void ui_update_persistent_data(Persistent_Widget_Data *data)
+{
+  UI_Context *ui  = ui_get_context();
+  for (u32 pers_index = 0;
+       pers_index < array_count(ui->persistent_data);
+       ++pers_index)
+  {
+    Persistent_Widget_Data *cur_pers = &ui->persistent_data[pers_index];
+    if (cur_pers->key != data->key)
+    {
+      copy_struct(cur_pers, data);
+    }
+  }
+}
+
+internal Persistent_Widget_Data *ui_search_persistent_data(Widget *widget)
+{
+  UI_Context             *ui     = ui_get_context();
+  Persistent_Widget_Data *result = &default_persistent_data;
+
+  copy_memory_block(&result->background_color,
+                    (void *) widget->end_background_color,
+                    sizeof(result->background_color));
+
+  for (u32 pers_index = 0;
+       pers_index < array_count(ui->persistent_data);
+       ++pers_index)
+  {
+    Persistent_Widget_Data *cur_pers = &ui->persistent_data[pers_index];
+    if (cur_pers->key == widget->key)
+    {
+      result = cur_pers;
+    }
+  }
+
+  return(result);
 }
 
 internal void ui_set_text_height(f32 height)
@@ -208,10 +247,10 @@ internal b32 ui_do_button(String_Const_utf8 string)
     }
   }
 
-  button_text_parent->background_color[0] = rgba(0.0f, 0.0f, 0.0f, 1.0f);
-  button_text_parent->background_color[1] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
-  button_text_parent->background_color[2] = rgba(0.0f, 0.0f, 0.0f, 1.0f);
-  button_text_parent->background_color[3] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+  button_text_parent->end_background_color[0] = rgba(0.0f, 0.0f, 0.0f, 1.0f);
+  button_text_parent->end_background_color[1] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+  button_text_parent->end_background_color[2] = rgba(0.0f, 0.0f, 0.0f, 1.0f);
+  button_text_parent->end_background_color[3] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
 
   return(result);
 }
@@ -320,7 +359,6 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
     widget->size_flags       = size_flags;
     widget->string           = string;
     widget->text_color       = ui->text_color;
-    widget->time_alive       = ui->widget_time_alive;
     widget->key              = ui_make_key(string);
 
     copy_memory_block(widget->background_color, ui->background_color, sizeof(ui->background_color));
@@ -329,9 +367,10 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
 
 internal void ui_prepare_render(void)
 {
-  Arena          *temp_arena = get_temp_arena();
-  UI_Context     *ui         = ui_get_context();
-  Render_Context *render     = render_get_context();
+  Global_Platform_State *global_state = platform_get_global_state();
+  Arena                 *temp_arena   = get_temp_arena();
+  UI_Context            *ui           = ui_get_context();
+  Render_Context        *render       = render_get_context();
 
   u64 ring_buffer_size       = temp_arena->size / 2;
 
@@ -589,16 +628,27 @@ internal void ui_prepare_render(void)
           hot_key_should_be_kept = true;
         }
 
+        RGBA_f32 saved_background_color[4];
+        copy_memory_block((void *) saved_background_color,
+                          (void *) cur_widget->end_background_color,
+                          sizeof(saved_background_color));
+
         if ((cur_widget->key == ui->active_key) && (cur_widget->key == ui->hot_key))
         {
-          RGBA_f32 top_left  = cur_widget->background_color[0];
-          RGBA_f32 top_right = cur_widget->background_color[2];
+          cur_widget->end_background_color[0] = cur_widget->end_background_color[1];
+          cur_widget->end_background_color[2] = cur_widget->end_background_color[3];
 
-          cur_widget->background_color[0] = cur_widget->background_color[1];
-          cur_widget->background_color[2] = cur_widget->background_color[3];
+          cur_widget->end_background_color[1] = saved_background_color[0];
+          cur_widget->end_background_color[3] = saved_background_color[2];
+        }
+        else
+        {
+          Persistent_Widget_Data pers_data = {cur_widget->key};
+          copy_memory_block(&pers_data.background_color,
+                            (void *) saved_background_color,
+                            sizeof(pers_data.background_color));
 
-          cur_widget->background_color[1] = top_left;
-          cur_widget->background_color[3] = top_right;
+          ui_update_persistent_data(&pers_data);
         }
       }
 
@@ -606,7 +656,16 @@ internal void ui_prepare_render(void)
       {
         Instance_Buffer_Element *draw_call = push_struct(&render->render_data, Instance_Buffer_Element);
 
-        copy_memory_block(draw_call->color, cur_widget->background_color, sizeof(cur_widget->background_color));
+        Persistent_Widget_Data *found_data = ui_search_persistent_data(cur_widget);
+        f32 t = 1 - fast_powf(2.0f, -4.0f * ((f32) global_state->dt));
+
+        // NOTE(antonio): I KNOW
+       found_data->background_color[0] = lerp(found_data->background_color[0], t, cur_widget->end_background_color[0]);
+       found_data->background_color[1] = lerp(found_data->background_color[1], t, cur_widget->end_background_color[1]);
+       found_data->background_color[2] = lerp(found_data->background_color[2], t, cur_widget->end_background_color[2]);
+       found_data->background_color[3] = lerp(found_data->background_color[3], t, cur_widget->end_background_color[3]);
+
+        copy_memory_block(draw_call->color, found_data->background_color, sizeof(found_data->background_color));
 
         draw_call->size = 
         {

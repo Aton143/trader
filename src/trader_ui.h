@@ -56,13 +56,6 @@ enum
 typedef u64 UI_Key;
 global_const UI_Key nil_key = 0;
 
-struct UI_Interaction
-{
-  UI_Key key;
-  u32    event;
-  i32    frames_left;
-};
-
 struct Widget
 {
   Widget          *first_child;
@@ -91,8 +84,9 @@ struct Widget
   //   1 - bottom-left
   //   2 - top-right
   //   3 - bottom-right
-
   RGBA_f32          background_color[4];
+  RGBA_f32          end_background_color[4];
+
   f32               font_height;
 
   // NOTE(antonio): computed every frame
@@ -106,18 +100,17 @@ struct Widget
   f32               time_alive;
 };
 
-global_const f32      default_text_height         = 24.0f;
-global_const V2_i16   default_text_gutter_dim     = {2, 4};
-global_const RGBA_f32 default_text_color          = rgba(1.0f, 1.0f, 1.0f, 1.0);
-global_const u64      default_widget_count        = 4096;
-global_const u64      default_string_pool_size    = kb(16);
-
-global_const RGBA_f32 default_background_color[4] =
+struct UI_Interaction
 {
-  rgba(1.0f, 1.0f, 1.0f, 1.0),
-  rgba(1.0f, 1.0f, 1.0f, 1.0),
-  rgba(1.0f, 1.0f, 1.0f, 1.0),
-  rgba(1.0f, 1.0f, 1.0f, 1.0)
+  UI_Key key;
+  u32    event;
+  i32    frames_left;
+};
+
+struct Persistent_Widget_Data
+{
+  UI_Key   key;
+  RGBA_f32 background_color[4];
 };
 
 typedef u32 Mouse_Area;
@@ -171,14 +164,16 @@ struct UI_Context
   V2_f32      drag_delta;
   V2_f32      mouse_wheel_delta;
 
-  f32         widget_time_alive;
-
   f32         text_height;
   RGBA_f32    text_color;
   RGBA_f32    background_color[4];
 
   UI_Interaction    interactions[4];
   u32               interaction_index;
+
+  // TODO(antonio): when does this get cleared?
+  Persistent_Widget_Data persistent_data[4];
+
   /*
   b8          clicked;
   b8          double_clicked;
@@ -193,11 +188,30 @@ struct UI_Context
 #include "trader_platform.h"
 #include "trader_render.h"
 
+global_const f32      default_text_height         = 24.0f;
+global_const V2_i16   default_text_gutter_dim     = {2, 4};
+global_const RGBA_f32 default_text_color          = rgba(1.0f, 1.0f, 1.0f, 1.0);
+global_const u64      default_widget_count        = 4096;
+global_const u64      default_string_pool_size    = kb(16);
+
+global Persistent_Widget_Data default_persistent_data = {};
+global_const RGBA_f32 default_background_color[4] =
+{
+  rgba(1.0f, 1.0f, 1.0f, 1.0),
+  rgba(1.0f, 1.0f, 1.0f, 1.0),
+  rgba(1.0f, 1.0f, 1.0f, 1.0),
+  rgba(1.0f, 1.0f, 1.0f, 1.0)
+};
+
+
 internal UI_Context *ui_get_context(void);
 internal Widget     *ui_get_sentinel(void);
 
 internal void ui_initialize_frame(void);
 internal void ui_prepare_render(void);
+
+internal void ui_update_persistent_data(Persistent_Widget_Data *data);
+internal Persistent_Widget_Data *ui_search_persistent_data(Widget *widget);
 
 internal void ui_set_text_height(f32 height);
 

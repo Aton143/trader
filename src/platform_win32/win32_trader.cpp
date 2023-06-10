@@ -246,6 +246,7 @@ WinMain(HINSTANCE instance,
   rng_init();
 
 #if !SHIP_MODE
+  ID3D11Debug *debug = NULL;
   meta_init();
 #endif
 
@@ -446,7 +447,6 @@ WinMain(HINSTANCE instance,
     }
 
 #if !SHIP_MODE
-    ID3D11Debug *debug = NULL;
     device->QueryInterface(__uuidof(ID3D11Debug), (void **) &debug);
     if (debug)
     {
@@ -875,36 +875,6 @@ WinMain(HINSTANCE instance,
         save_current_frame_buffer = true;
       }
 
-      /*
-      local_persist b32 wait_after_first_frame = false;
-      local_persist f32 time_to_wait = 2.0f;
-      local_persist f32 time_on_screen = 0.0f;
-
-      if (wait_after_first_frame)
-      {
-        if (time_to_wait > 0.0f) 
-        {
-          time_to_wait -= (f32) last_frame_time;
-        }
-
-        if (time_to_wait < 0.0f)
-        {
-          time_to_wait = 0.0f;
-          time_on_screen = 4.0f;
-        }
-
-        if (time_on_screen > 0.0f)
-        {
-          ui_do_formatted_string("This will last for another %5.2fs", time_on_screen);
-          time_on_screen -= (f32) last_frame_time;
-        }
-      }
-      else
-      {
-        wait_after_first_frame = true;
-      }
-      */
-
       ui_push_text_color(clamp(0.0f, ui->mouse_pos.x / render_get_client_rect().x1, 1.0f),
                          clamp(0.0f, ui->mouse_pos.y / render_get_client_rect().y1, 1.0f),
                          1.0f, 1.0f);
@@ -925,21 +895,6 @@ WinMain(HINSTANCE instance,
       }
 
       ui_pop_text_color();
-
-      /*
-      if (ui->cur_frame_mouse_event & mouse_event_lclick)
-      {
-        ui_do_string(string_literal_init_type("Mouse left clicked", utf8));
-      }
-      if (ui->cur_frame_mouse_event & mouse_event_rclick)
-      {
-        ui_do_string(string_literal_init_type("Mouse right clicked", utf8));
-      }
-      if (ui->cur_frame_mouse_event & mouse_event_mclick)
-      {
-        ui_do_string(string_literal_init_type("Mouse middle clicked", utf8));
-      }
-      */
 
       ui_do_formatted_string("Mouse wheel delta: (%f, %f)", ui->mouse_wheel_delta.x, ui->mouse_wheel_delta.y);
 
@@ -1059,6 +1014,8 @@ WinMain(HINSTANCE instance,
 #if !SHIP_MODE
       if (save_current_frame_buffer)
       {
+        save_current_frame_buffer = false;
+
         ID3D11RenderTargetView* copy_frame_buffer_rtv = NULL;
         {
           D3D11_RENDER_TARGET_VIEW_DESC copy_frame_buffer_rtv_desc = {};
@@ -1090,10 +1047,7 @@ WinMain(HINSTANCE instance,
         expect(write_result);
 
         device_context->Unmap(copy_frame_buffer_texture, 0);
-
         safe_release(copy_frame_buffer_rtv);
-
-        save_current_frame_buffer = false;
       }
 #endif
 
@@ -1136,6 +1090,10 @@ WinMain(HINSTANCE instance,
       }
     }
   }
+
+#if !SHIP_MODE
+  debug->ReportLiveDeviceObjects(D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL);
+#endif
 
   return(0);
 }

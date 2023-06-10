@@ -1,5 +1,8 @@
 #ifndef TRADER_PLATFORM_H
 
+// TODO(antonio): this is really dumb
+typedef u32 Key_Event;
+
 internal Global_Platform_State *platform_get_global_state(void);
 
 internal void platform_print(const char *format, ...);
@@ -26,6 +29,8 @@ internal u64 platform_get_high_precision_timer(void);
 internal u64 platform_get_processor_time_stamp(void);
 
 internal double platform_convert_high_precision_time_to_seconds(u64 high_precision_time);
+
+internal Key_Event platform_convert_key_to_our_key(u64 key_value);
 
 #define TRADER_PLATFORM_H
 #endif

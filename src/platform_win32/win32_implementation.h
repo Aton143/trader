@@ -1081,5 +1081,144 @@ internal double platform_convert_high_precision_time_to_seconds(u64 hpt)
   return(result);
 }
 
+#define TRADER_VK_ENTER (VK_RETURN + 256)
+internal Key_Event platform_convert_key_to_our_key(u64 key_value)
+{
+    switch (key_value)
+    {
+        case VK_TAB:             return key_event_tab;
+        case VK_LEFT:            return key_event_left_arrow;
+        case VK_RIGHT:           return key_event_right_arrow;
+        case VK_UP:              return key_event_up_arrow;
+        case VK_DOWN:            return key_event_down_arrow;
+        case VK_PRIOR:           return key_event_page_up;
+        case VK_NEXT:            return key_event_page_down;
+        case VK_HOME:            return key_event_home;
+        case VK_END:             return key_event_end;
+        case VK_INSERT:          return key_event_insert;
+        case VK_DELETE:          return key_event_delete;
+        case VK_BACK:            return key_event_backspace;
+        case VK_SPACE:           return key_event_space;
+        case VK_RETURN:          return key_event_enter;
+        case VK_ESCAPE:          return key_event_escape;
+        case VK_OEM_7:           return key_event_apostrophe;
+        case VK_OEM_COMMA:       return key_event_comma;
+        case VK_OEM_MINUS:       return key_event_minus;
+        case VK_OEM_PERIOD:      return key_event_period;
+        case VK_OEM_2:           return key_event_slash;
+        case VK_OEM_1:           return key_event_semicolon;
+        case VK_OEM_PLUS:        return key_event_equal;
+        case VK_OEM_4:           return key_event_left_bracket;
+        case VK_OEM_5:           return key_event_backslash;
+        case VK_OEM_6:           return key_event_right_bracket;
+        case VK_OEM_3:           return key_event_grave_accent;
+        case VK_CAPITAL:         return key_event_caps_lock;
+        case VK_SCROLL:          return key_event_scroll_lock;
+        case VK_NUMLOCK:         return key_event_num_lock;
+        case VK_SNAPSHOT:        return key_event_print_screen;
+        case VK_PAUSE:           return key_event_pause;
+        case VK_NUMPAD0:         return key_event_keypad_0;
+        case VK_NUMPAD1:         return key_event_keypad_1;
+        case VK_NUMPAD2:         return key_event_keypad_2;
+        case VK_NUMPAD3:         return key_event_keypad_3;
+        case VK_NUMPAD4:         return key_event_keypad_4;
+        case VK_NUMPAD5:         return key_event_keypad_5;
+        case VK_NUMPAD6:         return key_event_keypad_6;
+        case VK_NUMPAD7:         return key_event_keypad_7;
+        case VK_NUMPAD8:         return key_event_keypad_8;
+        case VK_NUMPAD9:         return key_event_keypad_9;
+        case VK_DECIMAL:         return key_event_keypad_decimal;
+        case VK_DIVIDE:          return key_event_keypad_divide;
+        case VK_MULTIPLY:        return key_event_keypad_multiply;
+        case VK_SUBTRACT:        return key_event_keypad_subtract;
+        case VK_ADD:             return key_event_keypad_add;
+        case TRADER_VK_ENTER:    return key_event_keypad_enter;
+        case VK_LSHIFT:          return key_event_left_shift;
+        case VK_LCONTROL:        return key_event_left_ctrl;
+        case VK_LMENU:           return key_event_left_alt;
+        case VK_LWIN:            return key_event_left_super;
+        case VK_RSHIFT:          return key_event_right_shift;
+        case VK_RCONTROL:        return key_event_right_ctrl;
+        case VK_RMENU:           return key_event_right_alt;
+        case VK_RWIN:            return key_event_right_super;
+        case VK_APPS:            return key_event_menu;
+        case '0':                return key_event_0;
+        case '1':                return key_event_1;
+        case '2':                return key_event_2;
+        case '3':                return key_event_3;
+        case '4':                return key_event_4;
+        case '5':                return key_event_5;
+        case '6':                return key_event_6;
+        case '7':                return key_event_7;
+        case '8':                return key_event_8;
+        case '9':                return key_event_9;
+        case 'A':                return key_event_a;
+        case 'B':                return key_event_b;
+        case 'C':                return key_event_c;
+        case 'D':                return key_event_d;
+        case 'E':                return key_event_e;
+        case 'F':                return key_event_f;
+        case 'G':                return key_event_g;
+        case 'H':                return key_event_h;
+        case 'I':                return key_event_i;
+        case 'J':                return key_event_j;
+        case 'K':                return key_event_k;
+        case 'L':                return key_event_l;
+        case 'M':                return key_event_m;
+        case 'N':                return key_event_n;
+        case 'O':                return key_event_o;
+        case 'P':                return key_event_p;
+        case 'Q':                return key_event_q;
+        case 'R':                return key_event_r;
+        case 'S':                return key_event_s;
+        case 'T':                return key_event_t;
+        case 'U':                return key_event_u;
+        case 'V':                return key_event_v;
+        case 'W':                return key_event_w;
+        case 'X':                return key_event_x;
+        case 'Y':                return key_event_y;
+        case 'Z':                return key_event_z;
+        case VK_F1:              return key_event_f1;
+        case VK_F2:              return key_event_f2;
+        case VK_F3:              return key_event_f3;
+        case VK_F4:              return key_event_f4;
+        case VK_F5:              return key_event_f5;
+        case VK_F6:              return key_event_f6;
+        case VK_F7:              return key_event_f7;
+        case VK_F8:              return key_event_f8;
+        case VK_F9:              return key_event_f9;
+        case VK_F10:             return key_event_f10;
+        case VK_F11:             return key_event_f11;
+        case VK_F12:             return key_event_f12;
+        default:                 return key_event_none;
+    }
+}
+
+internal void ui_add_key_event(Key_Event event, b32 is_down)
+{
+  UI_Context *ui = ui_get_context();
+
+  if (event == key_mod_event_control)
+  {
+    ui->mod_keys.control = (b8) is_down;
+  }
+  else if (event == key_mod_event_shift)
+  {
+    ui->mod_keys.shift = (b8) is_down;
+  }
+  else if (event == key_mod_event_alt)
+  {
+    ui->mod_keys.alt = (b8) is_down;
+  }
+  else if (event == key_mod_event_super)
+  {
+    ui->mod_keys.super = (b8) is_down;
+  }
+  else
+  {
+
+  }
+}
+
 #define WIN32_IMPLEMENTATION_H
 #endif

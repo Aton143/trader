@@ -83,6 +83,12 @@ win32_read_clipboard_contents()
   return(result);
 }
 
+internal b32 is_vk_down(i32 vk)
+{
+  b32 vk_down = (GetKeyState(vk) & 0x8000) != 0;
+  return(vk_down);
+}
+
 internal LRESULT
 win32_window_procedure(HWND window_handle, UINT message,
                        WPARAM wparam, LPARAM lparam)
@@ -128,6 +134,14 @@ win32_window_procedure(HWND window_handle, UINT message,
       {
         break;
       }
+
+      ui->mouse_delta = 
+      {
+        (f32) mouse_pos.x - ui->mouse_pos.x,
+        (f32) mouse_pos.y - ui->mouse_pos.y,
+      };
+
+      printf("Mouse delta: %f %f\n", ui->mouse_delta.x, ui->mouse_delta.y);
 
       ui->mouse_pos = 
       {
@@ -199,11 +213,53 @@ win32_window_procedure(HWND window_handle, UINT message,
     case WM_SYSKEYUP:
     case WM_SYSKEYDOWN:
     {
+      b32 is_key_down; is_key_down = ((message == WM_KEYDOWN) || (message == WM_SYSKEYDOWN));
+      if (wparam < 256)
+      {
+        // Submit modifiers
+        ui_add_key_event(key_mod_event_control, is_vk_down(VK_CONTROL));
+        ui_add_key_event(key_mod_event_shift,   is_vk_down(VK_SHIFT));
+        ui_add_key_event(key_mod_event_alt,     is_vk_down(VK_MENU));
+        ui_add_key_event(key_mod_event_super,   is_vk_down(VK_APPS));
 
+        /*
+        // Obtain virtual key code
+        // (keypad enter doesn't have its own... VK_RETURN with KF_EXTENDED flag means keypad enter, see IM_VK_KEYPAD_ENTER definition for details, it is mapped to ImGuiKey_KeyPadEnter.)
+        int vk = (int)wParam;
+        if ((wParam == VK_RETURN) && (HIWORD(lParam) & KF_EXTENDED))
+          vk = IM_VK_KEYPAD_ENTER;
+
+        // Submit key event
+        const ImGuiKey key = ImGui_ImplWin32_VirtualKeyToImGuiKey(vk);
+        const int scancode = (int)LOBYTE(HIWORD(lParam));
+        if (key != ImGuiKey_None)
+          ImGui_ImplWin32_AddKeyEvent(key, is_key_down, vk, scancode);
+
+        // Submit individual left/right modifier events
+        if (vk == VK_SHIFT)
+        {
+          // Important: Shift keys tend to get stuck when pressed together, missing key-up events are corrected in ImGui_ImplWin32_ProcessKeyEventsWorkarounds()
+          if (IsVkDown(VK_LSHIFT) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_LeftShift, is_key_down, VK_LSHIFT, scancode); }
+          if (IsVkDown(VK_RSHIFT) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_RightShift, is_key_down, VK_RSHIFT, scancode); }
+        }
+        else if (vk == VK_CONTROL)
+        {
+          if (IsVkDown(VK_LCONTROL) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_LeftCtrl, is_key_down, VK_LCONTROL, scancode); }
+          if (IsVkDown(VK_RCONTROL) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_RightCtrl, is_key_down, VK_RCONTROL, scancode); }
+        }
+        else if (vk == VK_MENU)
+        {
+          if (IsVkDown(VK_LMENU) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_LeftAlt, is_key_down, VK_LMENU, scancode); }
+          if (IsVkDown(VK_RMENU) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_RightAlt, is_key_down, VK_RMENU, scancode); }
+        }
+        */
+      }
+      /*
       if (wparam == VK_ESCAPE)
       {
         global_running = false;
       }
+      */
     } break;
 
     case WM_SIZE:
@@ -778,7 +834,7 @@ WinMain(HINSTANCE instance,
         DispatchMessage(&message);
       }
 
-      if (global_window_resized)
+      if (global_window_resized && !IsIconic(win32_global_state.window_handle))
       {
         global_window_resized = false;
 
@@ -895,6 +951,7 @@ WinMain(HINSTANCE instance,
       }
 
       ui_do_formatted_string("Mouse position: (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
+      ui_do_formatted_string("Mouse delta: (%.0f, %.0f)", ui->mouse_delta.x, ui->mouse_delta.y);
 
       ui_pop_text_color();
 
@@ -939,7 +996,7 @@ WinMain(HINSTANCE instance,
       ui_pop_background_color();
       ui_push_background_color(1.0f, 0.0f, 0.0f, 1.0f);
 
-      if (ui_do_button(string_literal_init_type("Am I clicked?", utf8)))
+      if (ui_do_button(string_literal_init_type("Click me!", utf8)))
       {
         ui_do_string(string_literal_init_type("That was the good action", utf8));
       }
@@ -1078,6 +1135,7 @@ WinMain(HINSTANCE instance,
       // Post-frame
       win32_global_state.focus_event = focus_event_none;
 
+      ui->mouse_delta = {0.0f, 0.0f};
       ui->mouse_wheel_delta = {0.0f, 0.0f};
       ui->prev_frame_mouse_event = ui->cur_frame_mouse_event;
 
@@ -1099,6 +1157,8 @@ WinMain(HINSTANCE instance,
       }
 
       ui->interaction_index = interaction_next_available;
+
+      zero_array(ui->key_events, u32, ui->key_event_index);
 
       {
         u64 cur_pts = platform_get_processor_time_stamp();

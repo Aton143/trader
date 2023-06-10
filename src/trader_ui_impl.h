@@ -44,8 +44,6 @@ internal void ui_initialize_frame(void)
   ui->allocated_widgets      = sentinel_widget;
   ui->current_parent         = sentinel_widget;
 
-  ui->drag_delta             = {0.0f, 0.0f};
-
   default_persistent_data    = {};
 }
 
@@ -260,6 +258,29 @@ internal b32 ui_do_button(String_Const_utf8 string)
   button_text_parent->end_background_color[3] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
 
   return(result);
+}
+
+internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 minimum, f32 maximum)
+{
+  UI_Context *ui          = ui_get_context();
+  Widget     *last_parent = ui->current_parent;
+
+  expect(in_out_value != NULL);
+  expect(minimum <= maximum);
+
+  String_Const_utf8 slider_parent_to_hash_prefix = string_literal_init_type("slider parent::", utf8);
+  String_Const_utf8 slider_parent_to_hash = concat_string_to_c_string(ui->string_pool, slider_parent_to_hash_prefix, string);
+
+  unused(ui);
+  unused(last_parent);
+  unused(slider_parent_to_hash);
+  unused(in_out_value);
+  unused(minimum);
+  unused(maximum);
+
+  ui_make_widget(widget_flag_draw_background | widget_flag_clickable,
+                 size_flag_content_size_x | size_flag_content_size_y,
+                 slider_parent_to_hash);
 }
 
 internal UI_Key ui_make_key(String_Const_utf8 string)

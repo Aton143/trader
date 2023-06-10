@@ -57,9 +57,10 @@ internal void ui_update_persistent_data(Persistent_Widget_Data *data)
        ++pers_index)
   {
     Persistent_Widget_Data *cur_pers = &ui->persistent_data[pers_index];
-    if (cur_pers->key != data->key)
+    if (cur_pers->key == nil_key)
     {
       copy_struct(cur_pers, data);
+      break;
     }
   }
 }
@@ -361,7 +362,7 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
     widget->text_color       = ui->text_color;
     widget->key              = ui_make_key(string);
 
-    copy_memory_block(widget->background_color, ui->background_color, sizeof(ui->background_color));
+    copy_memory_block(widget->end_background_color, ui->background_color, sizeof(ui->background_color));
   }
 }
 
@@ -573,6 +574,11 @@ internal void ui_prepare_render(void)
 
       if (cur_widget->widget_flags & widget_flag_clickable)
       {
+        RGBA_f32 saved_background_color[4];
+        copy_memory_block((void *) saved_background_color,
+                          (void *) cur_widget->end_background_color,
+                          sizeof(saved_background_color));
+
         b32 mouse_left_change = ((ui->prev_frame_mouse_event & mouse_event_lclick) !=
                                  (ui->cur_frame_mouse_event  & mouse_event_lclick));
 
@@ -583,8 +589,6 @@ internal void ui_prepare_render(void)
           {
             if (ui_is_key_equal(ui->hot_key, cur_widget->key))
             {
-              b32 interaction_already_recorded = false;
-
               for (u32 interaction_index = 0;
                    interaction_index < array_count(ui->interactions);
                    ++interaction_index) 
@@ -592,14 +596,9 @@ internal void ui_prepare_render(void)
                 UI_Interaction *cur_interaction = &ui->interactions[interaction_index];
                 if (cur_interaction->key == cur_widget->key)
                 {
-                  interaction_already_recorded = true;
+                  ui->interactions[ui->interaction_index++] = {cur_widget->key, 0, 2};
                   break;
                 }
-              }
-
-              if (!interaction_already_recorded)
-              {
-                ui->interactions[ui->interaction_index++] = {cur_widget->key, 0, 2};
               }
             }
 
@@ -612,6 +611,13 @@ internal void ui_prepare_render(void)
           if (mouse_left_went_down)
           {
             ui->active_key = cur_widget->key;
+
+            Persistent_Widget_Data pers_data = {cur_widget->key};
+            copy_memory_block(&pers_data.background_color,
+                              (void *) saved_background_color,
+                              sizeof(pers_data.background_color));
+
+            ui_update_persistent_data(&pers_data);
           }
         }
 
@@ -628,11 +634,6 @@ internal void ui_prepare_render(void)
           hot_key_should_be_kept = true;
         }
 
-        RGBA_f32 saved_background_color[4];
-        copy_memory_block((void *) saved_background_color,
-                          (void *) cur_widget->end_background_color,
-                          sizeof(saved_background_color));
-
         if ((cur_widget->key == ui->active_key) && (cur_widget->key == ui->hot_key))
         {
           cur_widget->end_background_color[0] = cur_widget->end_background_color[1];
@@ -641,6 +642,7 @@ internal void ui_prepare_render(void)
           cur_widget->end_background_color[1] = saved_background_color[0];
           cur_widget->end_background_color[3] = saved_background_color[2];
         }
+        /*
         else
         {
           Persistent_Widget_Data pers_data = {cur_widget->key};
@@ -650,6 +652,7 @@ internal void ui_prepare_render(void)
 
           ui_update_persistent_data(&pers_data);
         }
+        */
       }
 
       if (cur_widget->widget_flags & widget_flag_draw_background)
@@ -657,7 +660,7 @@ internal void ui_prepare_render(void)
         Instance_Buffer_Element *draw_call = push_struct(&render->render_data, Instance_Buffer_Element);
 
         Persistent_Widget_Data *found_data = ui_search_persistent_data(cur_widget);
-        f32 t = 1 - fast_powf(2.0f, -4.0f * ((f32) global_state->dt));
+        f32 t = 1 - fast_powf(2.0f, -16.0f * ((f32) global_state->dt));
 
         // NOTE(antonio): I KNOW
        found_data->background_color[0] = lerp(found_data->background_color[0], t, cur_widget->end_background_color[0]);

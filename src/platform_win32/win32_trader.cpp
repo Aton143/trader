@@ -759,6 +759,8 @@ WinMain(HINSTANCE instance,
     f64 last_frame_time           = platform_convert_high_precision_time_to_seconds(last_hpt);
     u64 last_frame_time_in_cycles = 0;
 
+    win32_global_state.dt = 0.0;
+
     String_Const_utf8 text_to_render = string_literal_init_type("abcdefg", utf8);
       /*string_literal_init_type("abcdefghijklmnopqrstuvwxyz"
                                  "ABCDEFGHIJKLMNOPQRSTUVWXYZ "
@@ -886,23 +888,22 @@ WinMain(HINSTANCE instance,
       else if (ui->mouse_area == mouse_area_in_client)
       {
         ui_do_string(string_literal_init_type("Mouse is in client", utf8));
-        ui_do_formatted_string("Mouse position: (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
       }
       else
       {
         ui_do_string(string_literal_init_type("Mouse is in client but not really, if you know what I mean", utf8));
-        ui_do_formatted_string("Mouse position: (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
       }
+
+      ui_do_formatted_string("Mouse position: (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
 
       ui_pop_text_color();
 
       ui_do_formatted_string("Mouse wheel delta: (%f, %f)", ui->mouse_wheel_delta.x, ui->mouse_wheel_delta.y);
 
-      ui_do_formatted_string("Active key: %lld", ui->active_key);
-      ui_do_formatted_string("Hot Key: %lld", ui->hot_key);
+      ui_do_formatted_string("Active key: %d", (i32) ui->active_key);
+      ui_do_formatted_string("Hot Key: %d", (i32) ui->hot_key);
 
-      ui_do_formatted_string("Interaction Results (%d)", ui->interaction_index);
-
+      ui_do_formatted_string("Interaction Results (%d):", ui->interaction_index);
       for (u32 interaction_index = 0;
            interaction_index < array_count(ui->interactions);
            ++interaction_index)
@@ -912,6 +913,27 @@ WinMain(HINSTANCE instance,
                                (i32) cur_interaction->key,
                                (i32) cur_interaction->event,
                                (i32) cur_interaction->frames_left);
+      }
+
+      ui_do_formatted_string("Persistent_Widget_Data:");
+      for (u32 pers_index = 0;
+           pers_index < array_count(ui->persistent_data);
+           ++pers_index)
+      {
+        Persistent_Widget_Data *cur_pers= &ui->persistent_data[pers_index];
+        ui_do_formatted_string("Key: %d, Background Color: ", (i32) cur_pers->key);
+
+        for (u32 color_index = 0;
+             color_index < 4;
+             ++color_index)
+        {
+          ui_do_formatted_string("[%d]: (%f, %f, %f, %f)",
+                                 color_index,
+                                 cur_pers->background_color[color_index].r,
+                                 cur_pers->background_color[color_index].g,
+                                 cur_pers->background_color[color_index].b,
+                                 cur_pers->background_color[color_index].a);
+        }
       }
 
       ui_pop_background_color();
@@ -1087,6 +1109,8 @@ WinMain(HINSTANCE instance,
 
         last_hpt = cur_hpt;
         last_pts = cur_pts;
+
+        win32_global_state.dt = last_frame_time;
       }
     }
   }

@@ -7,6 +7,31 @@ internal Widget *ui_get_sentinel(void)
   return(sentinel);
 }
 
+internal void ui_add_key_event(Key_Event event, b32 is_down)
+{
+  UI_Context *ui = ui_get_context();
+
+  if (event == key_mod_event_control)
+  {
+    ui->mod_keys.control = (b8) is_down;
+  }
+  else if (event == key_mod_event_shift)
+  {
+    ui->mod_keys.shift = (b8) is_down;
+  }
+  else if (event == key_mod_event_alt)
+  {
+    ui->mod_keys.alt = (b8) is_down;
+  }
+  else if (event == key_mod_event_super)
+  {
+    ui->mod_keys.super = (b8) is_down;
+  }
+
+  ui->key_events[event] = (b8) is_down;
+}
+
+
 internal void ui_initialize_frame(void)
 {
   UI_Context *ui = ui_get_context();
@@ -751,6 +776,5 @@ internal void ui_prepare_render(void)
     }
   }
 }
-
 #define TRADER_UI_IMPL_H
 #endif

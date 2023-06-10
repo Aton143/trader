@@ -213,28 +213,28 @@ win32_window_procedure(HWND window_handle, UINT message,
     case WM_SYSKEYUP:
     case WM_SYSKEYDOWN:
     {
-      b32 is_key_down; is_key_down = ((message == WM_KEYDOWN) || (message == WM_SYSKEYDOWN));
+      b32 is_key_down = ((message == WM_KEYDOWN) || (message == WM_SYSKEYDOWN));
       if (wparam < 256)
       {
-        // Submit modifiers
         ui_add_key_event(key_mod_event_control, is_vk_down(VK_CONTROL));
         ui_add_key_event(key_mod_event_shift,   is_vk_down(VK_SHIFT));
         ui_add_key_event(key_mod_event_alt,     is_vk_down(VK_MENU));
         ui_add_key_event(key_mod_event_super,   is_vk_down(VK_APPS));
 
-        /*
-        // Obtain virtual key code
-        // (keypad enter doesn't have its own... VK_RETURN with KF_EXTENDED flag means keypad enter, see IM_VK_KEYPAD_ENTER definition for details, it is mapped to ImGuiKey_KeyPadEnter.)
-        int vk = (int)wParam;
-        if ((wParam == VK_RETURN) && (HIWORD(lParam) & KF_EXTENDED))
-          vk = IM_VK_KEYPAD_ENTER;
+        u64 vk = (u64) wparam;
+        if ((wparam == VK_RETURN) && (HIWORD(lparam) & KF_EXTENDED))
+        {
+          vk = TRADER_KEYPAD_ENTER;
+        }
 
         // Submit key event
-        const ImGuiKey key = ImGui_ImplWin32_VirtualKeyToImGuiKey(vk);
-        const int scancode = (int)LOBYTE(HIWORD(lParam));
-        if (key != ImGuiKey_None)
-          ImGui_ImplWin32_AddKeyEvent(key, is_key_down, vk, scancode);
+        Key_Event key = platform_convert_key_to_our_key(vk);
+        if (key != key_event_none)
+        {
+          ui_add_key_event(key, is_key_down);
+        }
 
+        /*
         // Submit individual left/right modifier events
         if (vk == VK_SHIFT)
         {
@@ -254,12 +254,11 @@ win32_window_procedure(HWND window_handle, UINT message,
         }
         */
       }
-      /*
+
       if (wparam == VK_ESCAPE)
       {
         global_running = false;
       }
-      */
     } break;
 
     case WM_SIZE:
@@ -1158,7 +1157,7 @@ WinMain(HINSTANCE instance,
 
       ui->interaction_index = interaction_next_available;
 
-      zero_array(ui->key_events, u32, ui->key_event_index);
+      zero_memory_block(ui->key_events, sizeof(ui->key_events));
 
       {
         u64 cur_pts = platform_get_processor_time_stamp();

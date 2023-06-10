@@ -188,6 +188,8 @@ enum
   key_mod_event_shift,
   key_mod_event_alt,
   key_mod_event_super,
+
+  key_event_count,
 };
 
 struct Mod_Keys
@@ -298,8 +300,7 @@ struct UI_Context
   Persistent_Widget_Data persistent_data[4];
 
   Mod_Keys  mod_keys;
-  u32       key_event_index;
-  Key_Event key_events[32];
+  b8        key_events[key_event_count];
 };
 
 #include "trader_platform.h"

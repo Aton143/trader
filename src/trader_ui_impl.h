@@ -57,7 +57,12 @@ internal void ui_update_persistent_data(Persistent_Widget_Data *data)
        ++pers_index)
   {
     Persistent_Widget_Data *cur_pers = &ui->persistent_data[pers_index];
-    if (cur_pers->key == nil_key)
+
+    if (cur_pers->key == data->key)
+    {
+      break;
+    }
+    else if (cur_pers->key == nil_key)
     {
       copy_struct(cur_pers, data);
       break;
@@ -82,6 +87,7 @@ internal Persistent_Widget_Data *ui_search_persistent_data(Widget *widget)
     if (cur_pers->key == widget->key)
     {
       result = cur_pers;
+      break;
     }
   }
 
@@ -589,6 +595,7 @@ internal void ui_prepare_render(void)
           {
             if (ui_is_key_equal(ui->hot_key, cur_widget->key))
             {
+              b32 interaction_already_recorded = false;
               for (u32 interaction_index = 0;
                    interaction_index < array_count(ui->interactions);
                    ++interaction_index) 
@@ -596,9 +603,14 @@ internal void ui_prepare_render(void)
                 UI_Interaction *cur_interaction = &ui->interactions[interaction_index];
                 if (cur_interaction->key == cur_widget->key)
                 {
-                  ui->interactions[ui->interaction_index++] = {cur_widget->key, 0, 2};
+                  interaction_already_recorded = true;
                   break;
                 }
+              }
+
+              if (!interaction_already_recorded)
+              {
+                ui->interactions[ui->interaction_index++] = {cur_widget->key, 0, 2};
               }
             }
 

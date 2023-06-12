@@ -932,10 +932,6 @@ WinMain(HINSTANCE instance,
         save_current_frame_buffer = true;
       }
 
-      ui_push_text_color(clamp(0.0f, ui->mouse_pos.x / render_get_client_rect().x1, 1.0f),
-                         clamp(0.0f, ui->mouse_pos.y / render_get_client_rect().y1, 1.0f),
-                         1.0f, 1.0f);
-
       if (ui->mouse_area == mouse_area_out_client)
       {
         ui_do_string(string_literal_init_type("Mouse is not in client", utf8));
@@ -949,6 +945,10 @@ WinMain(HINSTANCE instance,
         ui_do_string(string_literal_init_type("Mouse is in client but not really, if you know what I mean", utf8));
       }
 
+      ui_push_text_color(clamp(0.0f, ui->mouse_pos.x / render_get_client_rect().x1, 1.0f),
+                         clamp(0.0f, ui->mouse_pos.y / render_get_client_rect().y1, 1.0f),
+                         1.0f, 1.0f);
+
       ui_do_formatted_string("Mouse position: (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
       ui_do_formatted_string("Mouse delta: (%.0f, %.0f)", ui->mouse_delta.x, ui->mouse_delta.y);
 
@@ -958,6 +958,38 @@ WinMain(HINSTANCE instance,
 
       ui_do_formatted_string("Active key: %d", (i32) ui->active_key);
       ui_do_formatted_string("Hot Key: %d", (i32) ui->hot_key);
+
+      ui_do_formatted_string("Keyboard: a %d, b %d, c %d, d %d, "
+                             "e %d, f %d, g %d, h %d, i %d, j %d, "
+                             "k %d, l %d, m %d, n %d, o %d, p %d, "
+                             "q %d, r %d, s %d, t %d, u %d, v %d, "
+                             "w %d, x %d, y %d, z %d",
+                             ui->key_events[key_event_a],
+                             ui->key_events[key_event_b],
+                             ui->key_events[key_event_c],
+                             ui->key_events[key_event_d],
+                             ui->key_events[key_event_e],
+                             ui->key_events[key_event_f],
+                             ui->key_events[key_event_g],
+                             ui->key_events[key_event_h],
+                             ui->key_events[key_event_i],
+                             ui->key_events[key_event_j],
+                             ui->key_events[key_event_k],
+                             ui->key_events[key_event_l],
+                             ui->key_events[key_event_m],
+                             ui->key_events[key_event_n],
+                             ui->key_events[key_event_o],
+                             ui->key_events[key_event_p],
+                             ui->key_events[key_event_q],
+                             ui->key_events[key_event_r],
+                             ui->key_events[key_event_s],
+                             ui->key_events[key_event_t],
+                             ui->key_events[key_event_u],
+                             ui->key_events[key_event_v],
+                             ui->key_events[key_event_w],
+                             ui->key_events[key_event_x],
+                             ui->key_events[key_event_y],
+                             ui->key_events[key_event_z]);
 
       ui_do_formatted_string("Interaction Results (%d):", ui->interaction_index);
       for (u32 interaction_index = 0;
@@ -971,7 +1003,7 @@ WinMain(HINSTANCE instance,
                                (i32) cur_interaction->frames_left);
       }
 
-      ui_do_formatted_string("Persistent_Widget_Data:");
+      ui_do_formatted_string("Persistent Widget Data:");
       for (u32 pers_index = 0;
            pers_index < array_count(ui->persistent_data);
            ++pers_index)

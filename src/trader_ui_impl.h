@@ -198,7 +198,9 @@ internal void ui_do_string(String_Const_utf8 string)
 
   ui_make_widget(widget_flag_draw_text,
                  size_flag_text_content,
-                 copy_string);
+                 copy_string,
+                 default_widget_sizing,
+                 V2(10.0f, 10.0f));
 
   ui_pop_parent();
   ui_push_parent(last_parent);
@@ -322,7 +324,9 @@ internal b32 ui_is_key_equal(UI_Key a, UI_Key b)
 
 internal void ui_make_widget(Widget_Flag       widget_flags,
                              Widget_Size_Flag  size_flags,
-                             String_Const_utf8 string)
+                             String_Const_utf8 string,
+                             V2_f32            sizing,
+                             V2_f32            position)
 {
   // TODO(antonio): sprint nation?
   UI_Context     *ui     = ui_get_context();
@@ -414,6 +418,9 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
     widget->text_color       = ui->text_color;
     widget->key              = ui_make_key(string);
 
+    widget->position_relative_to_parent = position;
+    widget->extra_sizing                = sizing;
+
     copy_memory_block(widget->end_background_color, ui->background_color, sizeof(ui->background_color));
   }
 }
@@ -449,14 +456,16 @@ internal void ui_prepare_render(void)
 
       if (cur_widget->size_flags & size_flag_copy_parent_size_x)
       {
-        cur_widget->rectangle.x0 = parent->rectangle.x0;
-        cur_widget->rectangle.x1 = parent->rectangle.x1;
+        expect(0.0f < cur_widget->extra_sizing.x);
+        cur_widget->computed_size_in_pixels.x =
+          parent->computed_size_in_pixels.x * cur_widget->extra_sizing.x;
       }
 
       if (cur_widget->size_flags & size_flag_copy_parent_size_y)
       {
-        cur_widget->rectangle.y0 = parent->rectangle.y0;
-        cur_widget->rectangle.y1 = parent->rectangle.y1;
+        expect(0.0f < cur_widget->extra_sizing.y);
+        cur_widget->computed_size_in_pixels.y =
+          parent->computed_size_in_pixels.y * cur_widget->extra_sizing.y;
       }
 
       if (cur_widget->size_flags & size_flag_fill_rest_of_axis_x)
@@ -468,6 +477,17 @@ internal void ui_prepare_render(void)
       {
         cur_widget->size_flags |= size_flag_to_be_sized_y;
       }
+
+      if (cur_widget->size_flags & size_flag_given_size_x)
+      {
+        cur_widget->computed_size_in_pixels.x = cur_widget->extra_sizing.x;
+      }
+
+      if (cur_widget->size_flags & size_flag_given_size_x)
+      {
+        cur_widget->computed_size_in_pixels.y = cur_widget->extra_sizing.y;
+      }
+
 
       // NOTE(antonio): this needs to be communicated to the parent
       if (cur_widget->computed_size_in_pixels.x > 0.0f)
@@ -574,12 +594,12 @@ internal void ui_prepare_render(void)
           cur_child->computed_size_in_pixels.y = max_height;
 
           {
-            cur_child->rectangle.x0 = cur_top_left.x;
-            cur_child->rectangle.y0 = cur_top_left.y;
+            cur_child->rectangle.x0 = cur_top_left.x + cur_child->position_relative_to_parent.x;
+            cur_child->rectangle.y0 = cur_top_left.y + cur_child->position_relative_to_parent.x;
 
             // TODO(antonio): this could mess up text alignment
-            cur_child->rectangle.x1 = cur_top_left.x + cur_child->computed_size_in_pixels.x;
-            cur_child->rectangle.y1 = cur_top_left.y + cur_child->computed_size_in_pixels.y;
+            cur_child->rectangle.x1 = cur_child->rectangle.x0 + cur_child->computed_size_in_pixels.x;
+            cur_child->rectangle.y1 = cur_child->rectangle.y0 + cur_child->computed_size_in_pixels.y;
           }
 
           cur_top_left.x += cur_child->computed_size_in_pixels.x;
@@ -594,10 +614,10 @@ internal void ui_prepare_render(void)
       }
 
       cur_widget->rectangle.x0 = pre_sizing_top_left.x;
-      cur_widget->rectangle.y0 = pre_sizing_top_left.y;
+      cur_widget->rectangle.y0 = pre_sizing_top_left.y + cur_widget->position_relative_to_parent.y;
 
-      cur_widget->rectangle.x1 = pre_sizing_top_left.x + cur_widget->computed_size_in_pixels.x;
-      cur_widget->rectangle.y1 = pre_sizing_top_left.y + cur_widget->computed_size_in_pixels.y;
+      cur_widget->rectangle.x1 = cur_widget->rectangle.x0;
+      cur_widget->rectangle.y1 = cur_widget->rectangle.y0;
 
       cur_top_left.x  = 0.0f;
       cur_top_left.y += cur_widget->computed_size_in_pixels.y;
@@ -718,7 +738,7 @@ internal void ui_prepare_render(void)
         Instance_Buffer_Element *draw_call = push_struct(&render->render_data, Instance_Buffer_Element);
 
         Persistent_Widget_Data *found_data = ui_search_persistent_data(cur_widget);
-        f32 t = 1 - fast_powf(2.0f, -16.0f * ((f32) global_state->dt));
+        f32 t = 1 - fast_powf(2.0f, -((f32) global_state->dt));
 
         // NOTE(antonio): I KNOW
        found_data->background_color[0] = lerp(found_data->background_color[0], t, cur_widget->end_background_color[0]);

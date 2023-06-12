@@ -51,8 +51,11 @@ enum
   size_flag_copy_parent_size_x  = (1LL << 4),
   size_flag_copy_parent_size_y  = (1LL << 5),
 
-  size_flag_to_be_sized_x       = (1LL << 30),
-  size_flag_to_be_sized_y       = (1LL << 31),
+  size_flag_to_be_sized_x       = (1LL << 6),
+  size_flag_to_be_sized_y       = (1LL << 7),
+
+  size_flag_given_size_x        = (1LL << 8),
+  size_flag_given_size_y        = (1LL << 9),
 };
 
 typedef u32 Mouse_Area;
@@ -236,7 +239,9 @@ struct Widget
   f32               font_height;
 
   // NOTE(antonio): computed every frame
-  V2_f32            computed_position_relative_to_parent;
+  V2_f32            position_relative_to_parent;
+  V2_f32            extra_sizing;
+
   V2_f32            computed_size_in_pixels;
   Rect_f32          rectangle;
 
@@ -312,6 +317,7 @@ global_const V2_i16   default_text_gutter_dim     = {2, 4};
 global_const RGBA_f32 default_text_color          = rgba(1.0f, 1.0f, 1.0f, 1.0);
 global_const u64      default_widget_count        = 4096;
 global_const u64      default_string_pool_size    = kb(16);
+global_const V2_f32   default_widget_sizing       = V2(1.0f, 1.0f);
 
 global Persistent_Widget_Data default_persistent_data = {};
 global_const RGBA_f32 default_background_color[4] =
@@ -357,7 +363,9 @@ internal UI_Key ui_make_key(String_Const_utf8 string);
 internal b32 ui_is_key_equal(UI_Key a, UI_Key b);
 
 internal void ui_make_widget(Widget_Flag widget_flags,
-                             Widget_Size_Flag size_flags,
-                             String_Const_utf8 string);
+                             Widget_Size_Flag   size_flags,
+                             String_Const_utf8  string,
+                             V2_f32             sizing = {1.0f, 1.0f},
+                             V2_f32             pos    = {0.0f, 0.0f});
 #define TRADER_UI_H
 #endif

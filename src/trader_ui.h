@@ -56,6 +56,12 @@ enum
 
   size_flag_given_size_x        = (1LL << 8),
   size_flag_given_size_y        = (1LL << 9),
+
+  size_flag_absolute_pos_x      = (1LL << 10),
+  size_flag_absolute_pos_y      = (1LL << 11),
+
+  size_flag_relative_to_parent_pos_x      = (1LL << 10),
+  size_flag_relative_to_parent_pos_y      = (1LL << 11),
 };
 
 typedef u32 Mouse_Area;

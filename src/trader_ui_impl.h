@@ -54,6 +54,8 @@ internal void ui_initialize_frame(void)
   zero_struct(sentinel_widget);
 
   sentinel_widget->rectangle = render_get_client_rect();
+  sentinel_widget->computed_size_in_pixels = rect_get_dimensions(&sentinel_widget->rectangle);
+
   sentinel_widget->string    = string_literal_init_type("sentinel", utf8);
 
   ui->text_height            = default_text_height;
@@ -199,8 +201,7 @@ internal void ui_do_string(String_Const_utf8 string)
   ui_make_widget(widget_flag_draw_text,
                  size_flag_text_content,
                  copy_string,
-                 default_widget_sizing,
-                 V2(10.0f, 10.0f));
+                 default_widget_sizing);
 
   ui_pop_parent();
   ui_push_parent(last_parent);
@@ -294,20 +295,45 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
 
   expect(in_out_value != NULL);
   expect(minimum <= maximum);
+  expect(compare_string_utf8(last_parent->string, ui_get_sentinel()->string));
 
-  String_Const_utf8 slider_parent_to_hash_prefix = string_literal_init_type("slider parent::", utf8);
+  String_Const_utf8 slider_parent_to_hash_prefix = string_literal_init_type("Slider parent::", utf8);
   String_Const_utf8 slider_parent_to_hash = concat_string_to_c_string(ui->string_pool, slider_parent_to_hash_prefix, string);
 
-  unused(ui);
-  unused(last_parent);
   unused(slider_parent_to_hash);
   unused(in_out_value);
   unused(minimum);
   unused(maximum);
 
-  ui_make_widget(widget_flag_draw_background | widget_flag_clickable,
-                 size_flag_content_size_x | size_flag_content_size_y,
-                 slider_parent_to_hash);
+  ui_push_background_color(0.0f, 0.0f, 0.0f, 0.0f);
+
+  ui_make_widget(widget_flag_draw_background | widget_flag_dragable,
+                 size_flag_copy_parent_size_x | size_flag_given_size_y,
+                 slider_parent_to_hash,
+                 V2(0.5f, ui->text_height));
+
+  ui_pop_background_color();
+
+  Widget *slider_parent = ui->current_parent->last_child;
+  ui_push_parent(slider_parent);
+
+  ui_push_background_color(1.0f, 0.0f, 0.0f, 1.0f);
+
+  slider_parent_to_hash.size--;
+  String_Const_utf8 slider_to_hash = concat_string_to_c_string(ui->string_pool,
+                                                               slider_parent_to_hash,
+                                                               string_literal_init_type("::slider", utf8));
+
+  ui_make_widget(widget_flag_draw_background,
+                 size_flag_copy_parent_size_x | size_flag_copy_parent_size_y |
+                 size_flag_relative_to_parent_pos_x | size_flag_relative_to_parent_pos_y,
+                 slider_to_hash,
+                 V2(0.10f, 1.0f));
+
+  ui_pop_background_color();
+
+  ui_pop_parent();
+  ui_push_parent(last_parent);
 }
 
 internal UI_Key ui_make_key(String_Const_utf8 string)
@@ -427,7 +453,7 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
 
 internal void ui_prepare_render(void)
 {
-  Global_Platform_State *global_state = platform_get_global_state();
+  // Global_Platform_State *global_state = platform_get_global_state();
   Arena                 *temp_arena   = get_temp_arena();
   UI_Context            *ui           = ui_get_context();
   Render_Context        *render       = render_get_context();
@@ -483,11 +509,10 @@ internal void ui_prepare_render(void)
         cur_widget->computed_size_in_pixels.x = cur_widget->extra_sizing.x;
       }
 
-      if (cur_widget->size_flags & size_flag_given_size_x)
+      if (cur_widget->size_flags & size_flag_given_size_y)
       {
         cur_widget->computed_size_in_pixels.y = cur_widget->extra_sizing.y;
       }
-
 
       // NOTE(antonio): this needs to be communicated to the parent
       if (cur_widget->computed_size_in_pixels.x > 0.0f)
@@ -548,6 +573,16 @@ internal void ui_prepare_render(void)
 
       u32 to_be_sized_x = 0;
 
+      {
+        Widget *parent = cur_widget->parent;
+        expect(parent != NULL);
+
+        if (cur_widget->size_flags & size_flag_relative_to_parent_pos_y)
+        {
+          pre_sizing_top_left.y = parent->rectangle.y0 + cur_widget->position_relative_to_parent.y;
+        }
+      }
+
       // NOTE(antonio): if content_size & has children,
       // then need to know complete children sizes for that dimension
       // TODO(antonio): check this out for ^
@@ -591,11 +626,22 @@ internal void ui_prepare_render(void)
             cur_child->computed_size_in_pixels.x = (remaining_width / ((f32) to_be_sized_x));
           }
 
-          cur_child->computed_size_in_pixels.y = max_height;
+          if (cur_child->size_flags & size_flag_to_be_sized_y)
+          {
+            cur_child->computed_size_in_pixels.y = max_height;
+          }
 
           {
             cur_child->rectangle.x0 = cur_top_left.x + cur_child->position_relative_to_parent.x;
-            cur_child->rectangle.y0 = cur_top_left.y + cur_child->position_relative_to_parent.x;
+
+            if (cur_widget->size_flags & size_flag_relative_to_parent_pos_y)
+            {
+              pre_sizing_top_left.y = cur_widget->rectangle.y0 + cur_widget->position_relative_to_parent.y;
+            }
+            else
+            {
+              cur_child->rectangle.y0 = cur_top_left.y + cur_child->position_relative_to_parent.x;
+            }
 
             // TODO(antonio): this could mess up text alignment
             cur_child->rectangle.x1 = cur_child->rectangle.x0 + cur_child->computed_size_in_pixels.x;
@@ -613,14 +659,14 @@ internal void ui_prepare_render(void)
         }
       }
 
-      cur_widget->rectangle.x0 = pre_sizing_top_left.x;
+      cur_widget->rectangle.x0 = pre_sizing_top_left.x + cur_widget->position_relative_to_parent.x;
       cur_widget->rectangle.y0 = pre_sizing_top_left.y + cur_widget->position_relative_to_parent.y;
 
-      cur_widget->rectangle.x1 = cur_widget->rectangle.x0;
-      cur_widget->rectangle.y1 = cur_widget->rectangle.y0;
+      cur_widget->rectangle.x1 = cur_widget->rectangle.x0 + cur_widget->computed_size_in_pixels.x;
+      cur_widget->rectangle.y1 = cur_widget->rectangle.y0 + cur_widget->computed_size_in_pixels.y;
 
-      cur_top_left.x  = 0.0f;
-      cur_top_left.y += cur_widget->computed_size_in_pixels.y;
+      cur_top_left.x = 0.0f;
+      cur_top_left.y = pre_sizing_top_left.y + cur_widget->computed_size_in_pixels.y;
     }
   }
 
@@ -738,7 +784,7 @@ internal void ui_prepare_render(void)
         Instance_Buffer_Element *draw_call = push_struct(&render->render_data, Instance_Buffer_Element);
 
         Persistent_Widget_Data *found_data = ui_search_persistent_data(cur_widget);
-        f32 t = 1 - fast_powf(2.0f, -((f32) global_state->dt));
+        f32 t = 1 - fast_powf(2.0f, -(1.0f / 60.0f/*(f32) global_state->dt*/));
 
         // NOTE(antonio): I KNOW
        found_data->background_color[0] = lerp(found_data->background_color[0], t, cur_widget->end_background_color[0]);
@@ -751,8 +797,8 @@ internal void ui_prepare_render(void)
         draw_call->size = 
         {
           0.0f, 0.0f,
-          rect_get_width(&cur_widget->rectangle),
-          rect_get_height(&cur_widget->rectangle),
+          cur_widget->computed_size_in_pixels.x,
+          cur_widget->computed_size_in_pixels.y,
         };
 
         draw_call->uv =

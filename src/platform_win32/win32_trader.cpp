@@ -924,7 +924,6 @@ WinMain(HINSTANCE instance,
       local_persist u64 frame_count = 0;
       frame_count++;
 
-      ui_do_slider_f32(string_literal_init_type("slider", utf8), &slider_float, 0.0f, 1.0f);
       slider_float += slider_adder;
 
       if (slider_float > 1.0f)
@@ -938,7 +937,7 @@ WinMain(HINSTANCE instance,
         slider_adder *= -1.0f;
       }
  
-#if 0
+      ui_push_background_color(0.0f, 0.0f, 0.0f, 1.0f);
       ui_do_formatted_string("Last frame time: %.6fs", last_frame_time);
       ui_do_formatted_string("Last frame time in cycles: %lld", last_frame_time_in_cycles);
       ui_do_formatted_string("Frame count: %lld", frame_count);
@@ -1007,6 +1006,9 @@ WinMain(HINSTANCE instance,
                              ui->key_events[key_event_y],
                              ui->key_events[key_event_z]);
 
+      ui_do_slider_f32(string_literal_init_type("slider", utf8), &slider_float, 0.0f, 1.0f);
+      ui_push_background_color(0.0f, 0.0f, 0.0f, 1.0f);
+
       ui_do_formatted_string("Interaction Results (%d):", ui->interaction_index);
       for (u32 interaction_index = 0;
            interaction_index < array_count(ui->interactions);
@@ -1046,8 +1048,9 @@ WinMain(HINSTANCE instance,
       if (ui_do_button(string_literal_init_type("Click me!", utf8)))
       {
         ui_do_string(string_literal_init_type("That was the good action", utf8));
+        slider_float = 0.0f;
+        slider_adder = 1 / 30.0f;
       }
-#endif
 
       ui_prepare_render();
 

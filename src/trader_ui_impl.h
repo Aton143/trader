@@ -200,8 +200,7 @@ internal void ui_do_string(String_Const_utf8 string)
 
   ui_make_widget(widget_flag_draw_text,
                  size_flag_text_content,
-                 copy_string,
-                 default_widget_sizing);
+                 copy_string);
 
   ui_pop_parent();
   ui_push_parent(last_parent);
@@ -322,9 +321,7 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
 
   f32 slider_width_scale = 0.05f;
   f32 norm = 1.0f / (maximum - minimum);
-  f32 slider_x_scale = lerpf(0.0f,
-                             clamp(minimum, *in_out_value, maximum) * norm,
-                             1.0f - slider_width_scale);
+  f32 slider_x_scale = lerpf(0.0f, clamp(minimum, *in_out_value, maximum) * norm, 1.0f - slider_width_scale);
 
   ui_make_widget(widget_flag_draw_background,
                  size_flag_copy_parent_size_x | size_flag_copy_parent_size_y |
@@ -456,7 +453,7 @@ internal void ui_make_widget(Widget_Flag       widget_flags,
 
 internal void ui_prepare_render(void)
 {
-  // Global_Platform_State *global_state = platform_get_global_state();
+  Global_Platform_State *global_state = platform_get_global_state();
   Arena                 *temp_arena   = get_temp_arena();
   UI_Context            *ui           = ui_get_context();
   Render_Context        *render       = render_get_context();
@@ -800,7 +797,7 @@ internal void ui_prepare_render(void)
         Instance_Buffer_Element *draw_call = push_struct(&render->render_data, Instance_Buffer_Element);
 
         Persistent_Widget_Data *found_data = ui_search_persistent_data(cur_widget);
-        f32 t = 1 - fast_powf(2.0f, -(1.0f / 60.0f/*(f32) global_state->dt*/));
+        f32 t = 1 - fast_powf(2.0f, 16.0f * -((f32) global_state->dt));
 
         // NOTE(antonio): I KNOW
        found_data->background_color[0] = lerp(found_data->background_color[0], t, cur_widget->end_background_color[0]);

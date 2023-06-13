@@ -779,17 +779,11 @@ internal void ui_prepare_render(void)
           cur_widget->end_background_color[1] = saved_background_color[0];
           cur_widget->end_background_color[3] = saved_background_color[2];
         }
-        /*
-        else
-        {
-          Persistent_Widget_Data pers_data = {cur_widget->key};
-          copy_memory_block(&pers_data.background_color,
-                            (void *) saved_background_color,
-                            sizeof(pers_data.background_color));
+      }
 
-          ui_update_persistent_data(&pers_data);
-        }
-        */
+      if (cur_widget->widget_flags & widget_flag_dragable)
+      {
+
       }
 
       if (cur_widget->widget_flags & widget_flag_draw_background)

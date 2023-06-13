@@ -260,8 +260,12 @@ struct Widget
 struct UI_Interaction
 {
   UI_Key key;
-  u32    event;
   i32    frames_left;
+  u32    event;
+  union
+  {
+    V2_f32 mouse_pos;
+  };
 };
 
 struct Persistent_Widget_Data

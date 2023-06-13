@@ -816,7 +816,7 @@ WinMain(HINSTANCE instance,
 
     win32_global_state.dt = 0.0;
 
-    f32 slider_float = 0.0f;
+    f32 slider_float = 0.0f, slider_adder = 1.0f / 30.0f;
     String_Const_utf8 text_to_render = string_literal_init_type("abcdefg", utf8);
       /*string_literal_init_type("abcdefghijklmnopqrstuvwxyz"
                                  "ABCDEFGHIJKLMNOPQRSTUVWXYZ "
@@ -925,6 +925,18 @@ WinMain(HINSTANCE instance,
       frame_count++;
 
       ui_do_slider_f32(string_literal_init_type("slider", utf8), &slider_float, 0.0f, 1.0f);
+      slider_float += slider_adder;
+
+      if (slider_float > 1.0f)
+      {
+        slider_float = 1.0f;
+        slider_adder *= -1.0f;
+      }
+      else if (slider_float < 0.0f)
+      {
+        slider_float = 0.0f;
+        slider_adder *= -1.0f;
+      }
  
 #if 0
       ui_do_formatted_string("Last frame time: %.6fs", last_frame_time);

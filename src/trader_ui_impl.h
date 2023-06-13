@@ -294,7 +294,7 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
   Widget     *last_parent = ui->current_parent;
 
   expect(in_out_value != NULL);
-  expect(minimum <= maximum);
+  expect((minimum <= *in_out_value) && (*in_out_value <= maximum));
   expect(compare_string_utf8(last_parent->string, ui_get_sentinel()->string));
 
   String_Const_utf8 slider_parent_to_hash_prefix = string_literal_init_type("Slider parent::", utf8);
@@ -305,14 +305,10 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
   unused(minimum);
   unused(maximum);
 
-  ui_push_background_color(0.0f, 0.0f, 0.0f, 0.0f);
-
-  ui_make_widget(widget_flag_draw_background | widget_flag_dragable,
+  ui_make_widget(widget_flag_dragable,
                  size_flag_copy_parent_size_x | size_flag_given_size_y,
                  slider_parent_to_hash,
                  V2(0.5f, ui->text_height));
-
-  ui_pop_background_color();
 
   Widget *slider_parent = ui->current_parent->last_child;
   ui_push_parent(slider_parent);
@@ -324,11 +320,18 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
                                                                slider_parent_to_hash,
                                                                string_literal_init_type("::slider", utf8));
 
+  f32 slider_width_scale = 0.05f;
+  f32 norm = 1.0f / (maximum - minimum);
+  f32 slider_x_scale = lerpf(0.0f,
+                             clamp(minimum, *in_out_value, maximum) * norm,
+                             1.0f - slider_width_scale);
+
   ui_make_widget(widget_flag_draw_background,
                  size_flag_copy_parent_size_x | size_flag_copy_parent_size_y |
                  size_flag_relative_to_parent_pos_x | size_flag_relative_to_parent_pos_y,
                  slider_to_hash,
-                 V2(0.10f, 1.0f));
+                 V2(slider_width_scale, 1.0f), 
+                 V2(slider_x_scale, 0.0f));
 
   ui_pop_background_color();
 
@@ -613,13 +616,15 @@ internal void ui_prepare_render(void)
         first_child = cur_widget->first_child;
       }
 
-      // NOTE(antonio): already know the size for those "to be sized"
+      // NOTE(antonio): place the children
       {
         first_child = NULL;
         for (Widget *cur_child  = cur_widget->first_child;
              cur_child         != first_child;
              cur_child          = cur_child->next_sibling)
         {
+          Widget *child_parent = cur_widget;
+
           if (cur_child->size_flags & size_flag_to_be_sized_x)
           {
             expect(to_be_sized_x > 0);
@@ -632,12 +637,23 @@ internal void ui_prepare_render(void)
           }
 
           {
-            cur_child->rectangle.x0 = cur_top_left.x + cur_child->position_relative_to_parent.x;
-
-            if (cur_widget->size_flags & size_flag_relative_to_parent_pos_y)
+            if (cur_child->size_flags & size_flag_relative_to_parent_pos_x)
             {
-              pre_sizing_top_left.y = cur_widget->rectangle.y0 + cur_widget->position_relative_to_parent.y;
+              cur_child->rectangle.x0 =
+                pre_sizing_top_left.x + 
+                (cur_child->position_relative_to_parent.x * child_parent->computed_size_in_pixels.x);
             }
+            else
+            {
+              cur_child->rectangle.x0 = cur_top_left.x + cur_child->position_relative_to_parent.x;
+            }
+
+            if (cur_child->size_flags & size_flag_relative_to_parent_pos_y)
+            {
+              cur_child->rectangle.y0 =
+                pre_sizing_top_left.y + 
+                (cur_child->position_relative_to_parent.y * child_parent->computed_size_in_pixels.y);
+             }
             else
             {
               cur_child->rectangle.y0 = cur_top_left.y + cur_child->position_relative_to_parent.x;

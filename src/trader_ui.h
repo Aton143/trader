@@ -257,15 +257,17 @@ struct Widget
   f32               time_alive;
 };
 
+union UI_Event_Value
+{
+  V2_f32 mouse;
+};
+
 struct UI_Interaction
 {
-  UI_Key key;
-  i32    frames_left;
-  u32    event;
-  union
-  {
-    V2_f32 mouse_pos;
-  };
+  UI_Key         key;
+  i32            frames_left;
+  u32            event;
+  UI_Event_Value value;
 };
 
 struct Persistent_Widget_Data
@@ -332,20 +334,21 @@ global_const V2_f32   default_widget_sizing       = V2(1.0f, 1.0f);
 global Persistent_Widget_Data default_persistent_data = {};
 global_const RGBA_f32 default_background_color[4] =
 {
-  rgba(1.0f, 1.0f, 1.0f, 1.0),
-  rgba(1.0f, 1.0f, 1.0f, 1.0),
-  rgba(1.0f, 1.0f, 1.0f, 1.0),
-  rgba(1.0f, 1.0f, 1.0f, 1.0)
+  rgba(0.0f, 0.0f, 0.0f, 1.0),
+  rgba(0.0f, 0.0f, 0.0f, 1.0),
+  rgba(0.0f, 0.0f, 0.0f, 1.0),
+  rgba(0.0f, 0.0f, 0.0f, 1.0)
 };
 
+internal inline UI_Context *ui_get_context(void);
+internal inline Widget     *ui_get_sentinel(void);
 
-internal UI_Context *ui_get_context(void);
-internal Widget     *ui_get_sentinel(void);
+internal inline void ui_add_interaction(Widget *cur_widget, i32 frames_left, u32 event, UI_Event_Value *event_value);
+
+internal inline void ui_add_key_event(Key_Event event, b32 is_down);
 
 internal void ui_initialize_frame(void);
 internal void ui_prepare_render(void);
-
-internal void ui_add_key_event(Key_Event event, b32 is_down);
 
 internal void ui_update_persistent_data(Persistent_Widget_Data *data);
 internal Persistent_Widget_Data *ui_search_persistent_data(Widget *widget);

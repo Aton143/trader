@@ -1,13 +1,43 @@
 #if !defined(TRADER_UI_IMPL_H)
 
-internal Widget *ui_get_sentinel(void)
+internal inline void ui_add_interaction(Widget *cur_widget, i32 frames_left, u32 event, UI_Event_Value *event_value)
+{
+  UI_Context     *ui = ui_get_context();
+  b32 interaction_already_recorded = false;
+
+  for (u32 interaction_index = 0;
+       interaction_index < array_count(ui->interactions);
+       ++interaction_index) 
+  {
+    UI_Interaction *cur_interaction = &ui->interactions[interaction_index];
+    if (cur_interaction->key == cur_widget->key)
+    {
+      interaction_already_recorded = true;
+      break;
+    }
+  }
+
+  if (!interaction_already_recorded && (ui->interaction_index < array_count(ui->interactions)))
+  {
+    UI_Interaction *cur_interaction = ui->interactions + ui->interaction_index;
+
+    cur_interaction->key         = cur_widget->key;
+    cur_interaction->frames_left = frames_left;
+    cur_interaction->event       = event;
+    copy_struct(&cur_interaction->value, event_value);
+
+    ui->interaction_index++; 
+  }
+}
+
+internal inline Widget *ui_get_sentinel(void)
 {
   UI_Context *ui       = ui_get_context();
   Widget     *sentinel = ui->allocated_widgets;
   return(sentinel);
 }
 
-internal void ui_add_key_event(Key_Event event, b32 is_down)
+internal inline void ui_add_key_event(Key_Event event, b32 is_down)
 {
   UI_Context *ui = ui_get_context();
 
@@ -304,7 +334,7 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
   unused(minimum);
   unused(maximum);
 
-  ui_make_widget(widget_flag_dragable,
+  ui_make_widget(widget_flag_none,
                  size_flag_copy_parent_size_x | size_flag_given_size_y,
                  slider_parent_to_hash,
                  V2(0.5f, ui->text_height));
@@ -323,17 +353,30 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
   f32 norm = 1.0f / (maximum - minimum);
   f32 slider_x_scale = lerpf(0.0f, clamp(minimum, *in_out_value, maximum) * norm, 1.0f - slider_width_scale);
 
-  ui_make_widget(widget_flag_draw_background,
+  ui_make_widget(widget_flag_draw_background | widget_flag_dragable,
                  size_flag_copy_parent_size_x | size_flag_copy_parent_size_y |
                  size_flag_relative_to_parent_pos_x | size_flag_relative_to_parent_pos_y,
                  slider_to_hash,
                  V2(slider_width_scale, 1.0f), 
                  V2(slider_x_scale, 0.0f));
 
+  Widget *slider = ui->current_parent->last_child;
   ui_pop_background_color();
 
   ui_pop_parent();
   ui_push_parent(last_parent);
+
+  for (u32 interaction_index = 0;
+       interaction_index < array_count(ui->interactions);
+       ++interaction_index)
+  {
+    UI_Interaction *cur_int = ui->interactions + interaction_index;
+    if (cur_int->key == slider->key && cur_int->value.mouse.x > 0.0f)
+    {
+      f32 delta_x = lerpf(minimum, cur_int->value.mouse.x, maximum);
+      *in_out_value = clamp(minimum, delta_x, maximum);
+    }
+  }
 }
 
 internal UI_Key ui_make_key(String_Const_utf8 string)
@@ -696,6 +739,7 @@ internal void ui_prepare_render(void)
     }
 
     b32 hot_key_should_be_kept = false;
+    UI_Event_Value event_value;
 
     // NOTE(antonio): create draw calls in parent->child level traversal
     while (widget_queue.read != widget_queue.write)
@@ -720,23 +764,7 @@ internal void ui_prepare_render(void)
           {
             if (ui_is_key_equal(ui->hot_key, cur_widget->key))
             {
-              b32 interaction_already_recorded = false;
-              for (u32 interaction_index = 0;
-                   interaction_index < array_count(ui->interactions);
-                   ++interaction_index) 
-              {
-                UI_Interaction *cur_interaction = &ui->interactions[interaction_index];
-                if (cur_interaction->key == cur_widget->key)
-                {
-                  interaction_already_recorded = true;
-                  break;
-                }
-              }
-
-              if (!interaction_already_recorded)
-              {
-                ui->interactions[ui->interaction_index++] = {cur_widget->key, 0, 2};
-              }
+              ui_add_interaction(cur_widget, 2, 0, &event_value);
             }
 
             ui->active_key = nil_key;
@@ -758,16 +786,12 @@ internal void ui_prepare_render(void)
           }
         }
 
-        // NOTE(antonio): is mouse over the widget? 
-        V2_f32 mouse_pos = ui->mouse_pos;
-        if (is_between_inclusive(cur_widget->rectangle.x0, mouse_pos.x, cur_widget->rectangle.x1) && 
-            is_between_inclusive(cur_widget->rectangle.y0, mouse_pos.y, cur_widget->rectangle.y1))
+        if (is_point_in_rect(ui->mouse_pos, cur_widget->rectangle))
         {
           if (ui->active_key == nil_key)
           {
             ui->hot_key = cur_widget->key;
           }
-
           hot_key_should_be_kept = true;
         }
 
@@ -783,7 +807,37 @@ internal void ui_prepare_render(void)
 
       if (cur_widget->widget_flags & widget_flag_dragable)
       {
+        b32 mouse_left_change = ((ui->prev_frame_mouse_event & mouse_event_lclick) !=
+                                 (ui->cur_frame_mouse_event  & mouse_event_lclick));
+        if (mouse_left_change)
+        {
+          b32 mouse_left_went_down = mouse_left_change && (ui->cur_frame_mouse_event & mouse_event_lclick);
+          if (mouse_left_went_down)
+          {
+            ui->active_key = cur_widget->key;
+            ui->hot_key    = nil_key;
+          }
+          else
+          {
+            ui->active_key = nil_key;
+          }
+        }
 
+        if (is_point_in_rect(ui->mouse_pos, cur_widget->rectangle))
+        {
+          if (ui->active_key == nil_key)
+          {
+            ui->hot_key = cur_widget->key;
+          }
+          hot_key_should_be_kept = true;
+        }
+
+        if (ui->active_key == cur_widget->key)
+        {
+          Widget *parent = cur_widget->parent;
+          event_value.mouse = V2((ui->mouse_pos.x - parent->rectangle.x0) / parent->computed_size_in_pixels.x, 0.0f);
+          ui_add_interaction(cur_widget, 1, 0, &event_value);
+        }
       }
 
       if (cur_widget->widget_flags & widget_flag_draw_background)

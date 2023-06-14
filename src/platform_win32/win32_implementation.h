@@ -475,7 +475,8 @@ internal void platform_collect_notifications(void)
         utf16 last_char = cur->FileName[cur->FileNameLength];
         cur->FileName[cur->FileNameLength] = 0;
 
-        WideCharToMultiByte(CP_UTF8, 0,
+        WideCharToMultiByte(CP_UTF8,
+                            0,
                             cur->FileName,
                             (i32)   c_string_count(cur->FileName),
                             (LPSTR) win32_global_state.changed_files[cur_index],
@@ -1192,6 +1193,78 @@ internal Key_Event platform_convert_key_to_our_key(u64 key_value)
         case VK_F12:              return key_event_f12;
         default:                  return key_event_none;
     }
+}
+
+internal String_Const_utf8 platform_get_file_from_system_prompt()
+{
+  Arena *temp_arena = get_temp_arena();
+
+  u32 string_size = 256;
+  String_utf16 file_name_buffer = push_string_zero(temp_arena, utf16, string_size);
+  String_utf16 file_path  = push_string_zero(temp_arena, utf16, string_size);
+
+  OPENFILENAMEW open_file;
+
+  open_file.lStructSize       = sizeof(open_file);
+  open_file.hwndOwner         = NULL;
+  open_file.hInstance         = NULL;
+  open_file.lpstrFilter       = NULL;
+  open_file.lpstrCustomFilter = NULL;
+  open_file.nMaxCustFilter    = 0;
+  open_file.nFilterIndex      = 0;
+  open_file.lpstrFile         = (LPWSTR) file_path.str;
+  open_file.nMaxFile          = string_size;
+  open_file.lpstrFileTitle    = (LPWSTR) file_name_buffer.str;
+  open_file.nMaxFileTitle     = string_size;
+  open_file.lpstrInitialDir   = NULL;
+  open_file.lpstrTitle        = NULL;
+
+  // TODO(antonio): OFN_EXPLORER 
+  open_file.Flags             = //OFN_CREATEPROMPT | OFN_FORCESHOWHIDDEN |
+                                //OFN_HIDEREADONLY | OFN_LONGNAMES       |
+                                OFN_PATHMUSTEXIST;
+
+  open_file.nFileOffset       = 0;
+  open_file.nFileExtension    = 0;
+  open_file.lpstrDefExt       = 0; 
+  open_file.lCustData         = NULL;
+  open_file.lpfnHook          = NULL;
+  open_file.lpTemplateName    = NULL;                                         
+  // NOTE(antonio): literally insane
+#ifdef _MAC
+  open_file.lpEditInfo        = 0;
+  open_file.lpstrPrompt       = 0;
+#endif
+  open_file.pvReserved        = 0;
+  open_file.dwReserved        = 0;
+  open_file.FlagsEx           = 0;
+
+  String_Const_utf8 res = {};
+  if(GetOpenFileNameW(&open_file))
+  {
+    String_utf8 temp = push_string_zero(temp_arena, utf8, string_size);
+    res.size = WideCharToMultiByte(CP_UTF8,
+                                   0,
+                                   (LPWSTR) file_path.str,
+                                   (i32) c_string_length((wchar_t *) file_path.str),
+                                   (LPSTR) temp.str,
+                                   (i32) temp.cap,
+                                   NULL, NULL);
+    res.str = temp.str;
+  }
+
+  return(res);
+}
+
+internal File_Buffer platform_open_and_read_entire_file_from_system_prompt(Arena *arena)
+{
+  File_Buffer res = {};
+  String_Const_utf8 file_path = platform_get_file_from_system_prompt();
+  if (file_path.str != NULL)
+  {
+    res = platform_open_and_read_entire_file(arena, file_path.str, file_path.size);
+  }
+  return(res);
 }
 
 #define WIN32_IMPLEMENTATION_H

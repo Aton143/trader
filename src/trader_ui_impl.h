@@ -371,7 +371,7 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
        ++interaction_index)
   {
     UI_Interaction *cur_int = ui->interactions + interaction_index;
-    if (cur_int->key == slider->key && cur_int->value.mouse.x > 0.0f)
+    if (cur_int->key == slider->key)
     {
       f32 delta_x = lerpf(minimum, cur_int->value.mouse.x, maximum);
       *in_out_value = clamp(minimum, delta_x, maximum);
@@ -814,8 +814,10 @@ internal void ui_prepare_render(void)
           b32 mouse_left_went_down = mouse_left_change && (ui->cur_frame_mouse_event & mouse_event_lclick);
           if (mouse_left_went_down)
           {
-            ui->active_key = cur_widget->key;
-            ui->hot_key    = nil_key;
+            if (ui->hot_key == cur_widget->key)
+            {
+              ui->active_key = cur_widget->key;
+            }
           }
           else
           {
@@ -848,10 +850,18 @@ internal void ui_prepare_render(void)
         f32 t = 1 - fast_powf(2.0f, 16.0f * -((f32) global_state->dt));
 
         // NOTE(antonio): I KNOW
-       found_data->background_color[0] = lerp(found_data->background_color[0], t, cur_widget->end_background_color[0]);
-       found_data->background_color[1] = lerp(found_data->background_color[1], t, cur_widget->end_background_color[1]);
-       found_data->background_color[2] = lerp(found_data->background_color[2], t, cur_widget->end_background_color[2]);
-       found_data->background_color[3] = lerp(found_data->background_color[3], t, cur_widget->end_background_color[3]);
+        found_data->background_color[0] = lerp(found_data->background_color[0], t, cur_widget->end_background_color[0]);
+        found_data->background_color[1] = lerp(found_data->background_color[1], t, cur_widget->end_background_color[1]);
+        found_data->background_color[2] = lerp(found_data->background_color[2], t, cur_widget->end_background_color[2]);
+        found_data->background_color[3] = lerp(found_data->background_color[3], t, cur_widget->end_background_color[3]);
+
+        RGBA_f32 color_bottom = rgba(0.0f, 0.0f, 0.0f, 0.0f);
+        RGBA_f32 color_top    = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+
+        found_data->background_color[0] = wide_clamp(color_bottom, found_data->background_color[0], color_top);
+        found_data->background_color[1] = wide_clamp(color_bottom, found_data->background_color[1], color_top);
+        found_data->background_color[2] = wide_clamp(color_bottom, found_data->background_color[2], color_top);
+        found_data->background_color[3] = wide_clamp(color_bottom, found_data->background_color[3], color_top);
 
         copy_memory_block(draw_call->color, found_data->background_color, sizeof(found_data->background_color));
 

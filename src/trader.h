@@ -8,12 +8,13 @@
 struct Global_Platform_State;
 struct Render_Context;
 
-#define TRADER_VERSION 1LL
-#include "trader_base_defines.h"
-
+#include <intrin.h>
 #if ARCH_X64
 #include <immintrin.h>
 #endif
+
+#define TRADER_VERSION 1LL
+#include "trader_base_defines.h"
 
 #include "trader_math.h"
 #include "trader_meta.h"

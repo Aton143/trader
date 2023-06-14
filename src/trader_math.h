@@ -14,6 +14,8 @@ internal inline V2_f32 V2(f32 x, f32 y);
 internal inline V2_f32 add(V2_f32 a, V2_f32 b);
 internal inline V2_f32 operator +(V2_f32 a, V2_f32 b);
 
+internal inline V4_f32 wide_clamp(V4_f32 bottom, V4_f32 v, V4_f32 top);
+
 // implemenation
 internal inline f32 lerpf(f32 a, f32 t, f32 b)
 {
@@ -75,6 +77,18 @@ internal inline V2_f32 add(V2_f32 a, V2_f32 b)
 internal inline V2_f32 operator +(V2_f32 a, V2_f32 b)
 {
   return(add(a, b));
+}
+
+internal inline V4_f32 wide_clamp(V4_f32 bottom, V4_f32 v, V4_f32 top)
+{
+  V4_f32 res =
+  {
+    clamp(bottom.v[0], v.v[0], top.v[0]),
+    clamp(bottom.v[1], v.v[1], top.v[1]),
+    clamp(bottom.v[2], v.v[2], top.v[2]),
+    clamp(bottom.v[3], v.v[3], top.v[3]),
+  };
+  return(res);
 }
 
 #endif

@@ -13,6 +13,7 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <mswsock.h>
+#include <commdlg.h>
 
 #define TLS_MAX_PACKET_SIZE (16384 + 512)
 
@@ -26,6 +27,7 @@
 #pragma comment (lib, "Ws2_32.lib")
 #pragma comment (lib, "Mswsock.lib")
 #pragma comment (lib, "AdvApi32.lib")
+#pragma comment (lib, "comdlg32.lib")
 
 #define safe_release(releasable) if (releasable) releasable->Release()
 
@@ -824,6 +826,9 @@ WinMain(HINSTANCE instance,
                                  "!@#$%^&*()"
                                  "{}|[]\\;':\",./<>?-=_+`~", utf8);*/
 
+    File_Buffer file = {};
+    String_Const_utf8 file_str = {};
+
     while (global_running)
     {
       MSG message;
@@ -1038,6 +1043,14 @@ WinMain(HINSTANCE instance,
         ui_do_string(string_literal_init_type("That was the good action", utf8));
         slider_float = 0.0f;
       }
+
+      if (ui_do_button(string_literal_init_type("Open a file", utf8)))
+      {
+        file = platform_open_and_read_entire_file_from_system_prompt(&global_arena);
+        file_str = {file.data, file.size};
+      }
+      ui_pop_background_color();
+      ui_do_string(file_str);
 
       ui_prepare_render();
 

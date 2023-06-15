@@ -5,9 +5,9 @@
 #define COMPILER_CL 1
 
 #if defined(_WIN32)
-#  define OS_WINDOWS 1
+# define OS_WINDOWS 1
 #else
-#  error This compiler/platform combination is not supported
+# error This compiler/platform combination is not supported
 #endif
 
 # if defined(_M_AMD64)
@@ -22,10 +22,32 @@
 #  error Architecture is not supported
 # endif
 
+#elif defined __GNUC__
+#define COMPILER_GCC 1
+
+#if defined(__linux__)
+
+# define OS_LINUX 1
+
+# if defined(__x86_64__) || defined(__amd64) || \
+     defined(__amd64__)  || defined (__x86_64)
+#  define ARCH_X64 1 
+# elif defined(__i386__) || defined(__i386)
+#  define ARCH_X86 1 
+# elif defined(__aarch64__)
+#  define ARM_ARM64 1
+# elif defined(__arm__)
+#  define ARM_ARM32 1
+# else 
+#  error Architecture is not supported
+# endif
+
 #else
+#  error This compiler/platform combination is not supported
+#endif
 
+#else
 #  error This compiler is not supported yet
-
 #endif
 
 // NOTE(antonio): convert all the others to 0
@@ -137,7 +159,7 @@ typedef i8       b8;
 typedef i32      b32;
 typedef i64      b64;
 
-#define unused(Variable) (void) (Variable);
+#define unused(variable) (void) (variable)
 
 #define concat_(a,b) a##b
 #define concat(a,b) concat_(a,b)
@@ -824,6 +846,7 @@ struct String_Any {
 
 #define align(val, alignment) ((((val) + (alignment) - 1) / (alignment)) * (alignment))
 
+#if OS_WINDOWS
 #include "trader_meta.h"
 #include "trader_memory.h"
 #include "trader_string_utilities.h"
@@ -1037,6 +1060,7 @@ internal u64 difference_with_wrap(u64 a, u64 b)
 
   return(b_a_diff);
 }
+#endif
 
 #define TRADER_BASE_DEFINES_H
 #endif

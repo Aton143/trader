@@ -1,11 +1,8 @@
 #ifndef TRADER_H
-
 #include <stdarg.h>
 
-#if 0
 #include <openssl/ssl.h>
 #include <openssl/err.h>
-#endif
 
 struct Global_Platform_State;
 struct Render_Context;
@@ -13,10 +10,11 @@ struct Render_Context;
 #define TRADER_VERSION 1LL
 #include "trader_base_defines.h"
 
-#if 0
-#include <intrin.h>
-#if ARCH_X64
-#include <immintrin.h>
+#if OS_WINDOWS
+#  include <intrin.h>
+# if ARCH_X64
+#  include <immintrin.h>
+# endif
 #endif
 
 #include "trader_math.h"
@@ -39,13 +37,12 @@ struct Render_Context;
 #include "trader_network.h"
 
 #if OS_WINDOWS
-#include "platform_win32/win32_implementation.h"
+# include "platform_win32/win32_implementation.h"
 #endif
 
 #include "trader_meta_impl.h"
 #include "trader_handle_impl.h"
 #include "trader_ui_impl.h"
 
-#endif
 #define TRADER_H
 #endif

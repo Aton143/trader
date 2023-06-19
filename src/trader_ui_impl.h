@@ -2,31 +2,34 @@
 
 internal inline void ui_add_interaction(Widget *cur_widget, i32 frames_left, u32 event, UI_Event_Value *event_value)
 {
-  UI_Context     *ui = ui_get_context();
-  b32 interaction_already_recorded = false;
+  UI_Context *ui = ui_get_context();
+  i32 interaction_update_index = -1;
 
-  for (u32 interaction_index = 0;
+  for (i32 interaction_index = 0;
        interaction_index < array_count(ui->interactions);
        ++interaction_index) 
   {
     UI_Interaction *cur_interaction = &ui->interactions[interaction_index];
-    if (cur_interaction->key == cur_widget->key)
+    if ((cur_interaction->key == cur_widget->key) || (cur_interaction->key == nil_key))
     {
-      interaction_already_recorded = true;
+      interaction_update_index = interaction_index;
       break;
     }
   }
 
-  if (!interaction_already_recorded && (ui->interaction_index < array_count(ui->interactions)))
+  if (interaction_update_index != -1)
   {
-    UI_Interaction *cur_interaction = ui->interactions + ui->interaction_index;
+    UI_Interaction *cur_interaction = ui->interactions + interaction_update_index;
 
     cur_interaction->key         = cur_widget->key;
     cur_interaction->frames_left = frames_left;
     cur_interaction->event       = event;
     copy_struct(&cur_interaction->value, event_value);
 
-    ui->interaction_index++; 
+#if !SHIP_MODE
+    copy_struct(&cur_interaction->value2, &ui->mouse_pos);
+    cur_interaction->start_frame = platform_get_global_state()->frame_count;
+#endif
   }
 }
 
@@ -300,12 +303,13 @@ internal b32 ui_do_button(String_Const_utf8 string)
   ui_push_parent(last_parent);
 
   for (u32 interaction_index = 0;
-       interaction_index < ui->interaction_index;
+       interaction_index < array_count(ui->interactions);
        ++interaction_index) 
   {
     if (ui->interactions[interaction_index].key == button_text_parent->key)
     {
       result = true;
+      break;
     }
   }
 
@@ -329,11 +333,6 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
   String_Const_utf8 slider_parent_to_hash_prefix = string_literal_init_type("Slider parent::", utf8);
   String_Const_utf8 slider_parent_to_hash = concat_string_to_c_string(ui->string_pool, slider_parent_to_hash_prefix, string);
 
-  unused(slider_parent_to_hash);
-  unused(in_out_value);
-  unused(minimum);
-  unused(maximum);
-
   ui_make_widget(widget_flag_none,
                  size_flag_copy_parent_size_x | size_flag_given_size_y,
                  slider_parent_to_hash,
@@ -351,9 +350,9 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
 
   f32 slider_width_scale = 0.05f;
   f32 norm = 1.0f / (maximum - minimum);
-  f32 slider_x_scale = lerpf(0.0f, clamp(minimum, *in_out_value, maximum) * norm, 1.0f - slider_width_scale);
+  f32 slider_x_scale = lerpf(0.0f, clamp(minimum, *in_out_value, maximum) * norm, 1.0f);
 
-  ui_make_widget(widget_flag_draw_background | widget_flag_dragable,
+  ui_make_widget(widget_flag_draw_background  | widget_flag_dragable,
                  size_flag_copy_parent_size_x | size_flag_copy_parent_size_y |
                  size_flag_relative_to_parent_pos_x | size_flag_relative_to_parent_pos_y,
                  slider_to_hash,
@@ -764,7 +763,7 @@ internal void ui_prepare_render(void)
           {
             if (ui_is_key_equal(ui->hot_key, cur_widget->key))
             {
-              ui_add_interaction(cur_widget, 2, 0, &event_value);
+              ui_add_interaction(cur_widget, 1, 0, &event_value);
             }
 
             ui->active_key = nil_key;

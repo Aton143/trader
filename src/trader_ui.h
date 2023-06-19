@@ -268,6 +268,12 @@ struct UI_Interaction
   i32            frames_left;
   u32            event;
   UI_Event_Value value;
+
+#if !SHIP_MODE
+  // TODO(antonio): remove - for debugging
+  UI_Event_Value value2;
+  u64            start_frame;
+#endif
 };
 
 struct Persistent_Widget_Data
@@ -311,7 +317,6 @@ struct UI_Context
   RGBA_f32    background_color[4];
 
   UI_Interaction    interactions[4];
-  u32               interaction_index;
 
   // TODO(antonio): when does this get cleared?
   Persistent_Widget_Data persistent_data[4];

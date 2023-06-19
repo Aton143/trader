@@ -64,7 +64,7 @@ internal void network_print_error()
 
   u32 ssl_error = ERR_get_error();
   ERR_error_string_n(ssl_error, (char *) network_error_buffer, array_count(network_error_buffer) - 1);
-  platform_print((char *) network_error_buffer);
+  platform_debug_print((char *) network_error_buffer);
 }
 
 #define TRADER_NETWORK_H

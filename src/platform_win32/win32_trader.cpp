@@ -537,6 +537,7 @@ WinMain(HINSTANCE instance,
 
         OutputDebugStringW(L"Graphics Device: ");
         OutputDebugStringW(adapter_description.Description);
+        OutputDebugStringW(L"\n");
 
         result = dxgi_adapter->GetParent(__uuidof(IDXGIFactory2), (void **) &dxgi_factory);
         expect(SUCCEEDED(result));
@@ -926,13 +927,12 @@ WinMain(HINSTANCE instance,
       ui_initialize_frame();
       ui_push_background_color(0.0f, 0.0f, 0.0f, 1.0f);
 
-      local_persist u64 frame_count = 0;
-      frame_count++;
+      win32_global_state.frame_count++;
 
       ui_push_background_color(0.0f, 0.0f, 0.0f, 1.0f);
       ui_do_formatted_string("Last frame time: %.6fs", last_frame_time);
       ui_do_formatted_string("Last frame time in cycles: %lld", last_frame_time_in_cycles);
-      ui_do_formatted_string("Frame count: %lld", frame_count);
+      ui_do_formatted_string("Frame count: %lld", win32_global_state.frame_count);
 
       if (ui_do_button(string_literal_init_type("click here to save frame buffer", utf8)))
       {
@@ -952,9 +952,11 @@ WinMain(HINSTANCE instance,
         ui_do_string(string_literal_init_type("Mouse is in client but not really, if you know what I mean", utf8));
       }
 
+      /*
       ui_push_text_color(clamp(0.0f, ui->mouse_pos.x / render_get_client_rect().x1, 1.0f),
                          clamp(0.0f, ui->mouse_pos.y / render_get_client_rect().y1, 1.0f),
                          1.0f, 1.0f);
+                         */
 
       ui_do_formatted_string("Mouse position: (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
       ui_do_formatted_string("Mouse delta: (%.0f, %.0f)", ui->mouse_delta.x, ui->mouse_delta.y);
@@ -1002,7 +1004,7 @@ WinMain(HINSTANCE instance,
       ui_do_slider_f32(string_literal_init_type("slider", utf8), &slider_float, 0.0f, 1.0f);
       ui_push_background_color(0.0f, 0.0f, 0.0f, 1.0f);
 
-      ui_do_formatted_string("Interaction Results (%d):", ui->interaction_index);
+      ui_do_formatted_string("Interaction Results:");
       for (u32 interaction_index = 0;
            interaction_index < array_count(ui->interactions);
            ++interaction_index)
@@ -1190,27 +1192,18 @@ WinMain(HINSTANCE instance,
       ui->mouse_wheel_delta = {0.0f, 0.0f};
       ui->prev_frame_mouse_event = ui->cur_frame_mouse_event;
 
-      u32 interaction_next_available = 0;
-
       for (u32 interaction_index = 0;
            interaction_index < array_count(ui->interactions);
            ++interaction_index) 
       {
         ui->interactions[interaction_index].frames_left--;
-        if (ui->interactions[interaction_index].frames_left > 0)
-        {
-          ui->interactions[interaction_next_available++] = ui->interactions[interaction_index];
-        }
-        else if (ui->interactions[interaction_index].frames_left < 0)
+        if (ui->interactions[interaction_index].frames_left < 0)
         {
           ui->interactions[interaction_index] = {};
         }
       }
 
-      ui->interaction_index = interaction_next_available;
-
       zero_memory_block(ui->key_events, sizeof(ui->key_events));
-
       {
         u64 cur_pts = platform_get_processor_time_stamp();
         u64 cur_hpt = platform_get_high_precision_timer();

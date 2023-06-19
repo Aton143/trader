@@ -5,7 +5,9 @@ typedef u32 Key_Event;
 
 internal Global_Platform_State *platform_get_global_state(void);
 
-internal void platform_print(const char *format, ...);
+internal void platform_debug_print(char *text);
+internal void platform_debug_printf(char *format, ...);
+
 internal void platform_initialize(void);
 
 internal File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u64 file_path_size);
@@ -35,5 +37,17 @@ internal Key_Event platform_convert_key_to_our_key(u64 key_value);
 internal String_Const_utf8 platform_get_file_from_system_prompt();
 internal File_Buffer       platform_open_and_read_entire_file_from_system_prompt(Arena *arena);
 
+// implementation
+internal void platform_debug_printf(char *format, ...)
+{
+  char buffer[512] = {};
+  va_list args;
+  va_start(args, format);
+
+  stbsp_vsnprintf(buffer, array_count(buffer), format, args);
+  platform_debug_print(buffer);
+
+  va_end(args);
+}
 #define TRADER_PLATFORM_H
 #endif

@@ -50,6 +50,10 @@ struct Global_Platform_State
   HANDLE         notify_dir_iocp;
   OVERLAPPED     notify_overlapped;
 
+#if !SHIP_MODE
+  u64 frame_count;
+#endif
+
   // TODO(antonio): make part of global arena
   u8             _changed_files[kb(1)];
   utf8           changed_files[8][128];
@@ -812,9 +816,9 @@ internal DWORD iocp_thread_proc(LPVOID _iocp_handle)
   return(result);
 }
 
-internal void platform_print(const char *format, ...)
+internal void platform_debug_print(char *text)
 {
-  OutputDebugStringA(format);
+  OutputDebugStringA(text);
 }
 
 internal Arena arena_alloc(u64 size, u64 alignment, void *start)

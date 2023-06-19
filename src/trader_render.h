@@ -33,7 +33,6 @@ struct Texture_Atlas
 {
   Font_Bitmap       bitmap;
 
-
   stbtt_fontinfo    font_info;
   stbtt_packedchar *char_data;
 
@@ -44,12 +43,20 @@ struct Texture_Atlas
   Rect_i16          solid_color_rect;
 };
 
+struct Draw_Call
+{
+  V4_f32   position;
+  RGBA_f32 color;
+  Rect_f32 uv;
+};
+
 struct Vertex_Shader;
 struct Pixel_Shader;
 
 #include "trader_platform.h"
 
-global_const u64 render_data_size = mb(1);
+global_const u64 render_data_size          = mb(1);
+global_const u64 triangle_render_data_size = mb(1);
 global File_Buffer default_font = {};
 
 global_const utf32 starting_code_point = 32;  // ' '

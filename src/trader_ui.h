@@ -34,6 +34,8 @@ enum
 
   widget_flag_smooth_animation_x = (1LL << 17),
   widget_flag_smooth_animation_y = (1LL << 18),
+
+  widget_flag_arbitrary_draw     = (1LL << 19)
 };
 
 typedef u64 Widget_Size_Flag;
@@ -376,6 +378,9 @@ internal void ui_do_formatted_string(char *format, ...);
 internal b32  ui_do_button(String_Const_utf8 string);
 
 internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 minimum, f32 maximum);
+
+// TODO(antonio): rename
+internal void ui_easel(String_Const_utf8 string, Draw_Call *elements, u64 element_count);
 
 internal UI_Key ui_make_key(String_Const_utf8 string);
 internal b32 ui_is_key_equal(UI_Key a, UI_Key b);

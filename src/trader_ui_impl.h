@@ -765,7 +765,6 @@ internal void ui_prepare_render(void)
             {
               ui_add_interaction(cur_widget, 1, 0, &event_value);
             }
-
             ui->active_key = nil_key;
           }
         }

@@ -2,20 +2,21 @@ struct Global_Data
 {
   float2 resolution;
   float2 texture_dimensions;
-}
+};
 
 struct VS_Input
 {
-  float3 position:   POSITION;
-  float2 texture_uv: TEXCOORD;
-}
+  float4 position: POSITION;
+  float4 color:    COLOR;
+  float2 uv:       TEXCOORD;
+};
 
 struct PS_Input
 {
   float4 vertex: SV_POSITION;
-  float2 uv:     TEXCOORD;
   float4 color:  COLOR;
-}
+  float2 uv:     TEXCOORD;
+};
 
 Global_Data  global_data;
 Texture2D    global_texture: register(t0);
@@ -30,7 +31,7 @@ PS_Input VS_Main(VS_Input input)
                          input.position.z,
                          1);
 
-  output.uv     = float2(input.uv.x / texture_dimensions.x, input.uv.y / texture_dimensions.y);
+  output.uv     = float2(input.uv.x / global_data.texture_dimensions.x, input.uv.y / global_data.texture_dimensions.y);
   output.color  = input.color;
 
   return(output);

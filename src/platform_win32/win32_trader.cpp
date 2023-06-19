@@ -315,8 +315,9 @@ WinMain(HINSTANCE instance,
 
   SetCurrentDirectoryW((LPCWSTR) exe_file_path.str);
 
-  Arena global_arena = arena_alloc(global_memory_size, 4, (void *) global_memory_start_addr);
-  Arena render_data  = arena_alloc(render_data_size, 1, NULL);
+  Arena global_arena         = arena_alloc(global_memory_size, 4, (void *) global_memory_start_addr);
+  Arena render_data          = arena_alloc(render_data_size, 1, NULL);
+  Arena triangle_render_data = arena_alloc(triangle_render_data_size, 1, NULL);
 
   Asset_Node *asset_pool_start = (Asset_Node *) arena_push(&global_arena, asset_pool_size);
   u64 asset_count = asset_pool_size / sizeof(*asset_pool_start);
@@ -581,15 +582,15 @@ WinMain(HINSTANCE instance,
     }
 
     {
-      win32_global_state.render_context.swap_chain     = swap_chain;
-      win32_global_state.render_context.device         = device;
-      win32_global_state.render_context.device_context = device_context;
-
-      win32_global_state.render_context.render_data    = render_data;
+      win32_global_state.render_context.swap_chain           = swap_chain;
+      win32_global_state.render_context.device               = device;
+      win32_global_state.render_context.device_context       = device_context;
+      win32_global_state.render_context.render_data          = render_data;
+      win32_global_state.render_context.triangle_render_data = triangle_render_data;
     };
 
-    String_Const_utf8 shader_source_path = string_literal_init_type("..\\src\\platform_win32\\shaders.hlsl", utf8);
-    Handle *shader_source_handle = make_handle(shader_source_path.str, Handle_Kind_File);
+    String_Const_utf8 shader_source_path   = string_literal_init_type("..\\src\\platform_win32\\shaders.hlsl", utf8);
+    Handle           *shader_source_handle = make_handle(shader_source_path, Handle_Kind_File);
 
     Vertex_Shader renderer_vertex_shader = {};
     Pixel_Shader  renderer_pixel_shader = {};
@@ -607,44 +608,31 @@ WinMain(HINSTANCE instance,
         {
           "INSTANCE_SIZE", 0, DXGI_FORMAT_R32G32_FLOAT, INSTANCE_BUFFER_SLOT,
           0, D3D11_INPUT_PER_INSTANCE_DATA, 1
-        },
-
-        {
+        }, {
           "INSTANCE_SIZE", 1, DXGI_FORMAT_R32G32_FLOAT, INSTANCE_BUFFER_SLOT,
           D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1
-        },
-
-        {
+        }, {
           "INSTANCE_COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, INSTANCE_BUFFER_SLOT,
           D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1
-        },
-
-        {
+        }, {
           "INSTANCE_COLOR", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, INSTANCE_BUFFER_SLOT,
           D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1
-        },
-
-        {
+        }, {
           "INSTANCE_COLOR", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, INSTANCE_BUFFER_SLOT,
           D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1
-        },
-
-        {
+        }, {
           "INSTANCE_COLOR", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, INSTANCE_BUFFER_SLOT,
           D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1
-        },
-
-        {
+        }, {
           "INSTANCE_POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, INSTANCE_BUFFER_SLOT,
-          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-
-        {"INSTANCE_UV", 0, DXGI_FORMAT_R32G32_FLOAT, INSTANCE_BUFFER_SLOT,
+          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1
+        }, {
+          "INSTANCE_UV", 0, DXGI_FORMAT_R32G32_FLOAT, INSTANCE_BUFFER_SLOT,
+          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1
+        }, {
+          "INSTANCE_UV", 1, DXGI_FORMAT_R32G32_FLOAT, INSTANCE_BUFFER_SLOT,
           D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1
         },
-
-        {
-          "INSTANCE_UV", 1, DXGI_FORMAT_R32G32_FLOAT, INSTANCE_BUFFER_SLOT,
-          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
       };
 
       HRESULT result = device->CreateInputLayout(input_element_description, array_count(input_element_description),
@@ -664,6 +652,56 @@ WinMain(HINSTANCE instance,
       instance_buffer_description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
       HRESULT result = device->CreateBuffer(&instance_buffer_description, NULL, &instance_buffer);
+      expect(SUCCEEDED(result));
+    }
+
+    String_Const_utf8 triangle_shader_source_path =
+      string_literal_init_type("..\\src\\platform_win32\\triangle_shaders.hlsl", utf8);
+    Handle *triangle_shader_source_handle = make_handle(triangle_shader_source_path, Handle_Kind_File);
+
+    Vertex_Shader triangle_vertex_shader = {};
+    Pixel_Shader  triangle_pixel_shader = {};
+
+    ID3DBlob *triangle_vertex_shader_blob =
+      (ID3DBlob *) render_load_vertex_shader(triangle_shader_source_handle, &triangle_vertex_shader, true);
+    render_load_pixel_shader(triangle_shader_source_handle, &triangle_pixel_shader, true);
+
+    ID3D11InputLayout *triangle_input_layout = NULL;
+    {
+      D3D11_INPUT_ELEMENT_DESC input_element_description[] =
+      {
+#define INSTANCE_BUFFER_SLOT 0
+        {
+          "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
+          0, D3D11_INPUT_PER_VERTEX_DATA, 0
+        }, {
+          "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
+          0, D3D11_INPUT_PER_VERTEX_DATA, 0
+        }, {
+          "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0,
+          0, D3D11_INPUT_PER_VERTEX_DATA, 0
+        },
+      };
+
+      HRESULT result = device->CreateInputLayout(input_element_description,
+                                                 array_count(input_element_description),
+                                                 triangle_vertex_shader_blob->GetBufferPointer(),
+                                                 triangle_vertex_shader_blob->GetBufferSize(),
+                                                 &triangle_input_layout);
+      expect(SUCCEEDED(result));
+      triangle_vertex_shader_blob->Release();
+    }
+
+    ID3D11Buffer *vertex_buffer = NULL;
+    {
+      D3D11_BUFFER_DESC vertex_buffer_description = {};
+
+      vertex_buffer_description.ByteWidth      = (u32) triangle_render_data.size;
+      vertex_buffer_description.Usage          = D3D11_USAGE_DYNAMIC;
+      vertex_buffer_description.BindFlags      = D3D11_BIND_VERTEX_BUFFER;
+      vertex_buffer_description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+      HRESULT result = device->CreateBuffer(&vertex_buffer_description, NULL, &vertex_buffer);
       expect(SUCCEEDED(result));
     }
 

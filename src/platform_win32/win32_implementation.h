@@ -19,6 +19,7 @@ struct Render_Context
 
   Texture_Atlas       *atlas;
   Arena                render_data;
+  Arena                triangle_render_data;
 };
 
 typedef u64 Focus_Event;
@@ -836,7 +837,6 @@ internal Arena arena_alloc(u64 size, u64 alignment, void *start)
 
   return(arena);
 }
-
 
 internal void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *shader, b32 force)
 {

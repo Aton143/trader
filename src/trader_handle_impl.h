@@ -8,14 +8,13 @@ internal b32 is_nil(Handle *handle)
   return(result);
 }
 
-internal Handle *make_handle(utf8 *id, Handle_Kind kind, Handle *previous_handle)
+internal Handle *make_handle(String_Const_utf8 id, Handle_Kind kind, Handle *previous_handle)
 {
   Handle *result = NULL;
 
   Asset_Node *first = global_asset_pool.free_list_head;
   expect_message(first != NULL, "no more assets for you, foolio");
 
-  u64 id_size = c_string_length(id);
   if (previous_handle == NULL)
   {
     if (is_between_inclusive(Handle_Kind_File, kind, Handle_Kind_File))
@@ -23,10 +22,9 @@ internal Handle *make_handle(utf8 *id, Handle_Kind kind, Handle *previous_handle
       result = &first->handle;
       zero_struct(result);
 
-      if (platform_open_file(id, id_size, result))
+      if (platform_open_file(id.str, id.size, result))
       {
-        String_Const_utf8 id_conv   = {id, id_size};
-        String_Const_utf8 file_name = platform_get_file_name_from_path(&id_conv);
+        String_Const_utf8 file_name = platform_get_file_name_from_path(&id);
         copy_memory_block(result->id, file_name.str, min(file_name.size, array_count(result->id)));
 
         result->kind = kind;
@@ -39,8 +37,7 @@ internal Handle *make_handle(utf8 *id, Handle_Kind kind, Handle *previous_handle
   else
   {
     expect(previous_handle->kind == kind);
-    expect(!copy_memory_block(previous_handle->id, id,
-                              min(id_size, array_count(result->id))));
+    expect(!copy_memory_block(previous_handle->id, id.str, min(id.size, array_count(result->id))));
 
     result = previous_handle;
   }

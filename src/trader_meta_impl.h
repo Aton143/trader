@@ -1,51 +1,53 @@
 #ifndef TRADER_META_IMPL_H
 #include "trader_meta.h"
 
-#define TIMED_BLOCK() Timed_Block \
-  concat(timed_block_, __LINE__)(__COUNTER__, __FILE__, __FUNCTION__, __LINE__)
-#define TIMED_BLOCK_START(...) Timed_Block \
-  __timed_block__(__COUNTER__, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
-#define TIMED_BLOCK_END() __timed_block__.~Timed_Block()
-
-struct Timing_Record
-{
-  utf8 *file_name;
-  utf8 *function;
-
-  u32   line_number;
-  u32   hit_count;
-
-  u64   time_stamp;
-  u64   high_precision_time;
-};
-
 const extern u32 timing_records_count;
 extern Timing_Record timing_records[];
 
-struct Timed_Block
+struct Timed_Block_
 {
   Timing_Record *record;
   u64            cycle_count_start;
   u64            high_precision_time;
+};
+
+internal Timed_Block_ meta_start_timed_block(u32 counter, char *file_name, char *function, u32 line_number)
+{
+  Timed_Block_ res;
+
+  res.record = timing_records + counter;
+
+  res.record->file_name   = (utf8 *) file_name;
+  res.record->function    = (utf8 *) function;
+  res.record->line_number = line_number;
+  res.record->hit_count   = 0;
+
+  res.cycle_count_start   = platform_get_processor_time_stamp();
+  res.high_precision_time = platform_get_high_precision_timer();
+
+  return(res);
+}
+
+internal void meta_end_timed_block(Timed_Block_ *timed_block)
+{
+  timed_block->record->time_stamp +=
+    difference_with_wrap(platform_get_processor_time_stamp(), timed_block->cycle_count_start);
+  timed_block->record->high_precision_time += platform_get_high_precision_timer() - timed_block->high_precision_time;
+  timed_block->record->hit_count++;
+}
+
+struct Timed_Block
+{
+  Timed_Block_ block;
 
   Timed_Block(u32 counter, char *file_name, char *function, u32 line_number)
   {
-    this->record = timing_records + counter;
-
-    this->record->file_name   = (utf8 *) file_name;
-    this->record->function    = (utf8 *) function;
-    this->record->line_number = line_number;
-    this->record->hit_count   = 0;
-
-    this->cycle_count_start   = platform_get_processor_time_stamp();
-    this->high_precision_time = platform_get_high_precision_timer();
+    this->block = meta_start_timed_block(counter, file_name, function, line_number);
   }
 
   ~Timed_Block()
   {
-    this->record->time_stamp          += difference_with_wrap(platform_get_processor_time_stamp(), this->cycle_count_start);
-    this->record->high_precision_time += difference_with_wrap(platform_get_high_precision_timer(), this->high_precision_time);
-    this->record->hit_count++;
+    meta_end_timed_block(&this->block);
   }
 };
 
@@ -92,7 +94,7 @@ internal void meta_collate_timing_records(void)
                                          high_precision_time_in_seconds,
                                          cur_collated->hit_count);
 
-      // OutputDebugStringA(sprinted_text.str);
+      platform_debug_print(sprinted_text.str);
 
       sprinted_text.size = 0;
     }

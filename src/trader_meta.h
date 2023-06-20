@@ -39,6 +39,24 @@
 #define expect_once(c)
 #endif
 
+#define TIMED_BLOCK() Timed_Block \
+  concat(timed_block_, __LINE__)(__COUNTER__, __FILE__, __FUNCTION__, __LINE__)
+#define TIMED_BLOCK_START(...) Timed_Block_ \
+  __timed_block__ = meta_start_timed_block(__COUNTER__, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define TIMED_BLOCK_END() meta_end_timed_block(&__timed_block__)
+
+struct Timing_Record
+{
+  utf8 *file_name;
+  utf8 *function;
+
+  u32   line_number;
+  u32   hit_count;
+
+  u64   time_stamp;
+  u64   high_precision_time;
+};
+
 #if !SHIP_MODE
 struct Meta_Info
 {
@@ -55,7 +73,7 @@ global Meta_Info meta_info = {};
 internal void meta_init(void);
 internal void meta_log(utf8 *format, ...);
 
-internal void   meta_collate_timing_records(void);
+internal void meta_collate_timing_records(void);
 
 #define TRADER_META_H
 #endif

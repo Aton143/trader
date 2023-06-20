@@ -296,8 +296,6 @@ WinMain(HINSTANCE instance,
   unused(command_line);
   unused(show_command);
 
-  TIMED_BLOCK();
-
   win32_global_state.temp_arena.arena = arena_alloc(global_temp_arena_size, 4, NULL);
 
   rng_init();
@@ -870,6 +868,7 @@ WinMain(HINSTANCE instance,
 
     while (global_running)
     {
+      TIMED_BLOCK_START();
       MSG message;
 
       while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE))
@@ -1179,8 +1178,6 @@ WinMain(HINSTANCE instance,
 
       arena_reset(&win32_global_state.render_context.render_data);
 
-      meta_collate_timing_records();
-
 #if !SHIP_MODE
       if (save_current_frame_buffer)
       {
@@ -1221,7 +1218,10 @@ WinMain(HINSTANCE instance,
       }
 #endif
 
+      TIMED_BLOCK_END();
       swap_chain->Present(1, 0);
+
+      meta_collate_timing_records();
 
       // Post-frame
       win32_global_state.focus_event = focus_event_none;

@@ -934,15 +934,14 @@ internal void ui_prepare_render(void)
 
       if (cur_widget->widget_flags & widget_flag_arbitrary_draw)
       {
-#if 0
-        // NOTE(antonio); verification
         for (u32 vertex_index = 0;
-             vertex_index < vertex_count;
+             vertex_index < ui->vertex_count;
              ++vertex_index)
         {
-
+          Draw_Call *cur_call = &ui->vertices[vertex_index];
+          cur_call->position.x += cur_widget->rectangle.x0;
+          cur_call->position.y += cur_widget->rectangle.y0;
         }
-#endif
       }
 
       first_child = NULL;

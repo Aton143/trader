@@ -966,7 +966,6 @@ WinMain(HINSTANCE instance,
 
       win32_global_state.frame_count++;
 
-      /*
       ui_push_background_color(0.0f, 0.0f, 0.0f, 1.0f);
       ui_do_formatted_string("Last frame time: %.6fs", last_frame_time);
       ui_do_formatted_string("Last frame time in cycles: %lld", last_frame_time_in_cycles);
@@ -1079,7 +1078,7 @@ WinMain(HINSTANCE instance,
       if (ui_do_button(string_literal_init_type("Click me!", utf8)))
       {
         ui_do_string(string_literal_init_type("That was the good action", utf8));
-        slider_float = 0.0f;
+        slider_float = 1.0f;
       }
 
       if (ui_do_button(string_literal_init_type("Open a file", utf8)))
@@ -1089,126 +1088,157 @@ WinMain(HINSTANCE instance,
       }
       ui_pop_background_color();
       ui_do_string(file_str);
-      */
 
-      ui_canvas(string_literal_init_type("Easel", utf8), NULL, 0);
+      u32 vertex_count    = 3;   
+      Draw_Call *vertices = push_array(&win32_global_state.render_context.triangle_render_data, Draw_Call, vertex_count);
+
+      Rect_i16 *solid_color_glyph = &win32_global_state.render_context.atlas->solid_color_rect;
+      unused(solid_color_glyph);
+
+      vertices[0] = 
+      {
+        {0.0f, slider_float * 100.0f, 0.5f, 1.0f},
+        rgba(1.0f, 0.0f, 0.0f, 1.0f),
+        (f32) solid_color_glyph->x0, (f32) solid_color_glyph->y1,
+      };
+
+      vertices[1] = 
+      {
+        {slider_float * 100.0f, slider_float * 0.0f, 0.5f, 1.0f},
+        rgba(1.0f, 0.0f, 0.0f, 1.0f),
+        (f32) solid_color_glyph->x1, (f32) solid_color_glyph->y0
+      };
+
+      vertices[2] = 
+      {
+        {slider_float * 100.0f, slider_float * 100.0f, 0.5f, 1.0f},
+        rgba(1.0f, 0.0f, 0.0f, 1.0f),
+        (f32) solid_color_glyph->x1, (f32) solid_color_glyph->y1
+      };
+
+      ui_canvas(string_literal_init_type("Easel", utf8), vertices, vertex_count);
 
       ui_prepare_render();
 
+      // NOTE(antonio): instances
+      u32 draw_call_count;
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-      device_context->ClearRenderTargetView(frame_buffer_view, background_color);
-      device_context->ClearDepthStencilView(depth_stencil_view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0, 0);
-
-      device_context->OMSetRenderTargets(1, &frame_buffer_view, depth_stencil_view);
-
-      Rect_f32 client_rect = render_get_client_rect();
-
       {
-        Constant_Buffer constant_buffer_items = {};
-        {
-          constant_buffer_items.client_width  = client_rect.x1;
-          constant_buffer_items.client_height = client_rect.y1;
+        device_context->ClearRenderTargetView(frame_buffer_view, background_color);
+        device_context->ClearDepthStencilView(depth_stencil_view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0, 0);
 
-          constant_buffer_items.atlas_width   = (f32) atlas->bitmap.width;
-          constant_buffer_items.atlas_height  = (f32) atlas->bitmap.height;
+        device_context->OMSetRenderTargets(1, &frame_buffer_view, depth_stencil_view);
+
+        Rect_f32 client_rect = render_get_client_rect();
+        {
+          Constant_Buffer constant_buffer_items = {};
+          {
+            constant_buffer_items.client_width  = client_rect.x1;
+            constant_buffer_items.client_height = client_rect.y1;
+
+            constant_buffer_items.atlas_width   = (f32) atlas->bitmap.width;
+            constant_buffer_items.atlas_height  = (f32) atlas->bitmap.height;
+          }
+
+          D3D11_MAPPED_SUBRESOURCE mapped_subresource = {};
+          device_context->Map(constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
+
+          Constant_Buffer *constants_to_fill = (Constant_Buffer *) mapped_subresource.pData;
+          copy_struct(constants_to_fill, &constant_buffer_items);
+
+          device_context->Unmap(constant_buffer, 0);
         }
 
-        D3D11_MAPPED_SUBRESOURCE mapped_subresource = {};
-        device_context->Map(constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
+        {
+          D3D11_MAPPED_SUBRESOURCE mapped_instance_buffer = {};
+          device_context->Map(instance_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_instance_buffer);
 
-        Constant_Buffer *constants_to_fill = (Constant_Buffer *) mapped_subresource.pData;
-        copy_struct(constants_to_fill, &constant_buffer_items);
+          copy_memory_block(mapped_instance_buffer.pData,
+                            win32_global_state.render_context.render_data.start,
+                            win32_global_state.render_context.render_data.used);
 
-        device_context->Unmap(constant_buffer, 0);
+          device_context->Unmap(instance_buffer, 0);
+        }
+
+        D3D11_VIEWPORT viewport =
+        {
+          0.0f, 0.0f,
+          client_rect.x1, client_rect.y1,
+          0.0f, 1.0f
+        };
+
+        device_context->RSSetViewports(1, &viewport);
+
+        device_context->IASetInputLayout(input_layout);
+
+        u32 instance_buffer_strides[] = {sizeof(Instance_Buffer_Element)};
+        u32 instance_buffer_offsets[] = {0};
+        device_context->IASetVertexBuffers(0, 1, &instance_buffer,
+                                           instance_buffer_strides,
+                                           instance_buffer_offsets);
+
+        device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+        render_load_vertex_shader(shader_source_handle, &renderer_vertex_shader);
+        device_context->VSSetShader(renderer_vertex_shader.shader, NULL, 0);
+        device_context->VSSetConstantBuffers(0, 1, &constant_buffer);
+
+        render_load_pixel_shader(shader_source_handle, &renderer_pixel_shader);
+        device_context->PSSetShader(renderer_pixel_shader.shader, NULL, 0);
+
+        device_context->PSSetShaderResources(0, 1, &font_texture_view);
+        device_context->PSSetSamplers(0, 1, &sampler_state);
+
+        device_context->GSSetShader(NULL, NULL, 0);
+        device_context->HSSetShader(NULL, NULL, 0);
+        device_context->DSSetShader(NULL, NULL, 0);
+        device_context->CSSetShader(NULL, NULL, 0);
+
+        f32 blend_factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+        device_context->OMSetBlendState(transparent_blend_state, blend_factor, 0xffffffff);
+        device_context->OMSetDepthStencilState(depth_stencil_state, 0);
+        device_context->RSSetState(rasterizer_state);
+
+        D3D11_RECT scissor_rectangle = {(LONG) 0, (LONG) 0, (LONG) client_rect.x1, (LONG) client_rect.y1};
+        device_context->RSSetScissorRects(1, &scissor_rectangle);
+
+        draw_call_count = (u32) (win32_global_state.render_context.render_data.used / sizeof(Instance_Buffer_Element));
+        device_context->DrawInstanced(4, draw_call_count, 0, 0);
       }
-
-      {
-        D3D11_MAPPED_SUBRESOURCE mapped_instance_buffer = {};
-        device_context->Map(instance_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_instance_buffer);
-
-        copy_memory_block(mapped_instance_buffer.pData,
-                          win32_global_state.render_context.render_data.start,
-                          win32_global_state.render_context.render_data.used);
-
-        device_context->Unmap(instance_buffer, 0);
-      }
-
-      D3D11_VIEWPORT viewport =
-      {
-        0.0f, 0.0f,
-        client_rect.x1, client_rect.y1,
-        0.0f, 1.0f
-      };
-
-      device_context->RSSetViewports(1, &viewport);
-
-      device_context->IASetInputLayout(input_layout);
-
-      u32 instance_buffer_strides[] = {sizeof(Instance_Buffer_Element)};
-      u32 instance_buffer_offsets[] = {0};
-      device_context->IASetVertexBuffers(0, 1, &instance_buffer,
-                                         instance_buffer_strides,
-                                         instance_buffer_offsets);
-
-      device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-      render_load_vertex_shader(shader_source_handle, &renderer_vertex_shader);
-      device_context->VSSetShader(renderer_vertex_shader.shader, NULL, 0);
-      device_context->VSSetConstantBuffers(0, 1, &constant_buffer);
-
-      render_load_pixel_shader(shader_source_handle, &renderer_pixel_shader);
-      device_context->PSSetShader(renderer_pixel_shader.shader, NULL, 0);
-
-      device_context->PSSetShaderResources(0, 1, &font_texture_view);
-      device_context->PSSetSamplers(0, 1, &sampler_state);
-
-      device_context->GSSetShader(NULL, NULL, 0);
-      device_context->HSSetShader(NULL, NULL, 0);
-      device_context->DSSetShader(NULL, NULL, 0);
-      device_context->CSSetShader(NULL, NULL, 0);
-
-      f32 blend_factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
-      device_context->OMSetBlendState(transparent_blend_state, blend_factor, 0xffffffff);
-      device_context->OMSetDepthStencilState(depth_stencil_state, 0);
-      device_context->RSSetState(rasterizer_state);
-
-      D3D11_RECT scissor_rectangle = {(LONG) 0, (LONG) 0, (LONG) client_rect.x1, (LONG) client_rect.y1};
-      device_context->RSSetScissorRects(1, &scissor_rectangle);
-
-      u32 draw_call_count = (u32) (win32_global_state.render_context.render_data.used / sizeof(Instance_Buffer_Element));
-      device_context->DrawInstanced(4, draw_call_count, 0, 0);
 
       // NOTE(antonio): triangles
       {
-        D3D11_MAPPED_SUBRESOURCE mapped_vertex_buffer = {};
-        device_context->Map(vertex_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_vertex_buffer);
+        device_context->IASetInputLayout(triangle_input_layout);
+        {
+          D3D11_MAPPED_SUBRESOURCE mapped_vertex_buffer = {};
+          device_context->Map(vertex_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_vertex_buffer);
 
-        copy_memory_block(mapped_vertex_buffer.pData,
-                          win32_global_state.render_context.triangle_render_data.start,
-                          win32_global_state.render_context.triangle_render_data.used);
+          copy_memory_block(mapped_vertex_buffer.pData,
+                            win32_global_state.render_context.triangle_render_data.start,
+                            win32_global_state.render_context.triangle_render_data.used);
 
-        device_context->Unmap(vertex_buffer, 0);
+          device_context->Unmap(vertex_buffer, 0);
+        }
+
+        u32 vertex_buffer_strides[] = {sizeof(Draw_Call)};
+        u32 vertex_buffer_offsets[] = {0};
+        device_context->IASetVertexBuffers(0, 1, &vertex_buffer,
+                                           vertex_buffer_strides,
+                                           vertex_buffer_offsets);
+
+        render_load_vertex_shader(triangle_shader_source_handle, &triangle_vertex_shader);
+        device_context->VSSetShader(triangle_vertex_shader.shader, NULL, 0);
+        device_context->VSSetConstantBuffers(0, 1, &constant_buffer);
+
+        render_load_pixel_shader(triangle_shader_source_handle, &triangle_pixel_shader);
+        device_context->PSSetShader(triangle_pixel_shader.shader, NULL, 0);
+
+        device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        u32 triangle_draw_call_count =
+          (u32) (win32_global_state.render_context.triangle_render_data.used / sizeof(Draw_Call));
+        device_context->Draw(triangle_draw_call_count, 0);
       }
-
-      u32 vertex_buffer_strides[] = {sizeof(Draw_Call)};
-      u32 vertex_buffer_offsets[] = {0};
-      device_context->IASetVertexBuffers(0, 1, &vertex_buffer,
-                                         vertex_buffer_strides,
-                                         vertex_buffer_offsets);
-
-      render_load_vertex_shader(triangle_shader_source_handle, &triangle_vertex_shader);
-      device_context->VSSetShader(triangle_vertex_shader.shader, NULL, 0);
-      device_context->VSSetConstantBuffers(0, 1, &constant_buffer);
-
-      render_load_pixel_shader(triangle_shader_source_handle, &triangle_pixel_shader);
-      device_context->PSSetShader(triangle_pixel_shader.shader, NULL, 0);
-
-      device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-      u32 triangle_draw_call_count = (u32) (win32_global_state.render_context.triangle_render_data.used / sizeof(Draw_Call));
-      device_context->Draw(triangle_draw_call_count, 0);
-
-      arena_reset(&win32_global_state.render_context.render_data);
 
 #if !SHIP_MODE
       if (save_current_frame_buffer)
@@ -1250,6 +1280,9 @@ WinMain(HINSTANCE instance,
       }
 #endif
       swap_chain->Present(1, 0);
+
+      arena_reset(&win32_global_state.render_context.render_data);
+      arena_reset(&win32_global_state.render_context.triangle_render_data);
 
       meta_collate_timing_records();
 

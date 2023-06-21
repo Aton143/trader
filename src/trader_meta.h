@@ -39,9 +39,9 @@
 #define expect_once(c)
 #endif
 
-#define TIMED_BLOCK() Timed_Block \
+#define TIMED_BLOCK() Timed_Block_RAII \
   concat(timed_block_, __LINE__)(__COUNTER__, __FILE__, __FUNCTION__, __LINE__)
-#define TIMED_BLOCK_START(...) Timed_Block_ \
+#define TIMED_BLOCK_START(...) Timed_Block \
   __timed_block__ = meta_start_timed_block(__COUNTER__, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 #define TIMED_BLOCK_END() meta_end_timed_block(&__timed_block__)
 

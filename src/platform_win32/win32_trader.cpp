@@ -1218,7 +1218,6 @@ WinMain(HINSTANCE instance,
       }
 #endif
 
-      TIMED_BLOCK_END();
       swap_chain->Present(1, 0);
 
       meta_collate_timing_records();
@@ -1254,6 +1253,8 @@ WinMain(HINSTANCE instance,
 
         win32_global_state.dt = last_frame_time;
       }
+
+      TIMED_BLOCK_END();
     }
   }
 

@@ -586,7 +586,7 @@ internal void ui_prepare_render(void)
     }
   }
 
-  arena_reset_zero(temp_arena);
+  arena_reset(temp_arena);
   {
     Ring_Buffer widget_queue = ring_buffer_make(temp_arena, structs_in_size(ring_buffer_size, Widget **));
 
@@ -725,7 +725,7 @@ internal void ui_prepare_render(void)
     }
   }
 
-  arena_reset_zero(temp_arena);
+  arena_reset(temp_arena);
   {
     Ring_Buffer widget_queue = ring_buffer_make(temp_arena, structs_in_size(ring_buffer_size, Widget *));
     Widget *first_child = NULL;
@@ -903,6 +903,7 @@ internal void ui_prepare_render(void)
         ring_buffer_append(&widget_queue, &cur_child, sizeof(Widget *));
         first_child = cur_widget->first_child;
       }
+
     }
 
     if (!hot_key_should_be_kept)

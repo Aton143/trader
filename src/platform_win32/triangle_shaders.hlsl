@@ -29,7 +29,7 @@ PS_Input VS_Main(VS_Input input)
   output.vertex = float4((2 * input.position.x / global_data.resolution.x) - 1,
                          1 - (2 * input.position.y / global_data.resolution.y),
                          input.position.z,
-                         1);
+                         input.position.w);
 
   output.uv     = float2(input.uv.x / global_data.texture_dimensions.x, input.uv.y / global_data.texture_dimensions.y);
   output.color  = input.color;

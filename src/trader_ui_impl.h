@@ -1,5 +1,114 @@
 #if !defined(TRADER_UI_IMPL_H)
 
+internal void ui_make_widget(Widget_Flag        widget_flags,
+                             Widget_Size_Flag   size_flags,
+                             String_Const_utf8  string,
+                             V2_f32             sizing,
+                             V2_f32             position,
+                             void              *data,
+                             u64                data_size)
+{
+  // TODO(antonio): sprint nation?
+  UI_Context     *ui     = ui_get_context();
+  Render_Context *render = render_get_context();
+
+  unused(data);
+  unused(data_size);
+
+  if (ui->current_widget_count < ui->max_widget_count)
+  {
+    Widget *widget = ui->widget_free_list_head;
+
+    ++ui->current_widget_count;
+    ui->widget_free_list_head = ui->widget_free_list_head->next_sibling;
+
+    zero_struct(widget);
+
+    // TODO(antonio): append_widget?
+    Widget *cur_par = ui->current_parent;
+
+    if (cur_par->first_child == NULL)
+    {
+      widget->next_sibling     = widget;
+      widget->previous_sibling = widget;
+
+      cur_par->first_child = widget;
+      cur_par->last_child  = widget;
+    }
+    else
+    {
+      widget->previous_sibling = cur_par->last_child;
+      widget->next_sibling     = cur_par->first_child;
+
+      cur_par->last_child->next_sibling      = widget;
+      cur_par->first_child->previous_sibling = widget;
+      cur_par->last_child                    = widget;
+    }
+
+    widget->parent = cur_par;
+
+    f32 content_width = (f32) ui->text_gutter_dim.x;
+
+    if (widget_flags & widget_flag_draw_text)
+    {
+      // NOTE(antonio): calculate text width
+
+      // NOTE(antonio): assuming that font height was found when pushed
+      stbtt_packedchar *packed_char_start = render->atlas->char_data + render_get_packed_char_start(ui->text_height);
+      // f32 font_scale = stbtt_ScaleForPixelHeight(&render->atlas->font_info, ui->text_height);
+
+      u64 string_index;
+      for (string_index = 0;
+           // NOTE(antonio): just in case they're being rat bastards
+           (string.str[string_index] != '\0') && (string_index < string.size);
+           ++string_index)
+      {
+        // TODO(antonio): deal with new lines more gracefully
+        if (is_newline(string.str[string_index])) 
+        {
+          continue;
+        }
+        else
+        {
+          stbtt_packedchar *cur_packed_char = packed_char_start + (string.str[string_index] - starting_code_point);
+          // f32 cur_char_height = (f32) (cur_packed_char->yoff2 - cur_packed_char->yoff);
+          // f32 cur_char_width  = (f32) (cur_packed_char->xoff2 - cur_packed_char->xoff);
+
+          content_width  += cur_packed_char->xadvance;
+
+          /*
+          if (string_index < string.size - 1)
+          {
+            content_width += font_scale *
+              stbtt_GetCodepointKernAdvance(&render->atlas->font_info,
+                                            string.str[string_index],
+                                            string.str[string_index + 1]);
+          }
+          */
+        }
+      }
+
+      widget->computed_size_in_pixels =
+      {
+        content_width   + (f32) (2 * ui->text_gutter_dim.x),
+        ui->text_height // + (f32) (/*2 * */ui->text_gutter_dim.y)
+      };
+    }
+
+    widget->widget_flags = widget_flags;
+    widget->size_flags   = size_flags;
+    widget->string       = string;
+    widget->text_color   = ui->text_color;
+    widget->key          = ui_make_key(string);
+
+    widget->position_relative_to_parent = position;
+    widget->extra_sizing                = sizing;
+
+    copy_memory_block(widget->end_background_color, ui->background_color, sizeof(ui->background_color));
+  }
+}
+
+
 internal inline void ui_add_interaction(Widget *cur_widget, i32 frames_left, u32 event, UI_Event_Value *event_value)
 {
   UI_Context *ui = ui_get_context();
@@ -103,6 +212,9 @@ internal void ui_initialize_frame(void)
   ui->widget_free_list_head  = ui->widget_memory + 1;
   ui->allocated_widgets      = sentinel_widget;
   ui->current_parent         = sentinel_widget;
+
+  ui->vertices               = NULL;
+  ui->vertex_count           = 0;
 
   default_persistent_data    = {};
 }
@@ -378,6 +490,34 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
   }
 }
 
+internal void ui_canvas(String_Const_utf8 string, Draw_Call *vertices, u32 vertex_count, V2_f32 size)
+{
+  UI_Context *ui          = ui_get_context();
+  Widget     *last_parent = ui->current_parent;
+
+  expect(compare_string_utf8(last_parent->string, ui_get_sentinel()->string));
+  expect_message((vertex_count % 3) == 0, 
+                 "Expected vertex count to be divisible by 3 - "
+                 "you realize you're drawing triangles, right?");
+
+  ui_push_background_color(1.0f, 0.0f, 0.0f, 1.0f);
+
+  ui_make_widget(widget_flag_arbitrary_draw,
+                 size_flag_given_size_x | size_flag_given_size_y,  
+                 string, 
+                 size,
+                 V2(0.0f, 0.0f));
+
+  ui_pop_background_color();
+
+  ui_pop_parent();
+  ui_push_parent(last_parent);
+
+  // TODO(antonio): this may not be the right place to put them
+  ui->vertices     = vertices;
+  ui->vertex_count = vertex_count;
+}
+
 internal UI_Key ui_make_key(String_Const_utf8 string)
 {
   UI_Key key = hash(string.str, string.size);
@@ -388,109 +528,6 @@ internal b32 ui_is_key_equal(UI_Key a, UI_Key b)
 {
   b32 result = (a == b);
   return(result);
-}
-
-internal void ui_make_widget(Widget_Flag       widget_flags,
-                             Widget_Size_Flag  size_flags,
-                             String_Const_utf8 string,
-                             V2_f32            sizing,
-                             V2_f32            position)
-{
-  // TODO(antonio): sprint nation?
-  UI_Context     *ui     = ui_get_context();
-  Render_Context *render = render_get_context();
-
-  if (ui->current_widget_count < ui->max_widget_count)
-  {
-    Widget *widget = ui->widget_free_list_head;
-
-    ++ui->current_widget_count;
-    ui->widget_free_list_head = ui->widget_free_list_head->next_sibling;
-
-    zero_struct(widget);
-
-    // TODO(antonio): append_widget?
-    Widget *cur_par = ui->current_parent;
-
-    if (cur_par->first_child == NULL)
-    {
-      widget->next_sibling     = widget;
-      widget->previous_sibling = widget;
-
-      cur_par->first_child = widget;
-      cur_par->last_child  = widget;
-    }
-    else
-    {
-      widget->previous_sibling = cur_par->last_child;
-      widget->next_sibling     = cur_par->first_child;
-
-      cur_par->last_child->next_sibling      = widget;
-      cur_par->first_child->previous_sibling = widget;
-      cur_par->last_child                    = widget;
-    }
-
-    widget->parent = cur_par;
-
-    f32 content_width = (f32) ui->text_gutter_dim.x;
-
-    if (widget_flags & widget_flag_draw_text)
-    {
-      // NOTE(antonio): calculate text width
-
-      // NOTE(antonio): assuming that font height was found when pushed
-      stbtt_packedchar *packed_char_start = render->atlas->char_data + render_get_packed_char_start(ui->text_height);
-      // f32 font_scale = stbtt_ScaleForPixelHeight(&render->atlas->font_info, ui->text_height);
-
-      u64 string_index;
-      for (string_index = 0;
-           // NOTE(antonio): just in case they're being rat bastards
-           (string.str[string_index] != '\0') && (string_index < string.size);
-           ++string_index)
-      {
-        // TODO(antonio): deal with new lines more gracefully
-        if (is_newline(string.str[string_index])) 
-        {
-          continue;
-        }
-        else
-        {
-          stbtt_packedchar *cur_packed_char = packed_char_start + (string.str[string_index] - starting_code_point);
-          // f32 cur_char_height = (f32) (cur_packed_char->yoff2 - cur_packed_char->yoff);
-          // f32 cur_char_width  = (f32) (cur_packed_char->xoff2 - cur_packed_char->xoff);
-
-          content_width  += cur_packed_char->xadvance;
-
-          /*
-          if (string_index < string.size - 1)
-          {
-            content_width += font_scale *
-              stbtt_GetCodepointKernAdvance(&render->atlas->font_info,
-                                            string.str[string_index],
-                                            string.str[string_index + 1]);
-          }
-          */
-        }
-      }
-
-      widget->computed_size_in_pixels =
-      {
-        content_width   + (f32) (2 * ui->text_gutter_dim.x),
-        ui->text_height // + (f32) (/*2 * */ui->text_gutter_dim.y)
-      };
-    }
-
-    widget->widget_flags     = widget_flags;
-    widget->size_flags       = size_flags;
-    widget->string           = string;
-    widget->text_color       = ui->text_color;
-    widget->key              = ui_make_key(string);
-
-    widget->position_relative_to_parent = position;
-    widget->extra_sizing                = sizing;
-
-    copy_memory_block(widget->end_background_color, ui->background_color, sizeof(ui->background_color));
-  }
 }
 
 internal void ui_prepare_render(void)
@@ -893,6 +930,19 @@ internal void ui_prepare_render(void)
 
         set_temp_arena_wait(1);
         render_draw_text(&x, &baseline, cur_widget->text_color, cur_widget->string.str);
+      }
+
+      if (cur_widget->widget_flags & widget_flag_arbitrary_draw)
+      {
+#if 0
+        // NOTE(antonio); verification
+        for (u32 vertex_index = 0;
+             vertex_index < vertex_count;
+             ++vertex_index)
+        {
+
+        }
+#endif
       }
 
       first_child = NULL;

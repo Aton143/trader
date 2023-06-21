@@ -320,6 +320,9 @@ struct UI_Context
 
   UI_Interaction    interactions[4];
 
+  Draw_Call  *vertices;
+  u32         vertex_count;
+
   // TODO(antonio): when does this get cleared?
   Persistent_Widget_Data persistent_data[4];
 
@@ -379,8 +382,7 @@ internal b32  ui_do_button(String_Const_utf8 string);
 
 internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 minimum, f32 maximum);
 
-// TODO(antonio): rename
-internal void ui_easel(String_Const_utf8 string, Draw_Call *elements, u64 element_count);
+internal void ui_canvas(String_Const_utf8 string, Draw_Call *elements, u32 element_count, V2_f32 size = {400.0f, 400.0f});
 
 internal UI_Key ui_make_key(String_Const_utf8 string);
 internal b32 ui_is_key_equal(UI_Key a, UI_Key b);
@@ -388,7 +390,9 @@ internal b32 ui_is_key_equal(UI_Key a, UI_Key b);
 internal void ui_make_widget(Widget_Flag widget_flags,
                              Widget_Size_Flag   size_flags,
                              String_Const_utf8  string,
-                             V2_f32             sizing = {1.0f, 1.0f},
-                             V2_f32             pos    = {0.0f, 0.0f});
+                             V2_f32             sizing    = {1.0f, 1.0f},
+                             V2_f32             pos       = {0.0f, 0.0f},
+                             void              *data      = NULL,
+                             u64                data_size = 0);
 #define TRADER_UI_H
 #endif

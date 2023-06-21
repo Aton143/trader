@@ -855,7 +855,7 @@ WinMain(HINSTANCE instance,
 
     win32_global_state.dt = 0.0;
 
-    f32 slider_float = 0.0f;
+    f32 slider_float; slider_float = 0.0f;
     String_Const_utf8 text_to_render = string_literal_init_type("abcdefg", utf8);
       /*string_literal_init_type("abcdefghijklmnopqrstuvwxyz"
                                  "ABCDEFGHIJKLMNOPQRSTUVWXYZ "
@@ -966,6 +966,7 @@ WinMain(HINSTANCE instance,
 
       win32_global_state.frame_count++;
 
+      /*
       ui_push_background_color(0.0f, 0.0f, 0.0f, 1.0f);
       ui_do_formatted_string("Last frame time: %.6fs", last_frame_time);
       ui_do_formatted_string("Last frame time in cycles: %lld", last_frame_time_in_cycles);
@@ -989,11 +990,9 @@ WinMain(HINSTANCE instance,
         ui_do_string(string_literal_init_type("Mouse is in client but not really, if you know what I mean", utf8));
       }
 
-      /*
       ui_push_text_color(clamp(0.0f, ui->mouse_pos.x / render_get_client_rect().x1, 1.0f),
                          clamp(0.0f, ui->mouse_pos.y / render_get_client_rect().y1, 1.0f),
                          1.0f, 1.0f);
-                         */
 
       ui_do_formatted_string("Mouse position: (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
       ui_do_formatted_string("Mouse delta: (%.0f, %.0f)", ui->mouse_delta.x, ui->mouse_delta.y);
@@ -1090,6 +1089,9 @@ WinMain(HINSTANCE instance,
       }
       ui_pop_background_color();
       ui_do_string(file_str);
+      */
+
+      ui_canvas(string_literal_init_type("Easel", utf8), NULL, 0);
 
       ui_prepare_render();
 
@@ -1176,6 +1178,36 @@ WinMain(HINSTANCE instance,
       u32 draw_call_count = (u32) (win32_global_state.render_context.render_data.used / sizeof(Instance_Buffer_Element));
       device_context->DrawInstanced(4, draw_call_count, 0, 0);
 
+      // NOTE(antonio): triangles
+      {
+        D3D11_MAPPED_SUBRESOURCE mapped_vertex_buffer = {};
+        device_context->Map(vertex_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_vertex_buffer);
+
+        copy_memory_block(mapped_vertex_buffer.pData,
+                          win32_global_state.render_context.triangle_render_data.start,
+                          win32_global_state.render_context.triangle_render_data.used);
+
+        device_context->Unmap(vertex_buffer, 0);
+      }
+
+      u32 vertex_buffer_strides[] = {sizeof(Draw_Call)};
+      u32 vertex_buffer_offsets[] = {0};
+      device_context->IASetVertexBuffers(0, 1, &vertex_buffer,
+                                         vertex_buffer_strides,
+                                         vertex_buffer_offsets);
+
+      render_load_vertex_shader(triangle_shader_source_handle, &triangle_vertex_shader);
+      device_context->VSSetShader(triangle_vertex_shader.shader, NULL, 0);
+      device_context->VSSetConstantBuffers(0, 1, &constant_buffer);
+
+      render_load_pixel_shader(triangle_shader_source_handle, &triangle_pixel_shader);
+      device_context->PSSetShader(triangle_pixel_shader.shader, NULL, 0);
+
+      device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+      u32 triangle_draw_call_count = (u32) (win32_global_state.render_context.triangle_render_data.used / sizeof(Draw_Call));
+      device_context->Draw(triangle_draw_call_count, 0);
+
       arena_reset(&win32_global_state.render_context.render_data);
 
 #if !SHIP_MODE
@@ -1217,7 +1249,6 @@ WinMain(HINSTANCE instance,
         safe_release(copy_frame_buffer_rtv);
       }
 #endif
-
       swap_chain->Present(1, 0);
 
       meta_collate_timing_records();

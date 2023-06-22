@@ -14,9 +14,12 @@ internal inline V2_f32 V2(f32 x, f32 y);
 internal inline V2_f32 add(V2_f32 a, V2_f32 b);
 internal inline V2_f32 operator +(V2_f32 a, V2_f32 b);
 
+internal inline V4_f32 V4(f32 x, f32 y, f32 z, f32 w = 1.0f);
 internal inline V4_f32 wide_clamp(V4_f32 bottom, V4_f32 v, V4_f32 top);
 
-// implemenation
+internal inline Matrix_f32_4x4 matrix4x4(V4_f32 row0, V4_f32 row1, V4_f32 row2, V4_f32 row3);
+
+// implementation
 internal inline f32 lerpf(f32 a, f32 t, f32 b)
 {
   f32 interp = ((b - a) * t) + a;
@@ -79,6 +82,12 @@ internal inline V2_f32 operator +(V2_f32 a, V2_f32 b)
   return(add(a, b));
 }
 
+internal inline V4_f32 V4(f32 x, f32 y, f32 z, f32 w)
+{
+  V4_f32 res = {x, y, z, w};
+  return(res);
+}
+
 internal inline V4_f32 wide_clamp(V4_f32 bottom, V4_f32 v, V4_f32 top)
 {
   V4_f32 res =
@@ -89,6 +98,12 @@ internal inline V4_f32 wide_clamp(V4_f32 bottom, V4_f32 v, V4_f32 top)
     clamp(bottom.v[3], v.v[3], top.v[3]),
   };
   return(res);
+}
+
+internal inline Matrix_f32_4x4 matrix4x4(V4_f32 row0, V4_f32 row1, V4_f32 row2, V4_f32 row3)
+{
+  Matrix_f32_4x4 mat = {row0, row1, row2, row3};
+  return(mat);
 }
 
 #endif

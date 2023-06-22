@@ -213,8 +213,7 @@ internal void ui_initialize_frame(void)
   ui->allocated_widgets      = sentinel_widget;
   ui->current_parent         = sentinel_widget;
 
-  ui->vertices               = NULL;
-  ui->vertex_count           = 0;
+  ui->canvas_viewport        = {};
 
   default_persistent_data    = {};
 }
@@ -453,7 +452,7 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
   Widget *slider_parent = ui->current_parent->last_child;
   ui_push_parent(slider_parent);
 
-  ui_push_background_color(1.0f, 0.0f, 0.0f, 1.0f);
+  ui_push_background_color(*in_out_value, *in_out_value, 0.0f, 1.0f);
 
   slider_parent_to_hash.size--;
   String_Const_utf8 slider_to_hash = concat_string_to_c_string(ui->string_pool,
@@ -490,16 +489,12 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
   }
 }
 
-internal void ui_canvas(String_Const_utf8 string, Draw_Call *vertices, u32 vertex_count, V2_f32 size)
+internal void ui_canvas(String_Const_utf8 string, V2_f32 size)
 {
   UI_Context *ui          = ui_get_context();
   Widget     *last_parent = ui->current_parent;
 
   expect(compare_string_utf8(last_parent->string, ui_get_sentinel()->string));
-  expect_message((vertex_count % 3) == 0, 
-                 "Expected vertex count to be divisible by 3 - "
-                 "you realize you're drawing triangles, right?");
-
   ui_push_background_color(1.0f, 0.0f, 0.0f, 1.0f);
 
   ui_make_widget(widget_flag_arbitrary_draw,
@@ -512,10 +507,6 @@ internal void ui_canvas(String_Const_utf8 string, Draw_Call *vertices, u32 verte
 
   ui_pop_parent();
   ui_push_parent(last_parent);
-
-  // TODO(antonio): this may not be the right place to put them
-  ui->vertices     = vertices;
-  ui->vertex_count = vertex_count;
 }
 
 internal UI_Key ui_make_key(String_Const_utf8 string)
@@ -934,14 +925,10 @@ internal void ui_prepare_render(void)
 
       if (cur_widget->widget_flags & widget_flag_arbitrary_draw)
       {
-        for (u32 vertex_index = 0;
-             vertex_index < ui->vertex_count;
-             ++vertex_index)
-        {
-          Draw_Call *cur_call = &ui->vertices[vertex_index];
-          cur_call->position.x += cur_widget->rectangle.x0;
-          cur_call->position.y += cur_widget->rectangle.y0;
-        }
+        expect((ui->canvas_viewport.x0 == 0.0f) && (ui->canvas_viewport.y0 == 0.0f));
+        expect((ui->canvas_viewport.x1 == 0.0f) && (ui->canvas_viewport.y1 == 0.0f));
+
+        ui->canvas_viewport = cur_widget->rectangle;
       }
 
       first_child = NULL;

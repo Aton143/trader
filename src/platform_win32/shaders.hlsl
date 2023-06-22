@@ -1,7 +1,7 @@
 struct Global_Data
 {
+  float4 texture_dimensions;
   float2 resolution;
-  float2 texture_dimensions;
 };
 
 struct VS_Input
@@ -90,11 +90,6 @@ PS_Input VS_Main(VS_Input input)
 
 float4 PS_Main(PS_Input input): SV_Target
 {
-  /*
-  float4 texture_sample = input.color * global_texture.Sample(global_sampler, input.uv);
-  float4 alpha_sample   = float4(1, 1, 1, texture_sample.r);
-  float4 out_color      = pow(alpha_sample * input.color, 1);
-  */
   float alpha_sample = global_texture.Sample(global_sampler, input.uv).r;
   float3 combined    = float3(input.color.rgb) * alpha_sample;
   float4 out_color   = float4(combined, alpha_sample);

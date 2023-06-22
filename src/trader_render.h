@@ -6,11 +6,26 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "./foreign/stb_truetype.h"
 
+#pragma pack(push, 4)
 struct Constant_Buffer
 {
-  f32 client_width, client_height;
   f32 atlas_width,  atlas_height;
+  f32 res0,  res1;
+
+  union {
+    // NOTE(antonio): for instance-based rendering
+    struct {
+      f32 client_width;
+      f32 client_height;
+    };
+
+    // NOTE(antonio): for vertex-based rendering
+    struct {
+      Matrix_f32_4x4 model_view_projection;
+    };
+  };
 };
+#pragma pack(pop)
 
 struct Instance_Buffer_Element
 {
@@ -18,6 +33,13 @@ struct Instance_Buffer_Element
   RGBA_f32  color[4];
   V3_f32    pos;
   Rect_f32  uv;
+};
+
+struct Vertex_Buffer_Element
+{
+  V4_f32   position;
+  RGBA_f32 color;
+  Rect_f32 uv;
 };
 
 struct Alpha_Bitmap {
@@ -43,15 +65,15 @@ struct Texture_Atlas
   Rect_i16          solid_color_rect;
 };
 
-struct Draw_Call
-{
-  V4_f32   position;
-  RGBA_f32 color;
-  Rect_f32 uv;
-};
-
 struct Vertex_Shader;
 struct Pixel_Shader;
+
+struct Common_Render_Context
+{
+  Texture_Atlas  *atlas;
+  Arena           render_data;
+  Arena           triangle_render_data;
+};
 
 #include "trader_platform.h"
 
@@ -63,11 +85,14 @@ global_const utf32 starting_code_point = 32;  // ' '
 global_const utf32 ending_code_point   = 126; // '~'
 
 // extern Asset_Handle render_make_texture(void *texture_data, u64 width, u64 height, u64 channels);
-internal Render_Context *render_get_context(void);
+internal Render_Context        *render_get_context(void);
+internal Common_Render_Context *render_get_common_context(void);
 internal Rect_f32        render_get_client_rect(void);
 
 internal void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *shader, b32 force = false);
 internal void  render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shader, b32 force = false);
+
+internal Vertex_Buffer_Element *render_push_triangles(u64 triangle_count);
 
 internal i64 render_get_font_height_index(f32 font_height);
 internal i64 render_get_packed_char_start(f32 font_height);
@@ -222,6 +247,19 @@ internal b32 render_atlas_initialize(Arena         *arena,
   }
 
   return(result);
+}
+
+internal Common_Render_Context *render_get_common_context(void)
+{
+  Common_Render_Context *common = (Common_Render_Context *) render_get_context();
+  return(common);
+}
+
+internal Vertex_Buffer_Element *render_push_triangles(u64 triangle_count)
+{
+  Vertex_Buffer_Element *data_to_fill =
+    push_array(&render_get_common_context()->triangle_render_data, Vertex_Buffer_Element, 3 * triangle_count);
+  return(data_to_fill);
 }
 
 #define TRADER_RENDER_H

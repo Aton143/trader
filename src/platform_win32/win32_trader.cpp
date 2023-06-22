@@ -671,13 +671,13 @@ WinMain(HINSTANCE instance,
 #define INSTANCE_BUFFER_SLOT 0
         {
           "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
-          0, D3D11_INPUT_PER_VERTEX_DATA, 0
+          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
         }, {
           "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
-          0, D3D11_INPUT_PER_VERTEX_DATA, 0
+          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
         }, {
           "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0,
-          0, D3D11_INPUT_PER_VERTEX_DATA, 0
+          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
         },
       };
 
@@ -729,14 +729,15 @@ WinMain(HINSTANCE instance,
 
       blend_description.AlphaToCoverageEnable                 = FALSE;
       blend_description.IndependentBlendEnable                = FALSE;
+
       blend_description.RenderTarget[0].BlendEnable           = TRUE;
 
-      blend_description.RenderTarget[0].SrcBlend              = D3D11_BLEND_SRC_ALPHA;
+      blend_description.RenderTarget[0].SrcBlend              = D3D11_BLEND_ONE;
       blend_description.RenderTarget[0].DestBlend             = D3D11_BLEND_INV_SRC_ALPHA;
       blend_description.RenderTarget[0].BlendOp               = D3D11_BLEND_OP_ADD;
 
-      blend_description.RenderTarget[0].SrcBlendAlpha         = D3D11_BLEND_ONE;//SRC_ALPHA;
-      blend_description.RenderTarget[0].DestBlendAlpha        = D3D11_BLEND_INV_SRC_ALPHA;//DEST_ALPHA;
+      blend_description.RenderTarget[0].SrcBlendAlpha         = D3D11_BLEND_ZERO;//SRC_ALPHA;
+      blend_description.RenderTarget[0].DestBlendAlpha        = D3D11_BLEND_ZERO; //D3D11_BLEND_INV_SRC_ALPHA;//DEST_ALPHA;
       blend_description.RenderTarget[0].BlendOpAlpha          = D3D11_BLEND_OP_ADD;
 
       blend_description.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
@@ -855,7 +856,7 @@ WinMain(HINSTANCE instance,
 
     win32_global_state.dt = 0.0;
 
-    f32 slider_float; slider_float = 0.0f;
+    f32 slider_float; slider_float = 1.0f;
     String_Const_utf8 text_to_render = string_literal_init_type("abcdefg", utf8);
       /*string_literal_init_type("abcdefghijklmnopqrstuvwxyz"
                                  "ABCDEFGHIJKLMNOPQRSTUVWXYZ "
@@ -966,8 +967,8 @@ WinMain(HINSTANCE instance,
 
       win32_global_state.frame_count++;
 
-      ui_push_background_color(0.0f, 0.0f, 0.0f, 1.0f);
       ui_do_formatted_string("Last frame time: %.6fs", last_frame_time);
+      /*
       ui_do_formatted_string("Last frame time in cycles: %lld", last_frame_time_in_cycles);
       ui_do_formatted_string("Frame count: %lld", win32_global_state.frame_count);
 
@@ -975,7 +976,7 @@ WinMain(HINSTANCE instance,
       {
         save_current_frame_buffer = true;
       }
-
+D3D11_BLEND_DEST_COLOR
       if (ui->mouse_area == mouse_area_out_client)
       {
         ui_do_string(string_literal_init_type("Mouse is not in client", utf8));
@@ -1077,7 +1078,7 @@ WinMain(HINSTANCE instance,
 
       if (ui_do_button(string_literal_init_type("Click me!", utf8)))
       {
-        ui_do_string(string_literal_init_type("That was the good action", utf8));
+        // ui_do_string(string_literal_init_type("That was the good action", utf8));
         slider_float = 1.0f;
       }
 
@@ -1117,6 +1118,7 @@ WinMain(HINSTANCE instance,
       };
 
       ui_canvas(string_literal_init_type("Easel", utf8), vertices, vertex_count);
+      */
 
       ui_prepare_render();
 

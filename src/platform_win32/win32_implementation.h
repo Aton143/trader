@@ -13,13 +13,20 @@ struct Pixel_Shader
 
 struct Render_Context
 {
+  union
+  {
+    struct
+    {
+      Texture_Atlas       *atlas;
+      Arena                render_data;
+      Arena                triangle_render_data;
+    };
+    Common_Render_Context common_context;
+  };
+
   IDXGISwapChain1     *swap_chain;
   ID3D11Device        *device;
   ID3D11DeviceContext *device_context;
-
-  Texture_Atlas       *atlas;
-  Arena                render_data;
-  Arena                triangle_render_data;
 };
 
 typedef u64 Focus_Event;

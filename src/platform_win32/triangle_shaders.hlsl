@@ -1,6 +1,5 @@
 struct Global_Data
 {
-  float2 resolution;
   float2 texture_dimensions;
 };
 
@@ -26,8 +25,8 @@ PS_Input VS_Main(VS_Input input)
 {
   PS_Input output;
 
-  output.vertex = float4((2 * input.position.x / global_data.resolution.x) - 1,
-                         1 - (2 * input.position.y / global_data.resolution.y),
+  output.vertex = float4((2 * input.position.x) - 1,
+                         1 - (2 * input.position.y),
                          input.position.z,
                          input.position.w);
 
@@ -39,8 +38,8 @@ PS_Input VS_Main(VS_Input input)
 
 float4 PS_Main(PS_Input input): SV_Target
 {
-  float4 texture_sample    = global_texture.Sample(global_sampler, input.uv);
-  float4 alpha_from_sample = texture_sample.a;
-  float4 out_color         = alpha_from_sample * input.color;
+  float alpha_sample = global_texture.Sample(global_sampler, input.uv).r;
+  float3 combined    = float3(input.color.rgb) * alpha_sample;
+  float4 out_color   = float4(combined, alpha_sample);
   return out_color;
 }

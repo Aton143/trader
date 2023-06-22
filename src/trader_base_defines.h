@@ -256,6 +256,7 @@ global_const f32 smallest_positive_f32 = 1.1754943508e-38f;
 global_const f32 epsilon_f32 =  5.96046448e-8f;
 global_const f32 pi_f32      =  3.14159265359f;
 global_const f32 half_pi_f32 =  1.5707963267f;
+global_const f32 tau_f32     =  3.14159265359f;
 
 global_const f64 max_f64     =  1.79769313486231e+308;
 global_const f64 min_f64     = -1.79769313486231e+308;

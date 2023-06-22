@@ -736,8 +736,8 @@ WinMain(HINSTANCE instance,
       blend_description.RenderTarget[0].DestBlend             = D3D11_BLEND_INV_SRC_ALPHA;
       blend_description.RenderTarget[0].BlendOp               = D3D11_BLEND_OP_ADD;
 
-      blend_description.RenderTarget[0].SrcBlendAlpha         = D3D11_BLEND_ZERO;//SRC_ALPHA;
-      blend_description.RenderTarget[0].DestBlendAlpha        = D3D11_BLEND_ZERO; //D3D11_BLEND_INV_SRC_ALPHA;//DEST_ALPHA;
+      blend_description.RenderTarget[0].SrcBlendAlpha         = D3D11_BLEND_ZERO;
+      blend_description.RenderTarget[0].DestBlendAlpha        = D3D11_BLEND_ZERO;
       blend_description.RenderTarget[0].BlendOpAlpha          = D3D11_BLEND_OP_ADD;
 
       blend_description.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
@@ -968,7 +968,6 @@ WinMain(HINSTANCE instance,
       win32_global_state.frame_count++;
 
       ui_do_formatted_string("Last frame time: %.6fs", last_frame_time);
-      /*
       ui_do_formatted_string("Last frame time in cycles: %lld", last_frame_time_in_cycles);
       ui_do_formatted_string("Frame count: %lld", win32_global_state.frame_count);
 
@@ -976,7 +975,6 @@ WinMain(HINSTANCE instance,
       {
         save_current_frame_buffer = true;
       }
-D3D11_BLEND_DEST_COLOR
       if (ui->mouse_area == mouse_area_out_client)
       {
         ui_do_string(string_literal_init_type("Mouse is not in client", utf8));
@@ -1090,35 +1088,31 @@ D3D11_BLEND_DEST_COLOR
       ui_pop_background_color();
       ui_do_string(file_str);
 
-      u32 vertex_count    = 3;   
-      Draw_Call *vertices = push_array(&win32_global_state.render_context.triangle_render_data, Draw_Call, vertex_count);
-
+      Vertex_Buffer_Element *vertices = render_push_triangles(2);
       Rect_i16 *solid_color_glyph = &win32_global_state.render_context.atlas->solid_color_rect;
-      unused(solid_color_glyph);
 
       vertices[0] = 
       {
-        {0.0f, slider_float * 100.0f, 0.5f, 1.0f},
-        rgba(1.0f, 0.0f, 0.0f, 1.0f),
+        {0.0f, slider_float, 0.5f, 1.0f},
+        rgba(slider_float, 0.0f, 0.0f, slider_float),
         (f32) solid_color_glyph->x0, (f32) solid_color_glyph->y1,
       };
 
       vertices[1] = 
       {
-        {slider_float * 100.0f, slider_float * 0.0f, 0.5f, 1.0f},
-        rgba(1.0f, 0.0f, 0.0f, 1.0f),
+        {slider_float, 0.0f, 0.5f, 1.0f},
+        rgba(0.0f, slider_float, 0.0f, slider_float),
         (f32) solid_color_glyph->x1, (f32) solid_color_glyph->y0
       };
 
       vertices[2] = 
       {
-        {slider_float * 100.0f, slider_float * 100.0f, 0.5f, 1.0f},
-        rgba(1.0f, 0.0f, 0.0f, 1.0f),
+        {slider_float, slider_float, 0.5f, 1.0f},
+        rgba(0.0f, 0.0f, slider_float, slider_float),
         (f32) solid_color_glyph->x1, (f32) solid_color_glyph->y1
       };
 
-      ui_canvas(string_literal_init_type("Easel", utf8), vertices, vertex_count);
-      */
+      ui_canvas(string_literal_init_type("Easel", utf8), V2(200.0f, 200.0f));
 
       ui_prepare_render();
 
@@ -1209,6 +1203,16 @@ D3D11_BLEND_DEST_COLOR
       }
 
       // NOTE(antonio): triangles
+      D3D11_VIEWPORT viewport =
+      {
+        ui->canvas_viewport.x0, ui->canvas_viewport.y0,
+        rect_get_width(&ui->canvas_viewport),
+        rect_get_height(&ui->canvas_viewport),
+        0.0f, 1.0f
+      };
+
+      device_context->RSSetViewports(1, &viewport);
+
       {
         device_context->IASetInputLayout(triangle_input_layout);
         {
@@ -1222,7 +1226,7 @@ D3D11_BLEND_DEST_COLOR
           device_context->Unmap(vertex_buffer, 0);
         }
 
-        u32 vertex_buffer_strides[] = {sizeof(Draw_Call)};
+        u32 vertex_buffer_strides[] = {sizeof(Vertex_Buffer_Element)};
         u32 vertex_buffer_offsets[] = {0};
         device_context->IASetVertexBuffers(0, 1, &vertex_buffer,
                                            vertex_buffer_strides,
@@ -1238,7 +1242,14 @@ D3D11_BLEND_DEST_COLOR
         device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
         u32 triangle_draw_call_count =
-          (u32) (win32_global_state.render_context.triangle_render_data.used / sizeof(Draw_Call));
+          (u32) (win32_global_state.render_context.triangle_render_data.used / sizeof(Vertex_Buffer_Element));
+
+        /*
+        expect_message((vertex_count % 3) == 0, 
+                       "Expected vertex count to be divisible by 3 - "
+                       "you realize you're drawing triangles, right?");
+                       */
+
         device_context->Draw(triangle_draw_call_count, 0);
       }
 

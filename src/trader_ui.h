@@ -287,47 +287,46 @@ struct Persistent_Widget_Data
 struct UI_Context
 {
   // NOTE(antonio): only one can be active at any given time
-  UI_Key      hot_key;    // NOTE(antonio): about to interact
-  UI_Key      active_key; // NOTE(antonio): interacting
+  UI_Key                  hot_key;    // NOTE(antonio): about to interact
+  UI_Key                  active_key; // NOTE(antonio): interacting
 
-  Widget     *current_parent;
+  Widget                 *current_parent;
 
-  Widget     *widget_memory;
-  u64         widget_memory_size;
+  Widget                 *widget_memory;
+  u64                     widget_memory_size;
 
-  Widget     *allocated_widgets;
-  Widget     *widget_free_list_head;
+  Widget                 *allocated_widgets;
+  Widget                 *widget_free_list_head;
 
-  Arena      *string_pool;
+  Arena                  *string_pool;
 
-  u32         max_widget_count;
-  u32         current_widget_count;
+  u32                     max_widget_count;
+  u32                     current_widget_count;
 
-  V2_i16      text_gutter_dim;
+  V2_i16                  text_gutter_dim;
 
-  Mouse_Area  mouse_area;
+  Mouse_Area              mouse_area;
 
-  Mouse_Event prev_frame_mouse_event;
-  Mouse_Event cur_frame_mouse_event;
+  Mouse_Event             prev_frame_mouse_event;
+  Mouse_Event             cur_frame_mouse_event;
 
-  V2_f32      mouse_pos;
-  V2_f32      mouse_delta;
-  V2_f32      mouse_wheel_delta;
+  V2_f32                  mouse_pos;
+  V2_f32                  mouse_delta;
+  V2_f32                  mouse_wheel_delta;
 
-  f32         text_height;
-  RGBA_f32    text_color;
-  RGBA_f32    background_color[4];
+  f32                     text_height;
+  RGBA_f32                text_color;
+  RGBA_f32                background_color[4];
 
-  UI_Interaction    interactions[4];
+  UI_Interaction          interactions[4];
 
-  Draw_Call  *vertices;
-  u32         vertex_count;
+  Rect_f32                canvas_viewport;
 
   // TODO(antonio): when does this get cleared?
-  Persistent_Widget_Data persistent_data[4];
+  Persistent_Widget_Data  persistent_data[4];
 
-  Mod_Keys  mod_keys;
-  b8        key_events[key_event_count];
+  Mod_Keys                mod_keys;
+  b8                      key_events[key_event_count];
 };
 
 #include "trader_platform.h"
@@ -382,7 +381,7 @@ internal b32  ui_do_button(String_Const_utf8 string);
 
 internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 minimum, f32 maximum);
 
-internal void ui_canvas(String_Const_utf8 string, Draw_Call *elements, u32 element_count, V2_f32 size = {400.0f, 400.0f});
+internal void ui_canvas(String_Const_utf8 string, V2_f32 size = {400.0f, 400.0f});
 
 internal UI_Key ui_make_key(String_Const_utf8 string);
 internal b32 ui_is_key_equal(UI_Key a, UI_Key b);

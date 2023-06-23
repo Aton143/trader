@@ -1,4 +1,5 @@
 #ifndef TRADER_MATH_H
+#include <math.h>
 
 internal inline f32 lerpf(f32 a, f32 t, f32 b);
 internal inline f64 lerpd(f64 a, f64 t, f64 b);
@@ -17,7 +18,12 @@ internal inline V2_f32 operator +(V2_f32 a, V2_f32 b);
 internal inline V4_f32 V4(f32 x, f32 y, f32 z, f32 w = 1.0f);
 internal inline V4_f32 wide_clamp(V4_f32 bottom, V4_f32 v, V4_f32 top);
 
-internal inline Matrix_f32_4x4 matrix4x4(V4_f32 row0, V4_f32 row1, V4_f32 row2, V4_f32 row3);
+internal inline Matrix_f32_4x4 matrix4x4_from_rows(V4_f32 row0, V4_f32 row1, V4_f32 row2, V4_f32 row3);
+
+// NOTE(antonio): 0 - 0 rad, 1.0f - tau rad
+internal inline Matrix_f32_4x4 matrix4x4_rotate_about_x(f32 amount);
+internal inline Matrix_f32_4x4 matrix4x4_rotate_about_y(f32 amount);
+internal inline Matrix_f32_4x4 matrix4x4_rotate_about_z(f32 amount);
 
 // implementation
 internal inline f32 lerpf(f32 a, f32 t, f32 b)
@@ -100,10 +106,49 @@ internal inline V4_f32 wide_clamp(V4_f32 bottom, V4_f32 v, V4_f32 top)
   return(res);
 }
 
-internal inline Matrix_f32_4x4 matrix4x4(V4_f32 row0, V4_f32 row1, V4_f32 row2, V4_f32 row3)
+internal inline Matrix_f32_4x4 matrix4x4_from_rows(V4_f32 row0, V4_f32 row1, V4_f32 row2, V4_f32 row3)
 {
   Matrix_f32_4x4 mat = {row0, row1, row2, row3};
   return(mat);
+}
+
+internal inline Matrix_f32_4x4 matrix4x4_rotate_about_x(f32 amount)
+{
+  f32 to_rad = amount * tau_f32;
+  f32 sin = sinf(to_rad);
+  f32 cos = cosf(to_rad);
+
+  Matrix_f32_4x4 res = matrix4x4_from_rows(V4(1.0f,  0.0f,  0.0f, 0.0f),
+                                           V4(0.0f,  cos,  -sin,  0.0f),
+                                           V4(0.0f,  sin,   cos,  0.0f),
+                                           V4(0.0f,  0.0f,  0.0f, 1.0f));
+  return(res);
+}
+
+internal inline Matrix_f32_4x4 matrix4x4_rotate_about_y(f32 amount)
+{
+  f32 to_rad = amount * tau_f32;
+  f32 sin = sinf(to_rad);
+  f32 cos = cosf(to_rad);
+
+  Matrix_f32_4x4 res = matrix4x4_from_rows(V4( cos,   0.0f,  sin,  0.0f),
+                                           V4( 0.0f,  1.0f,  0.0f, 0.0f),
+                                           V4(-sin,   0.0f,  cos,  0.0f),
+                                           V4( 0.0f,  0.0f,  0.0f, 1.0f));
+  return(res);
+}
+
+internal inline Matrix_f32_4x4 matrix4x4_rotate_about_z(f32 amount)
+{
+  f32 to_rad = amount * tau_f32;
+  f32 sin = sinf(to_rad);
+  f32 cos = cosf(to_rad);
+
+  Matrix_f32_4x4 res = matrix4x4_from_rows(V4( cos,  -sin,  0.0f, 0.0f),
+                                           V4( sin,   cos,  0.0f, 0.0f),
+                                           V4( 0.0f,  0.0f, 1.0f, 0.0f),
+                                           V4( 0.0f,  0.0f, 0.0f, 1.0f));
+  return(res);
 }
 
 #endif

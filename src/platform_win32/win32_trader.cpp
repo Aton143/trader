@@ -1093,22 +1093,22 @@ WinMain(HINSTANCE instance,
 
       vertices[0] = 
       {
-        V4(0.0f, slider_float, 0.5f, 1.0f),
-        rgba(slider_float, 0.0f, 0.0f, slider_float),
+        V4(0.0f, 1.0f, 0.5f, 1.0f),
+        rgba(1.0f, 0.0f, 0.0f, 1.0f),
         (f32) solid_color_glyph->x0, (f32) solid_color_glyph->y1,
       };
 
       vertices[1] = 
       {
-        V4(slider_float, 0.0f, 0.5f, 1.0f),
-        rgba(0.0f, slider_float, 0.0f, slider_float),
+        V4(1.0f, 0.0f, 0.5f, 1.0f),
+        rgba(0.0f, 1.0f, 0.0f, 1.0f),
         (f32) solid_color_glyph->x1, (f32) solid_color_glyph->y0
       };
 
       vertices[2] = 
       {
-        V4(slider_float, slider_float, 0.5f, 1.0f),
-        rgba(0.0f, 0.0f, slider_float, slider_float),
+        V4(1.0f, 1.0f, 0.5f, 1.0f),
+        rgba(0.0f, 0.0f, 1.0f, 1.0f),
         (f32) solid_color_glyph->x1, (f32) solid_color_glyph->y1
       };
 
@@ -1227,11 +1227,13 @@ WinMain(HINSTANCE instance,
         }
 
         {
-          constant_buffer_items.model_view_projection =
-            matrix4x4(V4(1.0, 0.0f, 0.0f, 0.0f),
-                      V4(0.0, 1.0f, 0.0f, 0.0f),
-                      V4(0.0, 0.0f, 1.0f, 0.0f),
-                      V4(0.0, 0.0f, 0.0f, 1.0f));
+          constant_buffer_items.model_view_projection = matrix4x4_rotate_about_y(slider_float);
+                                                        /*
+            matrix4x4_from_rows(V4(1.0, 0.0f, 0.0f, 0.0f),
+                                V4(0.0, 1.0f, 0.0f, 0.0f),
+                                V4(0.0, 0.0f, 1.0f, 0.0f),
+                                V4(0.0, 0.0f, 0.0f, 1.0f));
+                                */
 
           {
             D3D11_MAPPED_SUBRESOURCE mapped_subresource = {};

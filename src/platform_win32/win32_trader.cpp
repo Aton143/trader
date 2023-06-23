@@ -867,6 +867,40 @@ WinMain(HINSTANCE instance,
     File_Buffer file = {};
     String_Const_utf8 file_str = {};
 
+    local_persist V2_f32 data_for_lines[] =
+    {
+      {0.000000f, 0.000000f},
+      {0.033333f, 0.001111f},
+      {0.066667f, 0.004444f},
+      {0.100000f, 0.010000f},
+      {0.133333f, 0.017778f},
+      {0.166667f, 0.027778f},
+      {0.200000f, 0.040000f},
+      {0.233333f, 0.054444f},
+      {0.266667f, 0.071111f},
+      {0.300000f, 0.090000f},
+      {0.333333f, 0.111111f},
+      {0.366667f, 0.134444f},
+      {0.400000f, 0.160000f},
+      {0.433333f, 0.187778f},
+      {0.466667f, 0.217778f},
+      {0.500000f, 0.250000f},
+      {0.533333f, 0.284444f},
+      {0.566667f, 0.321111f},
+      {0.600000f, 0.360000f},
+      {0.633333f, 0.401111f},
+      {0.666667f, 0.444444f},
+      {0.700000f, 0.490000f},
+      {0.733333f, 0.537778f},
+      {0.766667f, 0.587778f},
+      {0.800000f, 0.640000f},
+      {0.833333f, 0.694444f},
+      {0.866667f, 0.751111f},
+      {0.900000f, 0.810000f},
+      {0.933333f, 0.871111f},
+      {0.966667f, 0.934444f},
+    };
+
     while (global_running)
     {
       TIMED_BLOCK_START();
@@ -1088,9 +1122,9 @@ WinMain(HINSTANCE instance,
       ui_pop_background_color();
       ui_do_string(file_str);
 
+      /*
       Vertex_Buffer_Element *vertices = render_push_triangles(1);
       Rect_i16 *solid_color_glyph = &win32_global_state.render_context.atlas->solid_color_rect;
-
       vertices[0] = 
       {
         V4(0.0f, 1.0f, 0.5f, 1.0f),
@@ -1111,8 +1145,12 @@ WinMain(HINSTANCE instance,
         rgba(0.0f, 0.0f, 1.0f, 1.0f),
         (f32) solid_color_glyph->x1, (f32) solid_color_glyph->y1
       };
+      */
 
-      ui_canvas(string_literal_init_type("Easel", utf8), V2(200.0f, 200.0f));
+      ui_canvas(string_literal_init_type("Easel", utf8), V2(/*slider_float * */200.0f, /*slider_float * */200.0f));
+
+      u64 lines_to_render = (u64) ceilf(slider_float * array_count(data_for_lines));
+      render_data_to_lines(data_for_lines, lines_to_render);
 
       ui_prepare_render();
 
@@ -1227,13 +1265,11 @@ WinMain(HINSTANCE instance,
         }
 
         {
-          constant_buffer_items.model_view_projection = matrix4x4_rotate_about_y(slider_float);
-                                                        /*
+          constant_buffer_items.model_view_projection = // matrix4x4_rotate_about_y(slider_float);
             matrix4x4_from_rows(V4(1.0, 0.0f, 0.0f, 0.0f),
                                 V4(0.0, 1.0f, 0.0f, 0.0f),
                                 V4(0.0, 0.0f, 1.0f, 0.0f),
                                 V4(0.0, 0.0f, 0.0f, 1.0f));
-                                */
 
           {
             D3D11_MAPPED_SUBRESOURCE mapped_subresource = {};

@@ -39,7 +39,7 @@ struct Vertex_Buffer_Element
 {
   V4_f32   position;
   RGBA_f32 color;
-  Rect_f32 uv;
+  V2_f32   uv;
 };
 
 struct Alpha_Bitmap {
@@ -73,6 +73,7 @@ struct Common_Render_Context
   Texture_Atlas  *atlas;
   Arena           render_data;
   Arena           triangle_render_data;
+  V2_f32          vertex_render_dimensions;
 };
 
 #include "trader_platform.h"
@@ -87,12 +88,14 @@ global_const utf32 ending_code_point   = 126; // '~'
 // extern Asset_Handle render_make_texture(void *texture_data, u64 width, u64 height, u64 channels);
 internal Render_Context        *render_get_context(void);
 internal Common_Render_Context *render_get_common_context(void);
-internal Rect_f32        render_get_client_rect(void);
+internal Rect_f32               render_get_client_rect(void);
 
 internal void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *shader, b32 force = false);
 internal void  render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shader, b32 force = false);
 
+// internal Vertex_Buffer_Element render_vertex(V4_f32 position, RGBA_f32 color, 
 internal Vertex_Buffer_Element *render_push_triangles(u64 triangle_count);
+internal void render_data_to_lines(V2_f32 *points, u64 point_count);
 
 internal i64 render_get_font_height_index(f32 font_height);
 internal i64 render_get_packed_char_start(f32 font_height);
@@ -260,6 +263,86 @@ internal Vertex_Buffer_Element *render_push_triangles(u64 triangle_count)
   Vertex_Buffer_Element *data_to_fill =
     push_array(&render_get_common_context()->triangle_render_data, Vertex_Buffer_Element, 3 * triangle_count);
   return(data_to_fill);
+}
+
+internal void render_data_to_lines(V2_f32 *points, u64 point_count)
+{
+  Vertex_Buffer_Element *vertices = render_push_triangles((point_count - 1) * 2);
+  Vertex_Buffer_Element *cur_vert = vertices;
+
+  Common_Render_Context *common = render_get_common_context();
+  Rect_f32 solid_color_rect = {
+    (f32) common->atlas->solid_color_rect.x0,
+    (f32) common->atlas->solid_color_rect.y0,
+    (f32) common->atlas->solid_color_rect.x1,
+    (f32) common->atlas->solid_color_rect.y1,
+  };
+
+  for (i64 cur_pair = 0;
+       cur_pair < (i64) (point_count - 1);
+       ++cur_pair)
+  {
+    // TODO(antonio): check if pairs are the same...
+    V2_f32 start = points[cur_pair];
+    V2_f32 end   = points[cur_pair + 1];
+
+    V2_f32 delta  = V2(end.x - start.x, end.y - start.y);
+    V2_f32 normal = (1.0f / common->vertex_render_dimensions.x) * normalize(V2(-delta.y, delta.x));
+
+    V2_f32 tl = start + normal;
+    V2_f32 bl = start - normal;
+    V2_f32 tr = end + normal;
+    V2_f32 br = end - normal;
+
+    // TL
+    *cur_vert++ =
+    {
+      V4(tl.x, tl.y, 0.5f, 1.0f),
+      rgba(1.0f, 1.0f, 1.0, 1.0f),
+      V2(solid_color_rect.x0, solid_color_rect.y0)
+    };
+
+    // BL
+    *cur_vert++ =
+    {
+      V4(bl.x, bl.y, 0.5f, 1.0f),
+      rgba(1.0f, 1.0f, 1.0, 1.0f),
+      V2(solid_color_rect.x0, solid_color_rect.y1)
+    };
+
+    // TR
+    *cur_vert++ =
+    {
+      V4(tr.x, tr.y, 0.5f, 1.0f),
+      rgba(1.0f, 1.0f, 1.0, 1.0f),
+      V2(solid_color_rect.x1, solid_color_rect.y0)
+    };
+
+    // BL
+    *cur_vert++ =
+    {
+      V4(bl.x, bl.y, 0.5f, 1.0f),
+      rgba(1.0f, 1.0f, 1.0, 1.0f),
+      V2(solid_color_rect.x0, solid_color_rect.y1)
+    };
+
+    // TR
+    *cur_vert++ =
+    {
+      V4(tr.x, tr.y, 0.5f, 1.0f),
+      rgba(1.0f, 1.0f, 1.0, 1.0f),
+      V2(solid_color_rect.x1, solid_color_rect.y0)
+    };
+
+    // BR
+    *cur_vert++ =
+    {
+      V4(br.x, br.y, 0.5f, 1.0f),
+      rgba(1.0f, 1.0f, 1.0, 1.0f),
+      V2(solid_color_rect.x1, solid_color_rect.y1)
+    };
+
+  }
 }
 
 #define TRADER_RENDER_H

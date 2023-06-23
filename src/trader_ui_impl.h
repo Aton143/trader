@@ -95,6 +95,11 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
       };
     }
 
+    if (widget_flags & widget_flag_arbitrary_draw)
+    {
+      render_get_common_context()->vertex_render_dimensions = sizing;
+    }
+
     widget->widget_flags = widget_flags;
     widget->size_flags   = size_flags;
     widget->string       = string;
@@ -923,6 +928,7 @@ internal void ui_prepare_render(void)
         render_draw_text(&x, &baseline, cur_widget->text_color, cur_widget->string.str);
       }
 
+      // TODO(antonio): is this right
       if (cur_widget->widget_flags & widget_flag_arbitrary_draw)
       {
         expect((ui->canvas_viewport.x0 == 0.0f) && (ui->canvas_viewport.y0 == 0.0f));

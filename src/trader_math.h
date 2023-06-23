@@ -12,8 +12,17 @@ internal inline b32 is_point_in_rect(V2_f32 p, Rect_f32 rect);
 
 // NOTE(antonio): now the uninteresting functions
 internal inline V2_f32 V2(f32 x, f32 y);
+
 internal inline V2_f32 add(V2_f32 a, V2_f32 b);
 internal inline V2_f32 operator +(V2_f32 a, V2_f32 b);
+
+internal inline V2_f32 subtract(V2_f32 a, V2_f32 b);
+internal inline V2_f32 operator -(V2_f32 a, V2_f32 b);
+
+internal inline V2_f32 scale(f32 scale, V2_f32 v);
+internal inline V2_f32 operator *(f32 scale, V2_f32 v);
+
+internal inline V2_f32 normalize(V2_f32 v);
 
 internal inline V4_f32 V4(f32 x, f32 y, f32 z, f32 w = 1.0f);
 internal inline V4_f32 wide_clamp(V4_f32 bottom, V4_f32 v, V4_f32 top);
@@ -83,9 +92,40 @@ internal inline V2_f32 add(V2_f32 a, V2_f32 b)
   return(res);
 }
 
+internal inline V2_f32 subtract(V2_f32 a, V2_f32 b)
+{
+  V2_f32 res = {a.x - b.x, a.y - b.y};
+  return(res);
+}
+
+
+internal inline V2_f32 scale(f32 scale, V2_f32 v)
+{
+  V2_f32 res = {scale * v.x, scale * v.y};
+  return(res);
+}
+
+
+internal inline V2_f32 normalize(V2_f32 v)
+{
+  f32 factor = 1.0f / sqrtf((v.x * v.x) + (v.y * v.y));
+  V2_f32 normalized_v = scale(factor, v);
+  return(normalized_v);
+}
+
 internal inline V2_f32 operator +(V2_f32 a, V2_f32 b)
 {
   return(add(a, b));
+}
+
+internal inline V2_f32 operator -(V2_f32 a, V2_f32 b)
+{
+  return(subtract(a, b));
+}
+
+internal inline V2_f32 operator *(f32 s, V2_f32 v)
+{
+  return(scale(s, v));
 }
 
 internal inline V4_f32 V4(f32 x, f32 y, f32 z, f32 w)

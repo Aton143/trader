@@ -26,7 +26,6 @@ PS_Input VS_Main(VS_Input input)
 {
   PS_Input output;
 
-
   float4 vec = float4((2 * input.position.x) - 1,
                       1 - (2 * input.position.y),
                       input.position.z,

@@ -901,6 +901,8 @@ WinMain(HINSTANCE instance,
       {0.966667f, 0.934444f},
     };
 
+    b32 triangle = false;
+
     while (global_running)
     {
       TIMED_BLOCK_START();
@@ -1111,7 +1113,8 @@ WinMain(HINSTANCE instance,
       if (ui_do_button(string_literal_init_type("Click me!", utf8)))
       {
         // ui_do_string(string_literal_init_type("That was the good action", utf8));
-        slider_float = 1.0f;
+        // slider_float = 1.0f;
+        triangle = !triangle;
       }
 
       if (ui_do_button(string_literal_init_type("Open a file", utf8)))
@@ -1122,35 +1125,38 @@ WinMain(HINSTANCE instance,
       ui_pop_background_color();
       ui_do_string(file_str);
 
-      /*
-      Vertex_Buffer_Element *vertices = render_push_triangles(1);
-      Rect_i16 *solid_color_glyph = &win32_global_state.render_context.atlas->solid_color_rect;
-      vertices[0] = 
+      if (triangle)
       {
-        V4(0.0f, 1.0f, 0.5f, 1.0f),
-        rgba(1.0f, 0.0f, 0.0f, 1.0f),
-        (f32) solid_color_glyph->x0, (f32) solid_color_glyph->y1,
-      };
+        ui_canvas(string_literal_init_type("Easel", utf8), V2(slider_float * 200.0f, slider_float * 200.0f));
+        Vertex_Buffer_Element *vertices = render_push_triangles(1);
+        Rect_i16 *solid_color_glyph = &win32_global_state.render_context.atlas->solid_color_rect;
+        vertices[0] = 
+        {
+          V4(0.0f, 1.0f, 0.5f, 1.0f),
+          rgba(1.0f, 0.0f, 0.0f, 1.0f),
+          (f32) solid_color_glyph->x0, (f32) solid_color_glyph->y1,
+        };
 
-      vertices[1] = 
+        vertices[1] = 
+        {
+          V4(1.0f, 0.0f, 0.5f, 1.0f),
+          rgba(0.0f, 1.0f, 0.0f, 1.0f),
+          (f32) solid_color_glyph->x1, (f32) solid_color_glyph->y0
+        };
+
+        vertices[2] = 
+        {
+          V4(1.0f, 1.0f, 0.5f, 1.0f),
+          rgba(0.0f, 0.0f, 1.0f, 1.0f),
+          (f32) solid_color_glyph->x1, (f32) solid_color_glyph->y1
+        };
+      }
+      else
       {
-        V4(1.0f, 0.0f, 0.5f, 1.0f),
-        rgba(0.0f, 1.0f, 0.0f, 1.0f),
-        (f32) solid_color_glyph->x1, (f32) solid_color_glyph->y0
-      };
-
-      vertices[2] = 
-      {
-        V4(1.0f, 1.0f, 0.5f, 1.0f),
-        rgba(0.0f, 0.0f, 1.0f, 1.0f),
-        (f32) solid_color_glyph->x1, (f32) solid_color_glyph->y1
-      };
-      */
-
-      ui_canvas(string_literal_init_type("Easel", utf8), V2(/*slider_float * */200.0f, /*slider_float * */200.0f));
-
-      u64 lines_to_render = (u64) ceilf(slider_float * array_count(data_for_lines));
-      render_data_to_lines(data_for_lines, lines_to_render);
+        ui_canvas(string_literal_init_type("Easel", utf8), V2(200.0f, 200.0f));
+        u64 lines_to_render = (u64) ceilf(slider_float * array_count(data_for_lines));
+        render_data_to_lines(data_for_lines, lines_to_render);
+      }
 
       ui_prepare_render();
 
@@ -1265,11 +1271,17 @@ WinMain(HINSTANCE instance,
         }
 
         {
-          constant_buffer_items.model_view_projection = // matrix4x4_rotate_about_y(slider_float);
-            matrix4x4_from_rows(V4(1.0, 0.0f, 0.0f, 0.0f),
-                                V4(0.0, 1.0f, 0.0f, 0.0f),
-                                V4(0.0, 0.0f, 1.0f, 0.0f),
-                                V4(0.0, 0.0f, 0.0f, 1.0f));
+          if (triangle)
+          {
+            constant_buffer_items.model_view_projection = matrix4x4_rotate_about_y(slider_float);
+          }
+          else
+          {
+            constant_buffer_items.model_view_projection = matrix4x4_from_rows(V4(1.0, 0.0f, 0.0f, 0.0f),
+                                                                              V4(0.0, 1.0f, 0.0f, 0.0f),
+                                                                              V4(0.0, 0.0f, 1.0f, 0.0f),
+                                                                              V4(0.0, 0.0f, 0.0f, 1.0f));
+          }
 
           {
             D3D11_MAPPED_SUBRESOURCE mapped_subresource = {};

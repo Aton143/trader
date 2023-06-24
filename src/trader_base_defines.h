@@ -699,6 +699,9 @@ typedef V4_f32        RGBA_f32;
 #define rect_get_height(rect)     (((rect)->y1) - ((rect)->y0))
 #define rect_get_dimensions(rect) {rect_get_width(rect), rect_get_height(rect)}
 
+internal inline V2_f32 V2(f32 x, f32 y);
+internal inline V4_f32 V4(f32 x, f32 y, f32 z, f32 w = 1.0f);
+
 internal RGBA_f32 rgba(f32 r, f32 g, f32 b, f32 a)
 {
   RGBA_f32 color; 
@@ -710,6 +713,11 @@ internal RGBA_f32 rgba(f32 r, f32 g, f32 b, f32 a)
 
   return(color);
 }
+
+global_const V2_f32 down_v2  = V2( 0.0f,  1.0f);
+global_const V2_f32 up_v2    = V2( 0.0f, -1.0f);
+global_const V2_f32 right_v2 = V2( 1.0f,  0.0f);
+global_const V2_f32 left_v2  = V2(-1.0f,  0.0f);
 
 union Matrix_f32_4x4 {
   struct {
@@ -757,6 +765,12 @@ struct Array_u64 {
   u64 *vals;
   i32 count;
 };
+
+internal inline Matrix_f32_4x4 matrix4x4_from_rows(V4_f32 row0, V4_f32 row1, V4_f32 row2, V4_f32 row3);
+global_const Matrix_f32_4x4 identity_m4x4 = matrix4x4_from_rows(V4(1.0f, 0.0f, 0.0f, 0.0f),
+                                                                V4(0.0f, 1.0f, 0.0f, 0.0f),
+                                                                V4(0.0f, 0.0f, 1.0f, 0.0f),
+                                                                V4(0.0f, 0.0f, 0.0f, 1.0f));
 
 typedef u8      utf8;
 typedef wchar_t utf16;

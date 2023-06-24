@@ -287,7 +287,7 @@ internal void render_data_to_lines(V2_f32 *points, u64 point_count)
     V2_f32 end   = points[cur_pair + 1];
 
     V2_f32 delta  = V2(end.x - start.x, end.y - start.y);
-    V2_f32 normal = (1.0f / common->vertex_render_dimensions.x) * normalize(V2(-delta.y, delta.x));
+    V2_f32 normal = (1.0f / (2.0f * common->vertex_render_dimensions.x)) * normalize(V2(-delta.y, delta.x));
 
     V2_f32 tl = start + normal;
     V2_f32 bl = start - normal;

@@ -20,6 +20,9 @@ internal inline V2_f32 operator -(V2_f32 a, V2_f32 b);
 internal inline V2_f32 scale(f32 scale, V2_f32 v);
 internal inline V2_f32 operator *(f32 scale, V2_f32 v);
 
+internal inline f32 dot(V2_f32 u, V2_f32 v);
+internal inline f32 squared_length(V2_f32 v);
+
 internal inline V2_f32 normalize(V2_f32 v);
 
 internal inline V4_f32 wide_clamp(V4_f32 bottom, V4_f32 v, V4_f32 top);
@@ -95,19 +98,29 @@ internal inline V2_f32 subtract(V2_f32 a, V2_f32 b)
   return(res);
 }
 
-
 internal inline V2_f32 scale(f32 scale, V2_f32 v)
 {
   V2_f32 res = {scale * v.x, scale * v.y};
   return(res);
 }
 
+internal inline f32 squared_length(V2_f32 v)
+{
+  f32 squared = (v.x * v.x) + (v.y * v.y);
+  return(squared);
+}
 
 internal inline V2_f32 normalize(V2_f32 v)
 {
-  f32 factor = 1.0f / sqrtf((v.x * v.x) + (v.y * v.y));
+  f32 factor = 1.0f / sqrtf(squared_length(v));
   V2_f32 normalized_v = scale(factor, v);
   return(normalized_v);
+}
+
+internal inline f32 dot(V2_f32 u, V2_f32 v)
+{
+  f32 dot_product = (u.x * v.x) + (u.y + v.y);
+  return(dot_product);
 }
 
 internal inline V2_f32 operator +(V2_f32 a, V2_f32 b)

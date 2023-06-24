@@ -867,7 +867,8 @@ WinMain(HINSTANCE instance,
     File_Buffer file = {};
     String_Const_utf8 file_str = {};
 
-    local_persist V2_f32 data_for_lines[] =
+    /*
+    V2_f32 data_for_lines[] =
     {
       {0.000000f, 0.000000f},
       {0.033333f, 0.001111f},
@@ -900,6 +901,11 @@ WinMain(HINSTANCE instance,
       {0.933333f, 0.871111f},
       {0.966667f, 0.934444f},
     };
+    */
+
+    local_persist V2_f32 data_for_lines[4096] = {};
+    u32 data_index = 0;
+    f32 acc_time   = 0.0f;
 
     b32 triangle = false;
 
@@ -1154,7 +1160,12 @@ WinMain(HINSTANCE instance,
       else
       {
         ui_canvas(string_literal_init_type("Easel", utf8), V2(200.0f, 200.0f));
-        u64 lines_to_render = (u64) ceilf(slider_float * array_count(data_for_lines));
+
+        data_index = (data_index + 1) % array_count(data_for_lines);
+        acc_time += 1.0f/60.0f;
+        data_for_lines[data_index] = V2(acc_time, sinf(acc_time * tau_f32));
+
+        u64 lines_to_render = (u64) ceilf(slider_float * data_index);
         render_data_to_lines(data_for_lines, lines_to_render);
       }
 

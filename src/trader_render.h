@@ -278,6 +278,8 @@ internal void render_data_to_lines(V2_f32 *points, u64 point_count)
     (f32) common->atlas->solid_color_rect.y1,
   };
 
+  f32 to_next_pixel = (1.0f / (2.0f * common->vertex_render_dimensions.x));
+
   for (i64 cur_pair = 0;
        cur_pair < (i64) (point_count - 1);
        ++cur_pair)
@@ -286,62 +288,70 @@ internal void render_data_to_lines(V2_f32 *points, u64 point_count)
     V2_f32 start = points[cur_pair];
     V2_f32 end   = points[cur_pair + 1];
 
-    V2_f32 delta  = V2(end.x - start.x, end.y - start.y);
-    V2_f32 normal = (1.0f / (2.0f * common->vertex_render_dimensions.x)) * normalize(V2(-delta.y, delta.x));
-
-    V2_f32 tl = start + normal;
-    V2_f32 bl = start - normal;
-    V2_f32 tr = end + normal;
-    V2_f32 br = end - normal;
-
-    // TL
-    *cur_vert++ =
+    if (squared_length(start - end) >= 0.00005f)
     {
-      V4(tl.x, tl.y, 0.5f, 1.0f),
-      rgba(1.0f, 1.0f, 1.0, 1.0f),
-      V2(solid_color_rect.x0, solid_color_rect.y0)
-    };
+      V2_f32 delta  = V2(end.x - start.x, end.y - start.y);
 
-    // BL
-    *cur_vert++ =
-    {
-      V4(bl.x, bl.y, 0.5f, 1.0f),
-      rgba(1.0f, 1.0f, 1.0, 1.0f),
-      V2(solid_color_rect.x0, solid_color_rect.y1)
-    };
+      V2_f32 normal = V2(-delta.y, delta.x);
+      if (dot(normal, up_v2) < 0.0f) {
+        normal = -1.0f * normal;
+      }
 
-    // TR
-    *cur_vert++ =
-    {
-      V4(tr.x, tr.y, 0.5f, 1.0f),
-      rgba(1.0f, 1.0f, 1.0, 1.0f),
-      V2(solid_color_rect.x1, solid_color_rect.y0)
-    };
+      normal = to_next_pixel * normalize(normal);
 
-    // BL
-    *cur_vert++ =
-    {
-      V4(bl.x, bl.y, 0.5f, 1.0f),
-      rgba(1.0f, 1.0f, 1.0, 1.0f),
-      V2(solid_color_rect.x0, solid_color_rect.y1)
-    };
+      V2_f32 tl = start + normal + (0.5f * V2(-to_next_pixel, -to_next_pixel));
+      V2_f32 bl = start - normal + (0.5f * V2(-to_next_pixel,  to_next_pixel));
+      V2_f32 tr = end   + normal + (0.5f * V2( to_next_pixel, -to_next_pixel));
+      V2_f32 br = end   - normal + (0.5f * V2( to_next_pixel,  to_next_pixel));
 
-    // TR
-    *cur_vert++ =
-    {
-      V4(tr.x, tr.y, 0.5f, 1.0f),
-      rgba(1.0f, 1.0f, 1.0, 1.0f),
-      V2(solid_color_rect.x1, solid_color_rect.y0)
-    };
+      // TL
+      *cur_vert++ =
+      {
+        V4(tl.x, tl.y, 0.5f, 1.0f),
+        rgba(1.0f, 1.0f, 1.0, 1.0f),
+        V2(solid_color_rect.x0, solid_color_rect.y0)
+      };
 
-    // BR
-    *cur_vert++ =
-    {
-      V4(br.x, br.y, 0.5f, 1.0f),
-      rgba(1.0f, 1.0f, 1.0, 1.0f),
-      V2(solid_color_rect.x1, solid_color_rect.y1)
-    };
+      // BL
+      *cur_vert++ =
+      {
+        V4(bl.x, bl.y, 0.5f, 1.0f),
+        rgba(1.0f, 1.0f, 1.0, 1.0f),
+        V2(solid_color_rect.x0, solid_color_rect.y1)
+      };
 
+      // TR
+      *cur_vert++ =
+      {
+        V4(tr.x, tr.y, 0.5f, 1.0f),
+        rgba(1.0f, 1.0f, 1.0, 1.0f),
+        V2(solid_color_rect.x1, solid_color_rect.y0)
+      };
+
+      // BL
+      *cur_vert++ =
+      {
+        V4(bl.x, bl.y, 0.5f, 1.0f),
+        rgba(1.0f, 1.0f, 1.0, 1.0f),
+        V2(solid_color_rect.x0, solid_color_rect.y1)
+      };
+
+      // TR
+      *cur_vert++ =
+      {
+        V4(tr.x, tr.y, 0.5f, 1.0f),
+        rgba(1.0f, 1.0f, 1.0, 1.0f),
+        V2(solid_color_rect.x1, solid_color_rect.y0)
+      };
+
+      // BR
+      *cur_vert++ =
+      {
+        V4(br.x, br.y, 0.5f, 1.0f),
+        rgba(1.0f, 1.0f, 1.0, 1.0f),
+        V2(solid_color_rect.x1, solid_color_rect.y1)
+      };
+    }
   }
 }
 

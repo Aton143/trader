@@ -80,6 +80,14 @@ unimplemented void arena_clear(Arena *arena);
 internal void *_arena_get_top(Arena *arena, u64 size);
 #define arena_get_top(arena, type) (type *) _arena_get_top((arena), sizeof(type))
 
+#if OS_WINDOWS
+#define alloca _alloca
+#endif
+
+#define stack_alloc(bytes) alloca(bytes)
+#define stack_alloc_buffer(byte_count) {(u8 *) alloca(byte_count), 0, byte_count}
+#define zero_buffer(buf) zero_memory_block((buf)->data, (buf)->size)
+
 // NOTE(antonio): write is ahead of read
 struct Ring_Buffer
 {

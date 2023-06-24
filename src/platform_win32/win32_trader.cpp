@@ -418,39 +418,53 @@ WinMain(HINSTANCE instance,
     }
   }
 
-#if 0
+#if 1
   Network_State network_state = {};
   network_startup(&network_state);
 
-  u8 _host_name[] = "finnhub.io";
-  String_Const_utf8 host_name = string_literal_init(_host_name);
+  String_Const_utf8 host_name = string_literal_init_type("echo.websocket.events", utf8);
+  //String_Const_utf8 host_name = string_literal_init_type("finnhub.io", utf8);
 
-  u8 _query_path[] = "";
-  String_Const_utf8 query_path = string_literal_init(_query_path);
+  String_Const_utf8 query_path = string_literal_init_type("", utf8);
 
   u16 port = 443;
 
   Socket tls_socket;
-  network_connect(&network_state, &tls_socket, host_name, port);
+  Network_Return_Code net_result = network_connect(&network_state, &tls_socket, host_name, port);
+  expect(net_result == network_ok);
 
-  u8 _request_header[1024] = {};
-  Buffer request_header = buffer_from_fixed_size(_request_header);
+  Buffer request_header = stack_alloc_buffer(1024);
+  zero_buffer(&request_header);
 
   request_header.used =
     (u64) stbsp_snprintf((char *) request_header.data,
-                         (int) request_header.size,
+                         (int)    request_header.size,
+                         //"GET / HTTP/1.1\r\n"
                          "GET /api/v1/search?q=apple HTTP/1.1\r\n"
+                         // "Host: %s:443\r\n"
                          "Host: %s\r\n"
                          "Accept: */*\r\n"
-                         "Connection: keep-alive\r\n",
+                         "Upgrade: websocket\r\n"
+                         "Connection: Upgrade\r\n"
+                         "Sec-WebSocket-Key: x3JJHMbDL1EzLkh9GBhXDw==\r\n"
+                         "Sec-WebSocket-Version: 13\r\n"
+                         "\r\n",
                          (char *) host_name.str);
 
   network_send_simple(&network_state, &tls_socket, &request_header);
 
-  u8 _receive_buffer[1024] = {};
-  Buffer receive_buffer = buffer_from_fixed_size(_receive_buffer);
+  Buffer receive_buffer = stack_alloc_buffer(1024);
+  zero_buffer(&receive_buffer);
 
   network_receive_simple(&network_state, &tls_socket, &receive_buffer);
+
+  i32 disable_nagle = 1;
+  i32 disable_nagle_res = setsockopt(tls_socket.socket,
+                                     IPPROTO_TCP,
+                                     TCP_NODELAY,
+                                     (char *) &disable_nagle,
+                                     sizeof(disable_nagle));
+  expect(disable_nagle_res == 0);
 #endif
 
   if (ShowWindow(win32_global_state.window_handle, SW_NORMAL) && UpdateWindow(win32_global_state.window_handle))

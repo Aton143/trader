@@ -602,8 +602,6 @@ internal Network_Return_Code network_startup(Network_State *out_state)
 
 internal Network_Return_Code network_connect(Network_State *state, Socket *out_socket, String_Const_utf8 host_name, u16 port)
 {
-  unused(state);
-
   Network_Return_Code result = network_ok;
 
   expect(out_socket    != NULL);
@@ -611,29 +609,46 @@ internal Network_Return_Code network_connect(Network_State *state, Socket *out_s
 
   make_nil(out_socket);
 
-  u8 port_name[64] = {};
+  utf8 port_name[64] = {};
   stbsp_snprintf((char *) port_name, sizeof(port_name), "%u", port);
 
-  addrinfo *addr_found;
-  addrinfo  addr_hints = {};
+  addrinfo addr_hints = {};
   {
-    addr_hints.ai_flags    = AI_PASSIVE;
-    addr_hints.ai_family   = AF_INET;
+    addr_hints.ai_family   = AF_UNSPEC;
     addr_hints.ai_socktype = SOCK_STREAM;
-    addr_hints.ai_protocol = IPPROTO_TCP;
   }
 
-  i32 found_addr = getaddrinfo((char *) host_name.str, (char *) port_name, &addr_hints, &addr_found);
-  expect_message((found_addr == 0) && (addr_found != NULL), "could not get address info for the given host name");
+  addrinfo *first_addr;
 
-  // TODO(antonio): WSA_FLAG_OVERLAPPED
-  out_socket->socket = WSASocket(addr_found->ai_family,
-                                 addr_found->ai_socktype,
-                                 addr_found->ai_protocol,
-                                 NULL,
-                                 0, 0); 
+  i32 found_addr = getaddrinfo((char *) host_name.str, (char *) port_name, &addr_hints, &first_addr);
+  expect_message((found_addr == 0) && (first_addr != NULL), "could not get address info for the given host name");
 
-  expect_message(out_socket->socket != INVALID_SOCKET, "expected connection");
+  SOCKET found_socket = INVALID_SOCKET;
+  for (addrinfo *cur_addr = first_addr;
+       cur_addr != NULL;
+       cur_addr = cur_addr->ai_next)
+  {
+    // TODO(antonio): WSA_FLAG_OVERLAPPED
+    found_socket = WSASocket(cur_addr->ai_family,
+                             cur_addr->ai_socktype,
+                             cur_addr->ai_protocol,
+                             NULL,
+                             0, 0); 
+
+    if (found_socket != INVALID_SOCKET)
+    {
+      out_socket->socket = found_socket;
+      break;
+    }
+    else
+    {
+      closesocket(found_socket);
+      found_socket = INVALID_SOCKET;
+    }
+  }
+
+  expect_message(found_socket != INVALID_SOCKET, "expected connection");
+  freeaddrinfo(first_addr);
 
   // TODO(antonio): investigate how the following may change the performance of the socket
 #if 0
@@ -681,16 +696,16 @@ internal Network_Return_Code network_connect(Network_State *state, Socket *out_s
   return(result);
 }
 
-internal Network_Return_Code network_send_simple(Network_State *state, Socket *in_socket, Buffer *to_send)
+internal Network_Return_Code network_send_simple(Network_State *state, Socket *in_socket, Buffer *send_buffer)
 {
   Network_Return_Code result = network_ok;
 
   unused(state);
-  expect(to_send->data != NULL);
+  expect(send_buffer->data != NULL);
 
   if (!is_nil(in_socket))
   {
-    i32 bytes_sent = SSL_write(in_socket->ssl_state, to_send->data, (i32) to_send->used);
+    i32 bytes_sent = SSL_write(in_socket->ssl_state, send_buffer->data, (i32) send_buffer->used);
     if (bytes_sent <= 0) {
       result = network_error_send_failure;
       network_print_error();
@@ -719,8 +734,8 @@ internal Network_Return_Code network_receive_simple(Network_State *state, Socket
       {
         receive_buffer->used = bytes_received;
         receive_buffer->data[receive_buffer->used] = 0;
-
-        OutputDebugStringA((char * ) receive_buffer->data);
+        platform_debug_print((char * ) receive_buffer->data);
+        break;
       }
       else
       {
@@ -762,11 +777,10 @@ Sec-WebSocket-Version: 13
 Origin: http://example.com
 #endif
 
-  u8 websocket_handshake[1024] = {};
-  Buffer websocket_handshake_send = buffer_from_fixed_size(websocket_handshake);
+  Buffer websocket_handshake_send = stack_alloc_buffer(1024);
 
   websocket_handshake_send.used =
-    stbsp_snprintf((char *) websocket_handshake, array_count(websocket_handshake),
+    stbsp_snprintf((char *) websocket_handshake_send.data, (int) websocket_handshake_send.size,
                    "GET /%s HTTP/1.1\r\n"
                    "Host: %s\r\n"
                    "Upgrade: websocket\r\n"
@@ -780,9 +794,7 @@ Origin: http://example.com
 
   network_send_simple(state, in_out_socket, &websocket_handshake_send);
 
-  u8 _websocket_receive[kb(4)] = {};
-  Buffer websocket_receive = buffer_from_fixed_size(_websocket_receive);
-
+  Buffer websocket_receive = stack_alloc_buffer(kb(4));
   network_receive_simple(state, in_out_socket, &websocket_receive);
 
   return(result);

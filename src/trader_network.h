@@ -118,8 +118,10 @@ internal Network_Return_Code network_websocket_send_simple(Network_State    *sta
 
   Network_Return_Code return_code = network_ok;
 
-  Arena                  *temp_arena   = get_temp_arena();
-  u8                     *frame_start; frame_start  = temp_arena->start;
+  Arena *temp_arena            = get_temp_arena();
+  u8    *frame_start           = temp_arena->start;
+  u64    temp_arena_start_used = temp_arena->used;
+
   WebSocket_Frame_Header *frame_header = push_struct(temp_arena, WebSocket_Frame_Header);
 
   frame_header->opcode = opcode;
@@ -145,6 +147,28 @@ internal Network_Return_Code network_websocket_send_simple(Network_State    *sta
     u64 *payload_64 = push_struct(temp_arena, u64);
     *payload_64     = (u16) send->used;
   }
+
+  u8 *frame_masking = push_array(temp_arena, u8, 4);
+  frame_masking[0] = 0x12;
+  frame_masking[1] = 0x34;
+  frame_masking[2] = 0x56;
+  frame_masking[3] = 0x78;
+
+  // TODO(antonio): not sure about the copy
+  u8 *payload = push_array(temp_arena, u8, send->used);
+  for (u64 payload_index = 0;
+       payload_index     < send->used;
+       ++payload_index)
+  {
+    *payload++ = send->data[payload_index] ^ frame_masking[payload_index & 0x3];
+  }
+
+  Buffer frame_and_payload;
+
+  frame_and_payload.data = frame_start;
+  frame_and_payload.used = frame_and_payload.size = (u64) (temp_arena->used - temp_arena_start_used);
+
+  return_code = network_send_simple(state, in_socket, &frame_and_payload);
 
   return(return_code);
 }

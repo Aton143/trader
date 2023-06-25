@@ -86,7 +86,6 @@ internal Network_Return_Code network_websocket_send_simple(Network_State    *sta
                                                            Socket           *in_socket,
                                                            Buffer           *send,
                                                            WebSocket_Opcode  op = websocket_opcode_text);
-
 internal Network_Return_Code network_websocket_receive_simple(Network_State *state, Socket *in_socket, Buffer *receive);
 
 internal Network_Return_Code network_do_websocket_handshake(Network_State *state,
@@ -169,6 +168,31 @@ internal Network_Return_Code network_websocket_send_simple(Network_State    *sta
   frame_and_payload.used = frame_and_payload.size = (u64) (temp_arena->used - temp_arena_start_used);
 
   return_code = network_send_simple(state, in_socket, &frame_and_payload);
+
+  return(return_code);
+}
+
+internal Network_Return_Code network_websocket_receive_simple(Network_State *state, Socket *in_socket, Buffer *receive)
+{
+  expect(state     != NULL);
+  expect(in_socket != NULL);
+  expect((receive  != NULL) && (receive->size > 0));
+
+  Arena *temp_arena  = get_temp_arena();
+  Buffer temp_buffer = push_buffer(temp_arena, 65536);
+
+  Network_Return_Code return_code = network_receive_simple(state, in_socket, &temp_buffer);
+
+  expect_message(return_code == network_ok, "expected ok but this may change in the future");
+  expect_message(temp_buffer.used >= 2, "expected at least two bytes for the header");
+
+  u8 *receive_position = temp_buffer.data;
+  u32 receive_index    = 0;
+
+  WebSocket_Frame_Header *header = (WebSocket_Frame_Header *) receive_position;
+
+  receive_position += sizeof(*header);
+  receive_index    += sizeof(*header);
 
   return(return_code);
 }

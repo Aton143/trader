@@ -296,7 +296,7 @@ WinMain(HINSTANCE instance,
   unused(command_line);
   unused(show_command);
 
-  win32_global_state.temp_arena.arena = arena_alloc(global_temp_arena_size, 4, NULL);
+  win32_global_state.temp_arena.arena = arena_alloc(global_temp_arena_size, 1, NULL);
 
   rng_init();
 
@@ -422,12 +422,14 @@ WinMain(HINSTANCE instance,
   Network_State network_state = {};
   network_startup(&network_state);
 
-  String_Const_utf8 host_name = string_literal_init_type("echo.websocket.events", utf8);
-  //String_Const_utf8 host_name = string_literal_init_type("finnhub.io", utf8);
+  String_Const_utf8 host_name = string_literal_init_type("localhost", utf8);
+  // String_Const_utf8 host_name = string_literal_init_type("echo.websocket.events", utf8);
+  // String_Const_utf8 host_name = string_literal_init_type("finnhub.io", utf8);
 
   String_Const_utf8 query_path = string_literal_init_type("", utf8);
 
-  u16 port = 443;
+  // u16 port = 443;
+  u16 port = 9001;
 
   Socket tls_socket;
   Network_Return_Code net_result = network_connect(&network_state, &tls_socket, host_name, port);

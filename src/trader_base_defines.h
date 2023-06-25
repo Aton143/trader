@@ -884,21 +884,15 @@ struct String_Any {
 #define string_from_c_string(type, s, capacity) {(type *) s, concat(get_length_c_string_, type)((type *) s), (capacity)}
 #define string_from_fixed_size(type, buffer) {(type *) (buffer), 0, sizeof(buffer) - sizeof(type)}
 
+// TODO(antonio): does this break things???
 struct Buffer
 {
   u8  *data;
 
-  u64  used;
   u64  size;
+  u64  used;
 };
-
-struct File_Buffer
-{
-  u8  *data;
-
-  u64 size;
-  u64 used;
-};
+typedef Buffer File_Buffer;
 
 // helpful functions
 u32 count_set_bits(u64 bits)

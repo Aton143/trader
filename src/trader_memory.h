@@ -128,7 +128,7 @@ internal void ring_buffer_pop_and_put(Ring_Buffer *ring_buffer,
 #define ring_buffer_pop_and_put_struct(rb, copy) ring_buffer_pop_and_put(rb, copy, sizeof(*(copy)))
 
 // implementation
-i64 copy_memory_block(void *dest, void *source, i64 byte_count)
+internal i64 copy_memory_block(void *dest, void *source, i64 byte_count)
 {
   u8 *dest_bytes = (u8 *) dest;
   u8 *source_bytes = (u8 *) source;
@@ -142,7 +142,7 @@ i64 copy_memory_block(void *dest, void *source, i64 byte_count)
   return(byte_index);
 }
 
-i64 set_memory_block(void *dest, u8 val, i64 byte_count)
+internal i64 set_memory_block(void *dest, u8 val, i64 byte_count)
 {
   u8 *dest_bytes = (u8 *) dest;
 
@@ -157,7 +157,7 @@ i64 set_memory_block(void *dest, u8 val, i64 byte_count)
   return(byte_index);
 }
 
-i64 move_memory_block(void *dest, void *source, i64 byte_count)
+internal i64 move_memory_block(void *dest, void *source, i64 byte_count)
 {
   u8 *from = (u8 *) source;
   u8 *to   = (u8 *) dest;
@@ -198,7 +198,7 @@ i64 move_memory_block(void *dest, void *source, i64 byte_count)
   return(byte_count);
 }
 
-i64 compare_memory_block(void *a, void *b, i64 byte_count)
+internal i64 compare_memory_block(void *a, void *b, i64 byte_count)
 {
   i64 result = 0;
 
@@ -221,7 +221,7 @@ i64 compare_memory_block(void *a, void *b, i64 byte_count)
   return(result);
 }
 
-void *arena_push(Arena *arena, u64 size)
+internal void *arena_push(Arena *arena, u64 size)
 {
   void *memory_given_back = NULL;
 
@@ -237,7 +237,7 @@ void *arena_push(Arena *arena, u64 size)
   return(memory_given_back);
 }
 
-void *arena_push_zero(Arena *arena, u64 size)
+internal void *arena_push_zero(Arena *arena, u64 size)
 {
   void *memory_given_back = arena_push(arena, size);
 
@@ -249,12 +249,12 @@ void *arena_push_zero(Arena *arena, u64 size)
   return(memory_given_back);
 }
 
-void arena_pop(Arena *arena, u64 size)
+internal void arena_pop(Arena *arena, u64 size)
 {
   arena->used -= size;
 }
 
-void *arena_append(Arena *arena, void *data, u64 size)
+internal void *arena_append(Arena *arena, void *data, u64 size)
 {
   void *result = NULL;
 
@@ -272,7 +272,7 @@ void *arena_append(Arena *arena, void *data, u64 size)
   return(result);
 }
 
-void *_arena_get_top(Arena *arena, u64 size)
+internal void *_arena_get_top(Arena *arena, u64 size)
 {
   void *result = NULL;
 
@@ -286,7 +286,7 @@ void *_arena_get_top(Arena *arena, u64 size)
   return(result);
 }
 
-Ring_Buffer ring_buffer_make(Arena *arena, u64 size)
+internal Ring_Buffer ring_buffer_make(Arena *arena, u64 size)
 {
   Ring_Buffer ring_buffer = {};
 
@@ -304,7 +304,7 @@ Ring_Buffer ring_buffer_make(Arena *arena, u64 size)
   return(ring_buffer);
 }
 
-void *ring_buffer_push(Ring_Buffer *rb, u64 size)
+internal void *ring_buffer_push(Ring_Buffer *rb, u64 size)
 {
   expect_message(((rb->size % size) == 0), "expected ring buffer size to be a multiple of input");
 
@@ -318,14 +318,14 @@ void *ring_buffer_push(Ring_Buffer *rb, u64 size)
   return(result);
 }
 
-void *ring_buffer_append(Ring_Buffer *rb, void *data, u64 size)
+internal void *ring_buffer_append(Ring_Buffer *rb, void *data, u64 size)
 {
   void *result = ring_buffer_push(rb, size);
   copy_memory_block(result, data, size);
   return(result);
 }
 
-void *ring_buffer_pop(Ring_Buffer *rb, u64 size)
+internal void *ring_buffer_pop(Ring_Buffer *rb, u64 size)
 {
   expect_message(((rb->size % size) == 0), "expcted ring buffer size to be a multiple of input");
 
@@ -339,7 +339,7 @@ void *ring_buffer_pop(Ring_Buffer *rb, u64 size)
   return(result);
 }
 
-void ring_buffer_pop_and_put(Ring_Buffer *rb,
+internal void ring_buffer_pop_and_put(Ring_Buffer *rb,
                               void       *data,
                               u64         size)
 {
@@ -348,4 +348,5 @@ void ring_buffer_pop_and_put(Ring_Buffer *rb,
 }
 
 #define TRADER_MEMORY_H
+
 #endif

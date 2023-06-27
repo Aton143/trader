@@ -140,15 +140,17 @@ internal Network_Return_Code network_websocket_send_simple(Network_State    *sta
   {
     *frame_header_size    = 126;
 
+    // NOTE(antonio): network-order
     u16 *payload_16 = push_struct(temp_arena, u16);
-    *payload_16     = (u16) send->used;
+    *payload_16     = byte_swap_16((u16) send->used);
   }
   else
   {
     *frame_header_size    = 127;
 
     u64 *payload_64 = push_struct(temp_arena, u64);
-    *payload_64     = (u16) send->used;
+    // NOTE(antonio): network-order
+    *payload_64     = byte_swap_64(send->used);
   }
 
   u8 *frame_masking = push_array(temp_arena, u8, 4);
@@ -176,6 +178,16 @@ internal Network_Return_Code network_websocket_send_simple(Network_State    *sta
   return(return_code);
 }
 
+internal WebSocket_Frame_Header network_websocket__get_header(u8 *bytes)
+{
+  WebSocket_Frame_Header header;
+
+  u16 *header_bytes = (u16 *) &header;
+  *header_bytes = byte_swap_16(*((u16 *) bytes));
+
+  return(header);
+}
+
 internal Network_Return_Code network_websocket_receive_simple(Network_State          *state,
                                                               Socket                 *in_socket,
                                                               Buffer                 *receive,
@@ -196,24 +208,26 @@ internal Network_Return_Code network_websocket_receive_simple(Network_State     
   u8 *receive_position = temp_buffer.data;
   u32 receive_index    = 0;
 
-  WebSocket_Frame_Header *header = (WebSocket_Frame_Header *) receive_position;
+  WebSocket_Frame_Header header = network_websocket__get_header(receive_position);
 
-  receive_position += sizeof(*header);
-  receive_index    += sizeof(*header);
+  receive_position += sizeof(header);
+  receive_index    += sizeof(header);
 
-  u64 payload_size = header->length;
+  u64 payload_size = header.length;
   u32 payload_length = 0;
+
+  // NOTE(antonio): network-order
   if (payload_size == 126)
   {
     u16 *p16 = (u16 *) receive_position;
-    payload_size = *p16;
+    payload_size = byte_swap_16(*p16);
 
     payload_length = sizeof(*p16);
   }
   else if (payload_size == 127)
   {
     u64 *p64 = (u64 *) receive_position;
-    payload_size = *p64;
+    payload_size = byte_swap_64(*p64);
 
     payload_length = sizeof(*p64);
   }
@@ -225,12 +239,13 @@ internal Network_Return_Code network_websocket_receive_simple(Network_State     
   expect((bit_64 & payload_size) == 0);
 
   u8 masking_key[4] = {};
-  if (header->mask)
+  if (header.mask)
   {
     u32 *frame_masking_key = (u32 *) receive_position;
 
+    // TODO(antonio): verify
     u32 *masking_key_conv = (u32 *) masking_key;
-    *masking_key_conv = *frame_masking_key;
+    *masking_key_conv = byte_swap_32(*frame_masking_key);
 
     receive_position += sizeof(*frame_masking_key);
     receive_index    += sizeof(*frame_masking_key);
@@ -247,7 +262,7 @@ internal Network_Return_Code network_websocket_receive_simple(Network_State     
 
   if (out_header)
   {
-    *out_header = *header;
+    *out_header = header;
   }
 
   return(return_code);

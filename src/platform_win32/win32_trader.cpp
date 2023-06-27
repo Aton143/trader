@@ -439,8 +439,8 @@ WinMain(HINSTANCE instance,
   request_header.used =
     (u64) stbsp_snprintf((char *) request_header.data,
                          (int)    request_header.size,
-                         //"GET / HTTP/1.1\r\n"
-                         "GET /api/v1/search?q=apple HTTP/1.1\r\n"
+                         "GET / HTTP/1.1\r\n"
+                         //" GET /api/v1/search?q=apple HTTP/1.1\r\n"
                          // "Host: %s:443\r\n"
                          "Host: %s\r\n"
                          "Accept: */*\r\n"
@@ -451,12 +451,14 @@ WinMain(HINSTANCE instance,
                          "\r\n",
                          (char *) host_name.str);
 
-  network_send_simple(&network_state, &tls_socket, &request_header);
+  net_result = network_send_simple(&network_state, &tls_socket, &request_header);
+  expect(net_result == network_ok);
 
-  Buffer receive_buffer = stack_alloc_buffer(1024);
+  Buffer receive_buffer = stack_alloc_buffer(2048);
   zero_buffer(&receive_buffer);
 
-  network_receive_simple(&network_state, &tls_socket, &receive_buffer);
+  net_result = network_receive_simple(&network_state, &tls_socket, &receive_buffer);
+  expect(net_result == network_ok);
 
   i32 disable_nagle = 1;
   i32 disable_nagle_res = setsockopt(tls_socket.socket,
@@ -465,6 +467,15 @@ WinMain(HINSTANCE instance,
                                      (char *) &disable_nagle,
                                      sizeof(disable_nagle));
   expect(disable_nagle_res == 0);
+
+  Buffer to_send = buffer_from_string_literal_type("Hello, world!");
+  net_result = network_websocket_send_simple(&network_state, &tls_socket, &to_send);
+  expect(net_result == network_ok);
+
+  WebSocket_Frame_Header header;
+  zero_buffer(&receive_buffer);
+  net_result = network_websocket_receive_simple(&network_state, &tls_socket, &receive_buffer, &header);
+  expect(net_result == network_ok);
 #endif
 
   if (ShowWindow(win32_global_state.window_handle, SW_NORMAL) && UpdateWindow(win32_global_state.window_handle))

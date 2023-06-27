@@ -87,7 +87,7 @@ inline internal void *_arena_get_top(Arena *arena, u64 size);
 #endif
 
 #define stack_alloc(bytes) alloca(bytes)
-#define stack_alloc_buffer(byte_count) {(u8 *) alloca(byte_count), 0, byte_count}
+#define stack_alloc_buffer(byte_count) {(u8 *) alloca(byte_count), byte_count, 0}
 #define zero_buffer(buf) zero_memory_block((buf)->data, (buf)->size)
 
 // NOTE(antonio): write is ahead of read

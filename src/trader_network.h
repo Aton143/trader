@@ -107,7 +107,9 @@ internal void network_print_error()
 
   u32 ssl_error = ERR_get_error();
   ERR_error_string_n(ssl_error, (char *) network_error_buffer, array_count(network_error_buffer) - 1);
+  platform_debug_print("\n");
   platform_debug_print((char *) network_error_buffer);
+  platform_debug_print("\n");
 }
 
 internal Network_Return_Code network_websocket_send_simple(Network_State    *state,
@@ -130,7 +132,6 @@ internal Network_Return_Code network_websocket_send_simple(Network_State    *sta
   frame_header->opcode = opcode;
   frame_header->mask   = 1;
 
-  // TODO(antonio): network-order?
   u8 *frame_header_size = push_struct(temp_arena, u8);
   if (send->used < 126)
   {
@@ -152,6 +153,9 @@ internal Network_Return_Code network_websocket_send_simple(Network_State    *sta
     // NOTE(antonio): network-order
     *payload_64     = byte_swap_64(send->used);
   }
+
+  // TODO(antonio): network-order?
+  *((u16 *) frame_header) = byte_swap_16(*((u16 *) frame_header));
 
   u8 *frame_masking = push_array(temp_arena, u8, 4);
   frame_masking[0] = 0x12;

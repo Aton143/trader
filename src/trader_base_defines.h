@@ -894,6 +894,8 @@ struct Buffer
 };
 typedef Buffer File_Buffer;
 
+#define buffer_from_string_literal_type(s) {(u8 *) (s), sizeof(s), sizeof(s)}
+
 // helpful functions
 u32 count_set_bits(u64 bits)
 {

@@ -708,9 +708,9 @@ internal Network_Return_Code network_send_simple(Network_State *state, Socket *i
     i32 bytes_sent = SSL_write(in_socket->ssl_state, send_buffer->data, (i32) send_buffer->used);
     if (bytes_sent <= 0) {
       result = network_error_send_failure;
-      network_print_error();
     }
   }
+  network_print_error();
 
   return(result);
 }
@@ -722,20 +722,25 @@ internal Network_Return_Code network_receive_simple(Network_State *state, Socket
 
   Network_Return_Code result = network_ok;
 
-  expect(in_socket          != NULL);
+  expect(in_socket      != NULL);
   expect(receive_buffer != NULL);
 
+  i32 bytes_received;
   if (!is_nil(in_socket))
   {
     do
     {
-      i32 bytes_received = SSL_read(in_socket->ssl_state, receive_buffer->data, (i32) receive_buffer->size - 1);
+      bytes_received = SSL_read(in_socket->ssl_state, receive_buffer->data, (i32) receive_buffer->size - 1);
       if (bytes_received > 0)
       {
         receive_buffer->used = bytes_received;
         receive_buffer->data[receive_buffer->used] = 0;
         platform_debug_print((char * ) receive_buffer->data);
         break;
+      }
+      else if (bytes_received < 0)
+      {
+        network_print_error();
       }
       else
       {

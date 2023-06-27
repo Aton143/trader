@@ -178,7 +178,7 @@ internal Network_Return_Code network_websocket_receive_simple(Network_State *sta
   expect(in_socket != NULL);
   expect((receive  != NULL) && (receive->size > 0));
 
-  Arena *temp_arena  = get_temp_arena();
+  Arena *temp_arena = get_temp_arena();
   Buffer temp_buffer = push_buffer(temp_arena, 65536);
 
   Network_Return_Code return_code = network_receive_simple(state, in_socket, &temp_buffer);
@@ -193,6 +193,42 @@ internal Network_Return_Code network_websocket_receive_simple(Network_State *sta
 
   receive_position += sizeof(*header);
   receive_index    += sizeof(*header);
+
+  u64 payload_size = header->length;
+  u32 payload_length = 0;
+
+  if (payload_size == 126)
+  {
+    u16 *p16 = (u16 *) receive_position;
+    payload_size = *p16;
+
+    payload_length = sizeof(*p16);
+  }
+  else if (payload_size == 127)
+  {
+    u64 *p64 = (u64 *) receive_position;
+    payload_size = *p64;
+
+    payload_length = sizeof(*p64);
+  }
+
+  receive_position += payload_length;
+  receive_index    += payload_length;
+
+  // NOTE(antonio): per the spec (msb must be 0)
+  expect((bit_64 & payload_size) == 0);
+
+  u32 masking_key = 0;
+  if (header->mask)
+  {
+    u32 *frame_masking_key = (u32 *) receive_position;
+    masking_key = *frame_masking_key;
+
+    receive_position += sizeof(*frame_masking_key);
+    receive_index    += sizeof(*frame_masking_key);
+  }
+
+  // NOTE(antonio): we have the requisites to get the payload!
 
   return(return_code);
 }

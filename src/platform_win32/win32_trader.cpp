@@ -422,14 +422,12 @@ WinMain(HINSTANCE instance,
   Network_State network_state = {};
   network_startup(&network_state);
 
-  String_Const_utf8 host_name = string_literal_init_type("localhost", utf8);
-  // String_Const_utf8 host_name = string_literal_init_type("echo.websocket.events", utf8);
+  String_Const_utf8 host_name = string_literal_init_type("echo.websocket.events", utf8);
   // String_Const_utf8 host_name = string_literal_init_type("finnhub.io", utf8);
 
   String_Const_utf8 query_path = string_literal_init_type("", utf8);
 
-  // u16 port = 443;
-  u16 port = 9001;
+  u16 port = 443;
 
   Socket tls_socket;
   Network_Return_Code net_result = network_connect(&network_state, &tls_socket, host_name, port);

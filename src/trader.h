@@ -42,6 +42,10 @@ struct Render_Context;
 
 #if COMPILER_CL
 # include "compiler_impl/cl_impl.h"
+#elif COMPILER_GCC
+# include "compiler_impl/gcc_impl.h"
+#elif COMPILER_CLANG
+# include "compiler_impl/clang_impl.h"
 #endif
 
 #include "trader_meta_impl.h"

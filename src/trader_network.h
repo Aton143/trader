@@ -86,7 +86,11 @@ internal Network_Return_Code network_websocket_send_simple(Network_State    *sta
                                                            Socket           *in_socket,
                                                            Buffer           *send,
                                                            WebSocket_Opcode  op = websocket_opcode_text);
-internal Network_Return_Code network_websocket_receive_simple(Network_State *state, Socket *in_socket, Buffer *receive);
+
+internal Network_Return_Code network_websocket_receive_simple(Network_State          *state,
+                                                              Socket                 *in_socket,
+                                                              Buffer                 *receive,
+                                                              WebSocket_Frame_Header *header);
 
 internal Network_Return_Code network_do_websocket_handshake(Network_State *state,
                                                             Socket *in_out_socket,
@@ -172,7 +176,10 @@ internal Network_Return_Code network_websocket_send_simple(Network_State    *sta
   return(return_code);
 }
 
-internal Network_Return_Code network_websocket_receive_simple(Network_State *state, Socket *in_socket, Buffer *receive)
+internal Network_Return_Code network_websocket_receive_simple(Network_State          *state,
+                                                              Socket                 *in_socket,
+                                                              Buffer                 *receive,
+                                                              WebSocket_Frame_Header *out_header)
 {
   expect(state     != NULL);
   expect(in_socket != NULL);
@@ -196,7 +203,6 @@ internal Network_Return_Code network_websocket_receive_simple(Network_State *sta
 
   u64 payload_size = header->length;
   u32 payload_length = 0;
-
   if (payload_size == 126)
   {
     u16 *p16 = (u16 *) receive_position;
@@ -218,17 +224,31 @@ internal Network_Return_Code network_websocket_receive_simple(Network_State *sta
   // NOTE(antonio): per the spec (msb must be 0)
   expect((bit_64 & payload_size) == 0);
 
-  u32 masking_key = 0;
+  u8 masking_key[4] = {};
   if (header->mask)
   {
     u32 *frame_masking_key = (u32 *) receive_position;
-    masking_key = *frame_masking_key;
+
+    u32 *masking_key_conv = (u32 *) masking_key;
+    *masking_key_conv = *frame_masking_key;
 
     receive_position += sizeof(*frame_masking_key);
     receive_index    += sizeof(*frame_masking_key);
   }
 
   // NOTE(antonio): we have the requisites to get the payload!
+  for (u64 payload_index = 0;
+       payload_index < payload_length;
+       ++payload_index)
+  {
+    receive->data[payload_index] = *receive_position ^ masking_key[payload_index & 0x3];
+    receive_position++;
+  }
+
+  if (out_header)
+  {
+    *out_header = *header;
+  }
 
   return(return_code);
 }

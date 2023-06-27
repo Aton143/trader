@@ -129,6 +129,10 @@ inline internal void ring_buffer_pop_and_put(Ring_Buffer *ring_buffer,
                                              u64          size);
 #define ring_buffer_pop_and_put_struct(rb, copy) ring_buffer_pop_and_put(rb, copy, sizeof(*(copy)))
 
+inline internal u16 byte_swap_16(u16 val);
+inline internal u32 byte_swap_32(u32 val);
+inline internal u64 byte_swap_64(u64 val);
+
 // implementation
 inline internal i64 copy_memory_block(void *dest, void *source, i64 byte_count)
 {
@@ -196,7 +200,7 @@ inline internal i64 move_memory_block(void *dest, void *source, i64 byte_count)
     }
   }
 
-	copy_memory_block(dest, source, byte_count);
+  copy_memory_block(dest, source, byte_count);
   return(byte_count);
 }
 
@@ -358,8 +362,8 @@ inline internal void *ring_buffer_pop(Ring_Buffer *rb, u64 size)
 }
 
 inline internal void ring_buffer_pop_and_put(Ring_Buffer *rb,
-                              void       *data,
-                              u64         size)
+                                             void       *data,
+                                             u64         size)
 {
   void *read = ring_buffer_pop(rb, size);
   copy_memory_block(data, read, size);

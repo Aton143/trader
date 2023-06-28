@@ -13,6 +13,8 @@ enum
 {
   network_ok,
 
+  network_no_data,
+
   network_error_client_certificate_needed,
 
   network_error_send_failure,
@@ -38,33 +40,33 @@ typedef u8 WebSocket_Opcode;
 enum 
 {
   websocket_opcode_continuation = 0x0,
-  websocket_opcode_text,
-  websocket_opcode_binary,
-  websocket_opcode_reserved_3,
-  websocket_opcode_reserved_4,
-  websocket_opcode_reserved_5,
-  websocket_opcode_reserved_6,
-  websocket_opcode_reserved_7,
-  websocket_opcode_close,
-  websocket_opcode_ping,
-  websocket_opcode_pong,
-  websocket_opcode_reserved_b,
-  websocket_opcode_reserved_c,
-  websocket_opcode_reserved_d,
-  websocket_opcode_reserved_e,
-  websocket_opcode_reserved_f,
+  websocket_opcode_text,       // 0x1
+  websocket_opcode_binary,     // 0x2
+  websocket_opcode_reserved_3, // 0x3
+  websocket_opcode_reserved_4, // 0x4
+  websocket_opcode_reserved_5, // 0x5
+  websocket_opcode_reserved_6, // 0x6
+  websocket_opcode_reserved_7, // 0x7
+  websocket_opcode_close,      // 0x8
+  websocket_opcode_ping,       // 0x9
+  websocket_opcode_pong,       // 0xa
+  websocket_opcode_reserved_b, // 0xb
+  websocket_opcode_reserved_c, // 0xc
+  websocket_opcode_reserved_d, // 0xd
+  websocket_opcode_reserved_e, // 0xe
+  websocket_opcode_reserved_f, // 0xf
 
   websocket_opcode_count,
 };
 
 struct WebSocket_Frame_Header
 {
-  u8               fin:    1;
-  u8               rsv:    3;
   WebSocket_Opcode opcode: 4;
+  u8               rsv:    3;
+  u8               fin:    1;
 
-  u8 mask:   1;
   u8 length: 7;
+  u8 mask:   1;
 };
 
 external struct Socket;
@@ -128,18 +130,19 @@ internal Network_Return_Code network_websocket_send_simple(Network_State    *sta
   u64    temp_arena_start_used = temp_arena->used;
 
   WebSocket_Frame_Header *frame_header = push_struct(temp_arena, WebSocket_Frame_Header);
+  *frame_header = {};
 
   frame_header->opcode = opcode;
   frame_header->mask   = 1;
+  frame_header->fin    = 1;
 
-  u8 *frame_header_size = push_struct(temp_arena, u8);
   if (send->used < 126)
   {
-    *frame_header_size    = (u8) send->used;
+    frame_header->length = (u8) send->used;
   }
   else if (send->used <= max_u16)
   {
-    *frame_header_size    = 126;
+    frame_header->length = 126;
 
     // NOTE(antonio): network-order
     u16 *payload_16 = push_struct(temp_arena, u16);
@@ -147,7 +150,7 @@ internal Network_Return_Code network_websocket_send_simple(Network_State    *sta
   }
   else
   {
-    *frame_header_size    = 127;
+    frame_header->length = 127;
 
     u64 *payload_64 = push_struct(temp_arena, u64);
     // NOTE(antonio): network-order
@@ -155,7 +158,7 @@ internal Network_Return_Code network_websocket_send_simple(Network_State    *sta
   }
 
   // TODO(antonio): network-order?
-  *((u16 *) frame_header) = byte_swap_16(*((u16 *) frame_header));
+  // *((u16 *) frame_header) = byte_swap_16(*((u16 *) frame_header));
 
   u8 *frame_masking = push_array(temp_arena, u8, 4);
   frame_masking[0] = 0x12;
@@ -182,16 +185,6 @@ internal Network_Return_Code network_websocket_send_simple(Network_State    *sta
   return(return_code);
 }
 
-internal WebSocket_Frame_Header network_websocket__get_header(u8 *bytes)
-{
-  WebSocket_Frame_Header header;
-
-  u16 *header_bytes = (u16 *) &header;
-  *header_bytes = byte_swap_16(*((u16 *) bytes));
-
-  return(header);
-}
-
 internal Network_Return_Code network_websocket_receive_simple(Network_State          *state,
                                                               Socket                 *in_socket,
                                                               Buffer                 *receive,
@@ -203,65 +196,70 @@ internal Network_Return_Code network_websocket_receive_simple(Network_State     
 
   Arena *temp_arena = get_temp_arena();
   Buffer temp_buffer = push_buffer(temp_arena, 65536);
+  zero_memory_block(temp_buffer.data, 65536);
 
+  WebSocket_Frame_Header header = {};
   Network_Return_Code return_code = network_receive_simple(state, in_socket, &temp_buffer);
 
-  expect_message(return_code == network_ok, "expected ok but this may change in the future");
-  expect_message(temp_buffer.used >= 2, "expected at least two bytes for the header");
-
-  u8 *receive_position = temp_buffer.data;
-  u32 receive_index    = 0;
-
-  WebSocket_Frame_Header header = network_websocket__get_header(receive_position);
-
-  receive_position += sizeof(header);
-  receive_index    += sizeof(header);
-
-  u64 payload_size = header.length;
-  u32 payload_length = 0;
-
-  // NOTE(antonio): network-order
-  if (payload_size == 126)
+  if (return_code == network_ok)
   {
-    u16 *p16 = (u16 *) receive_position;
-    payload_size = byte_swap_16(*p16);
+    expect_message(return_code == network_ok, "expected ok but this may change in the future");
+    expect_message(temp_buffer.used >= 2, "expected at least two bytes for the header");
 
-    payload_length = sizeof(*p16);
-  }
-  else if (payload_size == 127)
-  {
-    u64 *p64 = (u64 *) receive_position;
-    payload_size = byte_swap_64(*p64);
+    u8 *receive_position = temp_buffer.data;
+    u32 receive_index    = 0;
 
-    payload_length = sizeof(*p64);
-  }
+    header = *((WebSocket_Frame_Header *) receive_position);
 
-  receive_position += payload_length;
-  receive_index    += payload_length;
+    receive_position += sizeof(header);
+    receive_index    += sizeof(header);
 
-  // NOTE(antonio): per the spec (msb must be 0)
-  expect((bit_64 & payload_size) == 0);
+    u64 payload_size    = header.length;
+    u32 payload_advance = 0;
 
-  u8 masking_key[4] = {};
-  if (header.mask)
-  {
-    u32 *frame_masking_key = (u32 *) receive_position;
+    // NOTE(antonio): network-order
+    if (payload_size == 126)
+    {
+      u16 *p16 = (u16 *) receive_position;
+      payload_size = byte_swap_16(*p16);
 
-    // TODO(antonio): verify
-    u32 *masking_key_conv = (u32 *) masking_key;
-    *masking_key_conv = byte_swap_32(*frame_masking_key);
+      payload_advance = sizeof(*p16);
+    }
+    else if (payload_size == 127)
+    {
+      u64 *p64 = (u64 *) receive_position;
+      payload_size = byte_swap_64(*p64);
 
-    receive_position += sizeof(*frame_masking_key);
-    receive_index    += sizeof(*frame_masking_key);
-  }
+      payload_advance = sizeof(*p64);
+    }
 
-  // NOTE(antonio): we have the requisites to get the payload!
-  for (u64 payload_index = 0;
-       payload_index < payload_length;
-       ++payload_index)
-  {
-    receive->data[payload_index] = *receive_position ^ masking_key[payload_index & 0x3];
-    receive_position++;
+    receive_position += payload_advance;
+    receive_index    += payload_advance;
+
+    // NOTE(antonio): per the spec (msb must be 0)
+    expect((bit_64 & payload_size) == 0);
+
+    u8 masking_key[4] = {};
+    if (header.mask)
+    {
+      u32 *frame_masking_key = (u32 *) receive_position;
+
+      // TODO(antonio): verify
+      u32 *masking_key_conv = (u32 *) masking_key;
+      *masking_key_conv = byte_swap_32(*frame_masking_key);
+
+      receive_position += sizeof(*frame_masking_key);
+      receive_index    += sizeof(*frame_masking_key);
+    }
+
+    // NOTE(antonio): we have the requisites to get the payload!
+    for (u64 payload_index = 0;
+         payload_index < payload_size;
+         ++payload_index)
+    {
+      receive->data[payload_index] = *receive_position ^ masking_key[payload_index & 0x3];
+      receive_position++;
+    }
   }
 
   if (out_header)

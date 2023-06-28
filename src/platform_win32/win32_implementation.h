@@ -728,7 +728,30 @@ internal Network_Return_Code network_receive_simple(Network_State *state, Socket
   i32 bytes_received;
   if (!is_nil(in_socket))
   {
-    do
+    WSAPOLLFD sockets_to_poll[1] = {};
+
+    sockets_to_poll[0].fd     = in_socket->socket;
+    sockets_to_poll[0].events = POLLIN;
+
+    /*
+      revents: 
+      POLLERR:    1
+      POLLHUP:    2
+      POLLNVAL:   4
+      POLLPRI:    1024
+      POLLRDBAND: 512
+      POLLRDNORM: 256
+      POLLWRNORM: 16
+    */
+
+    i32 poll_res = WSAPoll(sockets_to_poll, array_count(sockets_to_poll), -1);
+
+    if (poll_res == 0)
+    {
+      result = network_no_data;
+    }
+
+    while (poll_res > 0)
     {
       bytes_received = SSL_read(in_socket->ssl_state, receive_buffer->data, (i32) receive_buffer->size - 1);
       if (bytes_received > 0)
@@ -736,21 +759,18 @@ internal Network_Return_Code network_receive_simple(Network_State *state, Socket
         receive_buffer->used = bytes_received;
         receive_buffer->data[receive_buffer->used] = 0;
         platform_debug_print((char * ) receive_buffer->data);
-        break;
       }
       else if (bytes_received < 0)
       {
         network_print_error();
       }
-      else
-      {
-        // TODO(antonio): why did it stop - can be success or failure
-        break;
-      }
-    } while (1);
-  }
 
-  network_print_error();
+      sockets_to_poll[0].fd     = in_socket->socket;
+      sockets_to_poll[0].events = POLLIN;
+
+      poll_res = WSAPoll(sockets_to_poll, array_count(sockets_to_poll), 0);
+    }
+  }
 
   return(result);
 }

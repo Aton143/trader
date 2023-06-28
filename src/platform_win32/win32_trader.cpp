@@ -443,7 +443,8 @@ WinMain(HINSTANCE instance,
                          //" GET /api/v1/search?q=apple HTTP/1.1\r\n"
                          // "Host: %s:443\r\n"
                          "Host: %s\r\n"
-                         "Accept: */*\r\n"
+                         // "Accept: text/*\r\n"
+                         "Accept-Encoding: identity\r\n"
                          "Upgrade: websocket\r\n"
                          "Connection: Upgrade\r\n"
                          "Sec-WebSocket-Key: x3JJHMbDL1EzLkh9GBhXDw==\r\n"
@@ -468,14 +469,50 @@ WinMain(HINSTANCE instance,
                                      sizeof(disable_nagle));
   expect(disable_nagle_res == 0);
 
-  Buffer to_send = buffer_from_string_literal_type("Hello, world!");
-  net_result = network_websocket_send_simple(&network_state, &tls_socket, &to_send);
+  Buffer to_send = buffer_from_string_literal_type("Vete a la chingada!");
+  net_result = network_websocket_send_simple(&network_state, &tls_socket, &to_send, websocket_opcode_text);
   expect(net_result == network_ok);
 
   WebSocket_Frame_Header header;
   zero_buffer(&receive_buffer);
   net_result = network_websocket_receive_simple(&network_state, &tls_socket, &receive_buffer, &header);
-  expect(net_result == network_ok);
+
+  /*
+  switch (header.opcode)
+  {
+    case websocket_opcode_continuation:
+    {
+
+    } break;
+    case websocket_opcode_text:
+    {
+
+    } break;
+    case websocket_opcode_binary:
+    {
+
+    } break;
+    case websocket_opcode_close:
+    {
+
+    } break;
+    case websocket_opcode_ping:
+    {
+      net_result = network_websocket_send_simple(&network_state, &tls_socket, &receive_buffer, websocket_opcode_pong);
+      expect(net_result == network_ok);
+    } break;
+    case websocket_opcode_pong:
+    {
+      net_result = network_websocket_receive_simple(&network_state, &tls_socket, &receive_buffer, &header);
+      expect(net_result == network_ok);
+    } break;
+    default:
+    {
+      meta_log_char("WebSocket: unknown opcode: %d\n", header.opcode);
+    } break;
+  }
+  */
+
 #endif
 
   if (ShowWindow(win32_global_state.window_handle, SW_NORMAL) && UpdateWindow(win32_global_state.window_handle))

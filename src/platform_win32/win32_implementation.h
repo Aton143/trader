@@ -109,10 +109,17 @@ struct Socket
 
   SSL   *ssl_state;
   BIO   *ssl_buffer;
-
-  //u8     websocket_key[32];
 };
 Socket nil_socket = {INVALID_SOCKET};
+
+struct Asynchronous_Socket
+{
+  SOCKET socket;
+
+  SSL   *ssl_state;
+  BIO   *ssl_buffer;
+};
+Asynchronous_Socket nil_async_socket = {INVALID_SOCKET};
 
 internal b32 is_nil(Socket *check)
 {
@@ -694,6 +701,19 @@ internal Network_Return_Code network_connect(Network_State *state, Socket *out_s
   }
 
   return(result);
+}
+
+internal Network_Return_Code network_async_connect(Network_State       *state,
+                                                   Asynchronous_Socket *out_socket,
+                                                   String_Const_utf8    host_name,
+                                                   u16                  port)
+{
+  unused(state);
+  unused(out_socket);
+  unused(host_name);
+  unused(port);
+
+  return(network_ok);
 }
 
 internal Network_Return_Code network_send_simple(Network_State *state, Socket *in_socket, Buffer *send_buffer)

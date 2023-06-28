@@ -72,6 +72,9 @@ struct WebSocket_Frame_Header
 external struct Socket;
 external Socket nil_socket;
 
+external struct Asynchronous_Socket;
+external Asynchronous_Socket nil_async_socket;
+
 internal void make_nil(Socket *check);
 internal b32 is_nil(Socket *check);
 

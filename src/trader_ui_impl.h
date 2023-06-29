@@ -5,6 +5,7 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
                              String_Const_utf8  string,
                              V2_f32             sizing,
                              V2_f32             position,
+                             f32                border_thickness,
                              void              *data,
                              u64                data_size)
 {
@@ -108,6 +109,8 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
 
     widget->position_relative_to_parent = position;
     widget->extra_sizing                = sizing;
+
+    widget->border_thickness = border_thickness;
 
     copy_memory_block(widget->end_background_color, ui->background_color, sizeof(ui->background_color));
   }
@@ -917,6 +920,8 @@ internal void ui_prepare_render(void)
           cur_widget->rectangle.y0,
           0.5f,
         };
+
+        draw_call->border_thickness = cur_widget->border_thickness;
       }
 
       if (cur_widget->widget_flags & widget_flag_draw_text)

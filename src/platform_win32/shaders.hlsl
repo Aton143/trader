@@ -13,6 +13,10 @@ struct VS_Input
 
   float3 position:             INSTANCE_POSITION;
 
+  float  corner_radius:        INSTANCE_CORNER_RADIUS;
+  float  edge_softness:        INSTANCE_EDGE_SOFTNESS;
+  float  border_thickness:     INSTANCE_BORDER_THICKNESS;
+
   float2 texture_top_left:     INSTANCE_UV0;
   float2 texture_bottom_right: INSTANCE_UV1;
 
@@ -22,9 +26,17 @@ struct VS_Input
 
 struct PS_Input
 {
-  float4 vertex: SV_POSITION;
-  float2 uv:     TEXCOORD;
-  float4 color:  COLOR;
+  float4 vertex:           SV_POSITION;
+  float4 color:            COLOR;
+  float2 uv:               TEXCOORD;
+
+  float2 dst_pos:          POS0;
+  float2 dst_center:       POS1;
+  float2 dst_half_size:    POS2;
+
+  float  corner_radius:    CORNER_RADIUS;
+  float  edge_softness:    EDGE_SOFTNESS;
+  float  border_thickness: BORDER_THICKNESS;
 };
 
 Global_Data  global_data;
@@ -44,6 +56,16 @@ SamplerState global_sampler: register(s0);
 //     +-------------+
 //  (-1,  1)        (1,  1)
 
+float RoundedRectSDF(float2 sample_pos,
+                     float2 rect_center,
+                     float2 rect_half_size,
+                     float  r)
+{
+  float2 d2 = (abs(rect_center - sample_pos) -
+               rect_half_size +
+               float2(r, r));
+  return min(max(d2.x, d2.y), 0.0) + length(max(d2, 0.0)) - r;
+}
 
 PS_Input VS_Main(VS_Input input)
 {
@@ -62,16 +84,11 @@ PS_Input VS_Main(VS_Input input)
 
   PS_Input output;
 
-  float2 destination_half_size = (input.bottom_right - input.top_left)     / 2;
-  float2 destination_center    = (input.top_left     + input.bottom_right) / 2;
-  float2 destination_position  = (vertices[input.vertex_id] * destination_half_size) + destination_center;
+  float2 dst_half_size = (input.bottom_right - input.top_left)     / 2;
+  float2 dst_center    = (input.top_left     + input.bottom_right) / 2;
+  float2 dst_position  = (vertices[input.vertex_id] * dst_half_size) + dst_center;
 
-  destination_position.xy += input.position.xy;
-
-  output.vertex = float4((2 * destination_position.x / global_data.resolution.x) - 1,
-                         1 - (2 * destination_position.y / global_data.resolution.y),
-                         input.position.z,
-                         1);
+  dst_position.xy += input.position.xy;
 
   float2 unnorm_uv_half_size = (input.texture_bottom_right - input.texture_top_left)     / 2;
   float2 unnorm_uv_center    = (input.texture_top_left     + input.texture_bottom_right) / 2;
@@ -80,10 +97,23 @@ PS_Input VS_Main(VS_Input input)
   float texture_width  = global_data.texture_dimensions.x;
   float texture_height = global_data.texture_dimensions.y;
 
+  output.vertex = float4((2 * dst_position.x / global_data.resolution.x) - 1,
+                         1 - (2 * dst_position.y / global_data.resolution.y),
+                         input.position.z,
+                         1);
+
   output.uv = float2(unnorm_uv_position.x / texture_width,
                      unnorm_uv_position.y / texture_height);
 
   output.color = input.color[input.vertex_id];
+
+  output.dst_pos       = dst_position;
+  output.dst_center    = dst_center;
+  output.dst_half_size = dst_half_size;
+
+  output.border_thickness = input.border_thickness;
+  output.corner_radius    = input.corner_radius;
+  output.edge_softness    = input.edge_softness;
 
   return output;
 }
@@ -91,7 +121,40 @@ PS_Input VS_Main(VS_Input input)
 float4 PS_Main(PS_Input input): SV_Target
 {
   float alpha_sample = global_texture.Sample(global_sampler, input.uv).r;
-  float3 combined    = float3(input.color.rgb) * alpha_sample;
+
+  float border_factor = 1.0f;
+  float softness_padding = 0.0f;
+  float softness = 0.0f;
+  if(input.border_thickness > 0)
+  {
+    float2 interior_half_size = input.dst_half_size - float2(input.border_thickness, input.border_thickness);
+
+    // reduction factor for the internal corner
+    // radius. not 100% sure the best way to go
+    // about this, but this is the best thing I've
+    // found so far!
+    //
+    // this is necessary because otherwise it looks
+    // weird
+    float interior_radius_reduce_f = min(interior_half_size.x/input.dst_half_size.x,
+                                         interior_half_size.y/input.dst_half_size.y);
+
+    float interior_corner_radius = (input.corner_radius *
+                                    interior_radius_reduce_f *
+                                    interior_radius_reduce_f);
+
+    // calculate sample distance from "interior"
+    float inside_d = RoundedRectSDF(input.dst_pos,
+                                    input.dst_center,
+                                    interior_half_size - softness_padding,
+                                    interior_corner_radius);
+
+    // map distance => factor
+    float inside_f = smoothstep(0, 2*softness, inside_d);
+    border_factor = inside_f;
+  }
+
+  float3 combined    = float3(input.color.rgb) * alpha_sample * float3(border_factor, border_factor, border_factor);
   float4 out_color   = float4(combined, alpha_sample);
   return out_color;
 }

@@ -22,7 +22,9 @@ enum
   widget_flag_draw_text          = (1LL << 9),
   widget_flag_truncate_text      = (1LL << 10),
 
+  // NOTE(antonio): no need? should be data-driven?
   widget_flag_draw_border        = (1LL << 11),
+
   widget_flag_draw_background    = (1LL << 12),
   widget_flag_draw_dropshadow    = (1LL << 13),
 
@@ -245,6 +247,7 @@ struct Widget
   RGBA_f32          end_background_color[4];
 
   f32               font_height;
+  f32               border_thickness;
 
   // NOTE(antonio): computed every frame
   V2_f32            position_relative_to_parent;
@@ -389,9 +392,10 @@ internal b32 ui_is_key_equal(UI_Key a, UI_Key b);
 internal void ui_make_widget(Widget_Flag widget_flags,
                              Widget_Size_Flag   size_flags,
                              String_Const_utf8  string,
-                             V2_f32             sizing    = {1.0f, 1.0f},
-                             V2_f32             pos       = {0.0f, 0.0f},
-                             void              *data      = NULL,
-                             u64                data_size = 0);
+                             V2_f32             sizing           = {1.0f, 1.0f},
+                             V2_f32             pos              = {0.0f, 0.0f},
+                             f32                border_thickness = 0.0f,
+                             void              *data             = NULL,
+                             u64                data_size        = 0);
 #define TRADER_UI_H
 #endif

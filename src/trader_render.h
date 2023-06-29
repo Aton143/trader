@@ -32,6 +32,9 @@ struct Instance_Buffer_Element
   Rect_f32  size;
   RGBA_f32  color[4];
   V3_f32    pos;
+  f32       corner_radius;
+  f32       edge_softness;
+  f32       border_thickness;
   Rect_f32  uv;
 };
 

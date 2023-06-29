@@ -91,10 +91,11 @@ internal Network_Return_Code network_disconnect(Network_State *state, Socket *in
 internal Network_Return_Code network_send_simple(Network_State *state, Socket *in_socket, Buffer *send);
 internal Network_Return_Code network_receive_simple(Network_State *state, Socket *in_socket, Buffer *receive);
 
-internal Network_Return_Code network_websocket_send_simple(Network_State    *state,
+internal Network_Return_Code network_websocket_send_simple(Thread_Context   *thread_context,
+                                                           Network_State    *state,
                                                            Socket           *in_socket,
                                                            Buffer           *send,
-                                                           WebSocket_Opcode  op = websocket_opcode_text);
+                                                           WebSocket_Opcode  opcode);
 
 internal Network_Return_Code network_websocket_receive_simple(Network_State          *state,
                                                               Socket                 *in_socket,
@@ -121,7 +122,8 @@ internal void network_print_error()
   platform_debug_print("\n");
 }
 
-internal Network_Return_Code network_websocket_send_simple(Network_State    *state,
+internal Network_Return_Code network_websocket_send_simple(Thread_Context   *thread_context,
+                                                           Network_State    *state,
                                                            Socket           *in_socket,
                                                            Buffer           *send,
                                                            WebSocket_Opcode  opcode)
@@ -132,7 +134,7 @@ internal Network_Return_Code network_websocket_send_simple(Network_State    *sta
 
   Network_Return_Code return_code = network_ok;
 
-  Arena *temp_arena            = get_temp_arena();
+  Arena *temp_arena            = get_temp_arena(thread_context);
   u8    *frame_start           = temp_arena->start;
   u64    temp_arena_start_used = temp_arena->used;
 
@@ -192,7 +194,8 @@ internal Network_Return_Code network_websocket_send_simple(Network_State    *sta
   return(return_code);
 }
 
-internal Network_Return_Code network_websocket_receive_simple(Network_State          *state,
+internal Network_Return_Code network_websocket_receive_simple(Thread_Context         *thread_context,
+                                                              Network_State          *state,
                                                               Socket                 *in_socket,
                                                               Buffer                 *receive,
                                                               WebSocket_Frame_Header *out_header)
@@ -201,7 +204,7 @@ internal Network_Return_Code network_websocket_receive_simple(Network_State     
   expect(in_socket != NULL);
   expect((receive  != NULL) && (receive->size > 0));
 
-  Arena *temp_arena = get_temp_arena();
+  Arena *temp_arena = get_temp_arena(thread_context);
   Buffer temp_buffer = push_buffer(temp_arena, 65536);
   zero_memory_block(temp_buffer.data, 65536);
 

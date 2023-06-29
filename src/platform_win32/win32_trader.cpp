@@ -147,12 +147,20 @@ internal u32 win32_network_thread(void *arg)
   expect(disable_nagle_res == 0);
 
   Buffer to_send = buffer_from_string_literal_type("Vete a la chingada!");
-  net_result = network_websocket_send_simple(&network_state, &tls_socket, &to_send, websocket_opcode_text);
+  net_result = network_websocket_send_simple(net_thread_context,
+                                             &network_state,
+                                             &tls_socket,
+                                             &to_send,
+                                             websocket_opcode_text);
   expect(net_result == network_ok);
 
   WebSocket_Frame_Header header;
   zero_buffer(&receive_buffer);
-  net_result = network_websocket_receive_simple(&network_state, &tls_socket, &receive_buffer, &header);
+  net_result = network_websocket_receive_simple(net_thread_context,
+                                                &network_state,
+                                                &tls_socket,
+                                                &receive_buffer,
+                                                &header);
 
   /*
   switch (header.opcode)
@@ -398,7 +406,12 @@ WinMain(HINSTANCE instance,
   unused(command_line);
   unused(show_command);
 
-  win32_global_state.temp_arena.arena = arena_alloc(global_temp_arena_size, 1, NULL);
+  for (u32 thread_context_index = 0;
+       thread_context_index < thread_count;
+       ++thread_context_index)
+  {
+    thread_contexts[thread_context_index].local_temp_arena.arena = arena_alloc(global_temp_arena_size, 1, NULL);
+  }
 
   rng_init();
 
@@ -521,6 +534,7 @@ WinMain(HINSTANCE instance,
   }
 
   Thread_Handle network_thread = platform_create_thread(&win32_network_thread, &thread_contexts[1]);
+  unused(network_thread);
 
   if (ShowWindow(win32_global_state.window_handle, SW_NORMAL) && UpdateWindow(win32_global_state.window_handle))
   {
@@ -1230,9 +1244,15 @@ WinMain(HINSTANCE instance,
       {
         ui_canvas(string_literal_init_type("Canvas", utf8), V2(200.0f, 200.0f));
 
-        data_index = (data_index + 1) % array_count(data_for_lines);
-        acc_time += 1.0f/60.0f;
         data_for_lines[data_index] = V2(acc_time, 0.5f * (sinf(acc_time * tau_f32) + 1.0f));
+
+        acc_time += 1.0f/60.0f;
+        data_index = (data_index + 1) % array_count(data_for_lines);
+
+        if (acc_time > 1.0f)
+        {
+          acc_time = ((f32) (rng_get_random32() % 1024)) / (1024.0f * 32.0f);
+        }
 
         u64 lines_to_render = (u64) ceilf(slider_float * data_index);
         render_data_to_lines(data_for_lines, lines_to_render);

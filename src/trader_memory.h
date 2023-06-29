@@ -55,7 +55,7 @@ inline internal Arena arena_alloc(u64 size, u64 alignment, void *start);
 unimplemented void arena_release(Arena *arena);
 
 inline internal Arena *get_temp_arena(Thread_Context *context = thread_contexts);
-inline internal void   set_temp_arena_wait(u64 wait);
+inline internal void   set_temp_arena_wait(u64 wait, Thread_Context *context = thread_contexts);
 
 inline internal void *arena_push(Arena *arena, u64 size);
 inline internal void *arena_push_zero(Arena *arena, u64 size);

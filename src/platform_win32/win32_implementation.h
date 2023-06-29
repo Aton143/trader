@@ -103,9 +103,9 @@ inline internal Arena *get_temp_arena(Thread_Context *context)
   return(&temp_arena->arena);
 }
 
-internal void set_temp_arena_wait(u64 wait)
+internal void set_temp_arena_wait(u64 wait, Thread_Context *context)
 {
-  win32_global_state.temp_arena.wait = wait;
+  context->local_temp_arena.wait = wait;
 }
 
 struct Socket
@@ -850,16 +850,6 @@ internal Network_Return_Code network_cleanup(Network_State *state)
   Network_Return_Code result = network_ok;
 
   WSACleanup();
-
-  return(result);
-}
-
-internal DWORD iocp_thread_proc(LPVOID _iocp_handle)
-{
-  DWORD result = 0;
-
-  HANDLE iocp_handle = (HANDLE) _iocp_handle;
-  unused(iocp_handle);
 
   return(result);
 }

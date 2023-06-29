@@ -1,7 +1,9 @@
 #ifndef TRADER_PLATFORM_H
 
-// TODO(antonio): this is really dumb
 typedef u32 Key_Event;
+
+typedef u32 (THREAD_CALL_CONVENTION *Thread_Routine)(void *arg);
+struct Thread_Handle;
 
 internal Global_Platform_State *platform_get_global_state(void);
 
@@ -36,6 +38,9 @@ internal Key_Event platform_convert_key_to_our_key(u64 key_value);
 
 internal String_Const_utf8 platform_get_file_from_system_prompt();
 internal File_Buffer       platform_open_and_read_entire_file_from_system_prompt(Arena *arena);
+
+// NOTE(antonio): threads
+internal Thread_Handle platform_create_thread(Thread_Routine routine, void *routine_arg);
 
 // implementation
 internal void platform_debug_printf(char *format, ...)

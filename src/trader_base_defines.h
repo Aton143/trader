@@ -6,6 +6,7 @@
 
 #if defined(_WIN32)
 # define OS_WINDOWS 1
+# define THREAD_CALL_CONVENTION __stdcall
 #else
 # error This compiler/platform combination is not supported
 #endif
@@ -28,6 +29,7 @@
 #if defined(__linux__)
 
 # define OS_LINUX 1
+# define THREAD_CALL_CONVENTION
 
 # if defined(__x86_64__) || defined(__amd64) || \
      defined(__amd64__)  || defined (__x86_64)

@@ -1,6 +1,11 @@
 #ifndef WIN32_IMPLEMENTATION_H
 #include <malloc.h>
 
+struct Thread_Handle 
+{
+  HANDLE _handle;
+};
+
 struct Vertex_Shader
 {
   ID3D11VertexShader *shader;
@@ -82,20 +87,20 @@ internal Render_Context *render_get_context(void)
   return(context);
 }
 
-internal Arena *get_temp_arena(void)
+inline internal Arena *get_temp_arena(Thread_Context *context)
 {
-  Arena *temp_arena = &win32_global_state.temp_arena.arena;
+  Temp_Arena *temp_arena = &context->local_temp_arena;
 
-  if (win32_global_state.temp_arena.wait > 0)
+  if (temp_arena->wait > 0)
   {
-    win32_global_state.temp_arena.wait--;
+    temp_arena->wait--;
   }
   else
   {
-    temp_arena->used = 0;
+    temp_arena->arena.used = 0;
   }
 
-  return(temp_arena);
+  return(&temp_arena->arena);
 }
 
 internal void set_temp_arena_wait(u64 wait)
@@ -111,15 +116,6 @@ struct Socket
   BIO   *ssl_buffer;
 };
 Socket nil_socket = {INVALID_SOCKET};
-
-struct Asynchronous_Socket
-{
-  SOCKET socket;
-
-  SSL   *ssl_state;
-  BIO   *ssl_buffer;
-};
-Asynchronous_Socket nil_async_socket = {INVALID_SOCKET};
 
 internal b32 is_nil(Socket *check)
 {
@@ -635,12 +631,12 @@ internal Network_Return_Code network_connect(Network_State *state, Socket *out_s
        cur_addr != NULL;
        cur_addr = cur_addr->ai_next)
   {
-    // TODO(antonio): WSA_FLAG_OVERLAPPED
     found_socket = WSASocket(cur_addr->ai_family,
                              cur_addr->ai_socktype,
                              cur_addr->ai_protocol,
                              NULL,
-                             0, 0); 
+                             0,
+                             WSA_FLAG_OVERLAPPED); 
 
     if (found_socket != INVALID_SOCKET)
     {
@@ -701,19 +697,6 @@ internal Network_Return_Code network_connect(Network_State *state, Socket *out_s
   }
 
   return(result);
-}
-
-internal Network_Return_Code network_async_connect(Network_State       *state,
-                                                   Asynchronous_Socket *out_socket,
-                                                   String_Const_utf8    host_name,
-                                                   u16                  port)
-{
-  unused(state);
-  unused(out_socket);
-  unused(host_name);
-  unused(port);
-
-  return(network_ok);
 }
 
 internal Network_Return_Code network_send_simple(Network_State *state, Socket *in_socket, Buffer *send_buffer)
@@ -1332,6 +1315,13 @@ internal File_Buffer platform_open_and_read_entire_file_from_system_prompt(Arena
   {
     res = platform_open_and_read_entire_file(arena, file_path.str, file_path.size);
   }
+  return(res);
+}
+
+internal Thread_Handle platform_create_thread(Thread_Routine routine, void *routine_arg)
+{
+  Thread_Handle res = {};
+  res._handle = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) routine, routine_arg, 0, NULL);
   return(res);
 }
 

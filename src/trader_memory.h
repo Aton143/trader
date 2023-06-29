@@ -3,6 +3,28 @@
 // TODO(antonio): store_ptr/load_ptr versions
 // i.e. ring_buffer_append(..., &widget) caused issues in the past
 
+struct Arena
+{
+  u8   *start;
+  u64   size;
+  u64   used;
+  u64   alignment;
+};
+
+struct Temp_Arena
+{
+  Arena arena;
+  u64   wait;
+};
+
+struct Thread_Context
+{
+  Temp_Arena local_temp_arena;
+};
+
+global_const u32            thread_count = 2;
+global       Thread_Context thread_contexts[thread_count] = {};
+
 #if SHIP_MODE
 global_const void *global_memory_start_addr = NULL;
 #else
@@ -29,24 +51,10 @@ inline internal i64 move_memory_block(void *dest, void *source, i64 byte_count);
 inline internal i64 compare_memory_block(void *a, void *b, i64 byte_count);
 #define compare_struct_shallow(a, b) compare_memory_block(a, b, sizeof(*a))
 
-struct Arena
-{
-  u8   *start;
-  u64   size;
-  u64   used;
-  u64   alignment;
-};
-
-struct Temp_Arena
-{
-  Arena arena;
-  u64   wait;
-};
-
 inline internal Arena arena_alloc(u64 size, u64 alignment, void *start);
 unimplemented void arena_release(Arena *arena);
 
-inline internal Arena *get_temp_arena(void);
+inline internal Arena *get_temp_arena(Thread_Context *context = thread_contexts);
 inline internal void   set_temp_arena_wait(u64 wait);
 
 inline internal void *arena_push(Arena *arena, u64 size);

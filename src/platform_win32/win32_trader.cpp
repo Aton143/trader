@@ -91,6 +91,108 @@ internal b32 is_vk_down(i32 vk)
   return(vk_down);
 }
 
+internal u32 win32_network_thread(void *arg)
+{
+  Thread_Context *net_thread_context = (Thread_Context *) arg;
+  expect(net_thread_context != NULL);
+
+  Network_State network_state = {};
+  network_startup(&network_state);
+
+  String_Const_utf8 host_name = string_literal_init_type("echo.websocket.events", utf8);
+  // String_Const_utf8 host_name = string_literal_init_type("finnhub.io", utf8);
+
+  String_Const_utf8 query_path = string_literal_init_type("", utf8);
+
+  u16 port = 443;
+
+  Socket tls_socket;
+  Network_Return_Code net_result = network_connect(&network_state, &tls_socket, host_name, port);
+  expect(net_result == network_ok);
+
+  Buffer request_header = stack_alloc_buffer(1024);
+  zero_buffer(&request_header);
+
+  request_header.used =
+    (u64) stbsp_snprintf((char *) request_header.data,
+                         (int)    request_header.size,
+                         "GET / HTTP/1.1\r\n"
+                         //" GET /api/v1/search?q=apple HTTP/1.1\r\n"
+                         // "Host: %s:443\r\n"
+                         "Host: %s\r\n"
+                         // "Accept: text/*\r\n"
+                         "Accept-Encoding: identity\r\n"
+                         "Upgrade: websocket\r\n"
+                         "Connection: Upgrade\r\n"
+                         "Sec-WebSocket-Key: x3JJHMbDL1EzLkh9GBhXDw==\r\n"
+                         "Sec-WebSocket-Version: 13\r\n"
+                         "\r\n",
+                         (char *) host_name.str);
+
+  net_result = network_send_simple(&network_state, &tls_socket, &request_header);
+  expect(net_result == network_ok);
+
+  Buffer receive_buffer = stack_alloc_buffer(2048);
+  zero_buffer(&receive_buffer);
+
+  net_result = network_receive_simple(&network_state, &tls_socket, &receive_buffer);
+  expect(net_result == network_ok);
+
+  i32 disable_nagle = 1;
+  i32 disable_nagle_res = setsockopt(tls_socket.socket,
+                                     IPPROTO_TCP,
+                                     TCP_NODELAY,
+                                     (char *) &disable_nagle,
+                                     sizeof(disable_nagle));
+  expect(disable_nagle_res == 0);
+
+  Buffer to_send = buffer_from_string_literal_type("Vete a la chingada!");
+  net_result = network_websocket_send_simple(&network_state, &tls_socket, &to_send, websocket_opcode_text);
+  expect(net_result == network_ok);
+
+  WebSocket_Frame_Header header;
+  zero_buffer(&receive_buffer);
+  net_result = network_websocket_receive_simple(&network_state, &tls_socket, &receive_buffer, &header);
+
+  /*
+  switch (header.opcode)
+  {
+    case websocket_opcode_continuation:
+    {
+
+    } break;
+    case websocket_opcode_text:
+    {
+
+    } break;
+    case websocket_opcode_binary:
+    {
+
+    } break;
+    case websocket_opcode_close:
+    {
+
+    } break;
+    case websocket_opcode_ping:
+    {
+      net_result = network_websocket_send_simple(&network_state, &tls_socket, &receive_buffer, websocket_opcode_pong);
+      expect(net_result == network_ok);
+    } break;
+    case websocket_opcode_pong:
+    {
+      net_result = network_websocket_receive_simple(&network_state, &tls_socket, &receive_buffer, &header);
+      expect(net_result == network_ok);
+    } break;
+    default:
+    {
+      meta_log_char("WebSocket: unknown opcode: %d\n", header.opcode);
+    } break;
+  }
+  */
+
+  return(0);
+}
+
 internal LRESULT
 win32_window_procedure(HWND window_handle, UINT message,
                        WPARAM wparam, LPARAM lparam)
@@ -418,102 +520,7 @@ WinMain(HINSTANCE instance,
     }
   }
 
-#if 1
-  Network_State network_state = {};
-  network_startup(&network_state);
-
-  String_Const_utf8 host_name = string_literal_init_type("echo.websocket.events", utf8);
-  // String_Const_utf8 host_name = string_literal_init_type("finnhub.io", utf8);
-
-  String_Const_utf8 query_path = string_literal_init_type("", utf8);
-
-  u16 port = 443;
-
-  Socket tls_socket;
-  Network_Return_Code net_result = network_connect(&network_state, &tls_socket, host_name, port);
-  expect(net_result == network_ok);
-
-  Buffer request_header = stack_alloc_buffer(1024);
-  zero_buffer(&request_header);
-
-  request_header.used =
-    (u64) stbsp_snprintf((char *) request_header.data,
-                         (int)    request_header.size,
-                         "GET / HTTP/1.1\r\n"
-                         //" GET /api/v1/search?q=apple HTTP/1.1\r\n"
-                         // "Host: %s:443\r\n"
-                         "Host: %s\r\n"
-                         // "Accept: text/*\r\n"
-                         "Accept-Encoding: identity\r\n"
-                         "Upgrade: websocket\r\n"
-                         "Connection: Upgrade\r\n"
-                         "Sec-WebSocket-Key: x3JJHMbDL1EzLkh9GBhXDw==\r\n"
-                         "Sec-WebSocket-Version: 13\r\n"
-                         "\r\n",
-                         (char *) host_name.str);
-
-  net_result = network_send_simple(&network_state, &tls_socket, &request_header);
-  expect(net_result == network_ok);
-
-  Buffer receive_buffer = stack_alloc_buffer(2048);
-  zero_buffer(&receive_buffer);
-
-  net_result = network_receive_simple(&network_state, &tls_socket, &receive_buffer);
-  expect(net_result == network_ok);
-
-  i32 disable_nagle = 1;
-  i32 disable_nagle_res = setsockopt(tls_socket.socket,
-                                     IPPROTO_TCP,
-                                     TCP_NODELAY,
-                                     (char *) &disable_nagle,
-                                     sizeof(disable_nagle));
-  expect(disable_nagle_res == 0);
-
-  Buffer to_send = buffer_from_string_literal_type("Vete a la chingada!");
-  net_result = network_websocket_send_simple(&network_state, &tls_socket, &to_send, websocket_opcode_text);
-  expect(net_result == network_ok);
-
-  WebSocket_Frame_Header header;
-  zero_buffer(&receive_buffer);
-  net_result = network_websocket_receive_simple(&network_state, &tls_socket, &receive_buffer, &header);
-
-  /*
-  switch (header.opcode)
-  {
-    case websocket_opcode_continuation:
-    {
-
-    } break;
-    case websocket_opcode_text:
-    {
-
-    } break;
-    case websocket_opcode_binary:
-    {
-
-    } break;
-    case websocket_opcode_close:
-    {
-
-    } break;
-    case websocket_opcode_ping:
-    {
-      net_result = network_websocket_send_simple(&network_state, &tls_socket, &receive_buffer, websocket_opcode_pong);
-      expect(net_result == network_ok);
-    } break;
-    case websocket_opcode_pong:
-    {
-      net_result = network_websocket_receive_simple(&network_state, &tls_socket, &receive_buffer, &header);
-      expect(net_result == network_ok);
-    } break;
-    default:
-    {
-      meta_log_char("WebSocket: unknown opcode: %d\n", header.opcode);
-    } break;
-  }
-  */
-
-#endif
+  Thread_Handle network_thread = platform_create_thread(&win32_network_thread, &thread_contexts[1]);
 
   if (ShowWindow(win32_global_state.window_handle, SW_NORMAL) && UpdateWindow(win32_global_state.window_handle))
   {
@@ -1221,11 +1228,11 @@ WinMain(HINSTANCE instance,
       }
       else
       {
-        ui_canvas(string_literal_init_type("Easel", utf8), V2(200.0f, 200.0f));
+        ui_canvas(string_literal_init_type("Canvas", utf8), V2(200.0f, 200.0f));
 
         data_index = (data_index + 1) % array_count(data_for_lines);
         acc_time += 1.0f/60.0f;
-        data_for_lines[data_index] = V2(acc_time, sinf(acc_time * tau_f32));
+        data_for_lines[data_index] = V2(acc_time, 0.5f * (sinf(acc_time * tau_f32) + 1.0f));
 
         u64 lines_to_render = (u64) ceilf(slider_float * data_index);
         render_data_to_lines(data_for_lines, lines_to_render);

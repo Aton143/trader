@@ -890,8 +890,14 @@ internal void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *s
       ID3DBlob *vertex_shader_blob = NULL;
       ID3DBlob *shader_compile_errors_blob = NULL;
 
+      UINT compile_flags = 0;
+#if !SHIP_MODE
+      compile_flags |= D3DCOMPILE_DEBUG;
+      compile_flags |= D3DCOMPILE_OPTIMIZATION_LEVEL0;
+#endif
+
       HRESULT result = D3DCompile(temp_shader_source.data, temp_shader_source.size, NULL, NULL, NULL,
-                                  "VS_Main", "vs_5_0", 0, 0, &vertex_shader_blob, &shader_compile_errors_blob);
+                                  "VS_Main", "vs_5_0", compile_flags, 0, &vertex_shader_blob, &shader_compile_errors_blob);
 
       if (FAILED(result))
       {
@@ -937,8 +943,14 @@ internal void render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shad
       ID3DBlob *pixel_shader_blob          = NULL;
       ID3DBlob *shader_compile_errors_blob = NULL;
 
+      UINT compile_flags = 0;
+#if !SHIP_MODE
+      compile_flags |= D3DCOMPILE_DEBUG;
+      compile_flags |= D3DCOMPILE_OPTIMIZATION_LEVEL0;
+#endif
+
       HRESULT return_code = D3DCompile(temp_shader_source.data, temp_shader_source.size, NULL, NULL, NULL,
-                                       "PS_Main", "ps_5_0", 0, 0, &pixel_shader_blob, &shader_compile_errors_blob);
+                                       "PS_Main", "ps_5_0", compile_flags, 0, &pixel_shader_blob, &shader_compile_errors_blob);
 
       if (FAILED(return_code))
       {
@@ -1083,6 +1095,8 @@ internal void render_draw_text(f32 *baseline_x, f32 *baseline_y, RGBA_f32 color,
       cur_element->color[1] = color;
       cur_element->color[2] = color;
       cur_element->color[3] = color;
+
+      cur_element->edge_softness = 0.0f;
 
       f32 kern_advance = 0.0f;
       if (text_index < (sprinted_text.size - 1))

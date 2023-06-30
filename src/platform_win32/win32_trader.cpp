@@ -996,9 +996,12 @@ WinMain(HINSTANCE instance,
     */
 
     local_persist V2_f32 data_for_lines[4096] = {};
+    /*
     u32 data_index = 0;
     f32 acc_time   = 0.0f;
+    f32 up_down    = 0.0f;
 
+    */
     b32 triangle = false;
 
     while (global_running)
@@ -1101,6 +1104,8 @@ WinMain(HINSTANCE instance,
 
       win32_global_state.frame_count++;
 
+      ui_do_button(string_literal_init_type("click here to save frame buffer", utf8));
+      /*
       ui_do_formatted_string("Last frame time: %.6fs", last_frame_time);
       ui_do_formatted_string("Last frame time in cycles: %lld", last_frame_time_in_cycles);
       ui_do_formatted_string("Frame count: %lld", win32_global_state.frame_count);
@@ -1253,25 +1258,27 @@ WinMain(HINSTANCE instance,
       {
         ui_canvas(string_literal_init_type("Canvas", utf8), V2(200.0f, 200.0f));
 
-        data_for_lines[data_index] = V2(acc_time, 0.5f * (sinf(acc_time * tau_f32) + 1.0f));
+        data_for_lines[data_index] = V2(acc_time, 0.5f * (sinf(acc_time * tau_f32) + 1.0f) + up_down);
 
         acc_time += 1.0f/60.0f;
         data_index = (data_index + 1) % array_count(data_for_lines);
 
         if (acc_time > 1.0f)
         {
-          acc_time = ((f32) (rng_get_random32() % 1024)) / (1024.0f * 32.0f);
+          acc_time = 0.f;
+          up_down = ((f32) (rng_get_random32() % 1024)) / (1024.0f);
         }
 
         u64 lines_to_render = (u64) ceilf(slider_float * data_index);
         render_data_to_lines(data_for_lines, lines_to_render);
       }
+      */
 
       ui_prepare_render();
 
       // NOTE(antonio): instances
       u32 draw_call_count;
-      FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+      FLOAT background_color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
       Constant_Buffer constant_buffer_items = {};
       {
         device_context->ClearRenderTargetView(frame_buffer_view, background_color);

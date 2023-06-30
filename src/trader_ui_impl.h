@@ -1,10 +1,12 @@
 #if !defined(TRADER_UI_IMPL_H)
 
-internal void ui_make_widget(Widget_Flag        widget_flags,
+internal void ui_make_widget(Widget_Flag widget_flags,
                              Widget_Size_Flag   size_flags,
                              String_Const_utf8  string,
                              V2_f32             sizing,
                              V2_f32             position,
+                             f32                corner_radius,
+                             f32                edge_softness,
                              f32                border_thickness,
                              void              *data,
                              u64                data_size)
@@ -110,6 +112,8 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
     widget->position_relative_to_parent = position;
     widget->extra_sizing                = sizing;
 
+    widget->corner_radius    = corner_radius;
+    widget->edge_softness    = edge_softness;
     widget->border_thickness = border_thickness;
 
     copy_memory_block(widget->end_background_color, ui->background_color, sizeof(ui->background_color));
@@ -403,7 +407,10 @@ internal b32 ui_do_button(String_Const_utf8 string)
 
   ui_make_widget(widget_flag_draw_background | widget_flag_clickable,
                  size_flag_text_content,
-                 button_parent_to_hash);
+                 button_parent_to_hash,
+                 V2(1.0f, 1.0f),
+                 V2(0.0f, 0.0f),
+                 5.0f, 1.0f, 1.0f);
 
   Widget *button_text_parent = ui->current_parent->last_child;
   ui_push_parent(button_text_parent);
@@ -432,10 +439,16 @@ internal b32 ui_do_button(String_Const_utf8 string)
     }
   }
 
+  button_text_parent->end_background_color[0] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+  button_text_parent->end_background_color[1] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+  button_text_parent->end_background_color[2] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+  button_text_parent->end_background_color[3] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+  /*
   button_text_parent->end_background_color[0] = rgba(0.0f, 0.0f, 0.0f, 1.0f);
   button_text_parent->end_background_color[1] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
   button_text_parent->end_background_color[2] = rgba(0.0f, 0.0f, 0.0f, 1.0f);
   button_text_parent->end_background_color[3] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+  */
 
   return(result);
 }
@@ -922,6 +935,7 @@ internal void ui_prepare_render(void)
         };
 
         draw_call->border_thickness = cur_widget->border_thickness;
+        draw_call->edge_softness    = cur_widget->border_thickness;
       }
 
       if (cur_widget->widget_flags & widget_flag_draw_text)

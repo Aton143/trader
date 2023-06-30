@@ -247,6 +247,9 @@ struct Widget
   RGBA_f32          end_background_color[4];
 
   f32               font_height;
+
+  f32               corner_radius;
+  f32               edge_softness;
   f32               border_thickness;
 
   // NOTE(antonio): computed every frame
@@ -260,6 +263,17 @@ struct Widget
   f32               hot_time;
   f32               active_time;
   f32               time_alive;
+};
+
+struct Widget_Parameters
+{
+  V2_f32             sizing           = {1.0f, 1.0f};
+  V2_f32             pos              = {0.0f, 0.0f};
+  f32                corner_radius    = 0.0f;
+  f32                edge_softness    = 1.0f;
+  f32                border_thickness = 0.0f;
+  void              *data             = NULL;
+  u64                data_size        = 0;
 };
 
 union UI_Event_Value
@@ -389,11 +403,18 @@ internal void ui_canvas(String_Const_utf8 string, V2_f32 size = {400.0f, 400.0f}
 internal UI_Key ui_make_key(String_Const_utf8 string);
 internal b32 ui_is_key_equal(UI_Key a, UI_Key b);
 
-internal void ui_make_widget(Widget_Flag widget_flags,
+internal void ui_make_widget(Widget_Flag        widget_flags,
+                             Widget_Size_Flag   size_flags,
+                             String_Const_utf8  string,
+                             Widget_Parameters *params);
+
+internal void ui_make_widget(Widget_Flag        widget_flags,
                              Widget_Size_Flag   size_flags,
                              String_Const_utf8  string,
                              V2_f32             sizing           = {1.0f, 1.0f},
                              V2_f32             pos              = {0.0f, 0.0f},
+                             f32                corner_radius    = 0.0f,
+                             f32                edge_softness    = 0.0f,
                              f32                border_thickness = 0.0f,
                              void              *data             = NULL,
                              u64                data_size        = 0);

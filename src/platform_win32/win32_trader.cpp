@@ -428,11 +428,13 @@ WinMain(HINSTANCE instance,
 
   SetCurrentDirectoryW((LPCWSTR) exe_file_path.str);
 
-  Arena global_arena         = arena_alloc(global_memory_size, 4, (void *) global_memory_start_addr);
-  Arena render_data          = arena_alloc(render_data_size, 1, NULL);
-  Arena triangle_render_data = arena_alloc(triangle_render_data_size, 1, NULL);
+  win32_global_state.global_arena = arena_alloc(global_memory_size, 4, (void *) global_memory_start_addr);
+  Arena render_data               = arena_alloc(render_data_size, 1, NULL);
+  Arena triangle_render_data      = arena_alloc(triangle_render_data_size, 1, NULL);
 
-  Asset_Node *asset_pool_start = (Asset_Node *) arena_push(&global_arena, asset_pool_size);
+  Arena *global_arena = platform_get_global_arena();
+
+  Asset_Node *asset_pool_start = (Asset_Node *) arena_push(global_arena, asset_pool_size);
   u64 asset_count = asset_pool_size / sizeof(*asset_pool_start);
   for (u64 asset_index = 0;
        asset_index < asset_count - 1;
@@ -441,6 +443,8 @@ WinMain(HINSTANCE instance,
     asset_pool_start[asset_index].next = &asset_pool_start[asset_index + 1];
   }
   global_asset_pool.free_list_head = asset_pool_start;
+
+  ui_initialize(&win32_global_state.ui_context);
 
   HANDLE iocp_handle = INVALID_HANDLE_VALUE;
   {
@@ -461,15 +465,15 @@ WinMain(HINSTANCE instance,
 
   String_Const_utf8 default_font_path = string_literal_init_type("C:/windows/fonts/arial.ttf", utf8);
 
-  File_Buffer arial_font = platform_open_and_read_entire_file(&global_arena, default_font_path.str, default_font_path.size);
+  File_Buffer arial_font = platform_open_and_read_entire_file(global_arena, default_font_path.str, default_font_path.size);
 
   // NOTE(antonio): default font on Windows is Arial
-  default_font = platform_open_and_read_entire_file(&global_arena, default_font_path.str, default_font_path.size);
+  default_font = platform_open_and_read_entire_file(global_arena, default_font_path.str, default_font_path.size);
 
   f32 default_font_heights[] = {24.0f};//, 30.0f};
 
-  win32_global_state.render_context.atlas  = push_struct_zero(&global_arena, Texture_Atlas);
-  render_atlas_initialize(&global_arena,
+  win32_global_state.render_context.atlas  = push_struct_zero(global_arena, Texture_Atlas);
+  render_atlas_initialize(global_arena,
                           win32_global_state.render_context.atlas,
                           &arial_font,
                           default_font_heights,
@@ -477,24 +481,6 @@ WinMain(HINSTANCE instance,
                           512, 512);
 
   Texture_Atlas *atlas = win32_global_state.render_context.atlas;
-
-  // NOTE(antonio): ui init
-  win32_global_state.ui_context.widget_memory =
-    push_array_zero(&global_arena, Widget, default_widget_count);
-  win32_global_state.ui_context.widget_memory_size = sizeof(Widget) * default_widget_count;
-
-  Arena ui_string_pool = arena_alloc(default_string_pool_size, 1, NULL);
-  win32_global_state.ui_context.string_pool = &ui_string_pool;
-
-  // TODO(antonio): do I need to do back links?
-  Widget *free_widget_list = win32_global_state.ui_context.widget_memory;
-  for (u64 widget_index = 0;
-       widget_index < default_widget_count - 1;
-       ++widget_index)
-  {
-    free_widget_list[widget_index].next_sibling = &free_widget_list[widget_index + 1];
-    free_widget_list[widget_index].string       = string_literal_init_type("no widgets here, buddy :)", utf8);
-  }
 
   {
     WNDCLASSEXW window_class = {};
@@ -1218,7 +1204,7 @@ WinMain(HINSTANCE instance,
 
       if (ui_do_button(string_literal_init_type("Open a file", utf8)))
       {
-        file = platform_open_and_read_entire_file_from_system_prompt(&global_arena);
+        file = platform_open_and_read_entire_file_from_system_prompt(global_arena);
         file_str = {file.data, file.size};
       }
       ui_pop_background_color();

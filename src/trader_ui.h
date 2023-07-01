@@ -301,8 +301,11 @@ struct Persistent_Widget_Data
   RGBA_f32 background_color[4];
 };
 
+struct UI_Panel;
 struct UI_Context
 {
+  UI_Panel               *panels_start;
+
   // NOTE(antonio): only one can be active at any given time
   UI_Key                  hot_key;    // NOTE(antonio): about to interact
   UI_Key                  active_key; // NOTE(antonio): interacting
@@ -346,6 +349,30 @@ struct UI_Context
   b8                      key_events[key_event_count];
 };
 
+enum
+{
+  ui_axis_none,
+  ui_axis_horizontal,
+  ui_axis_vertical,
+};
+typedef u32 Axis_Split;
+
+struct UI_Panel
+{
+  UI_Panel   *first_child;
+  UI_Panel   *last_child;
+
+  UI_Panel   *next_sibling;
+  UI_Panel   *previous_sibling;
+
+  UI_Panel   *parent;
+
+  Axis_Split  split;
+  f32         size_relative_to_parent;
+
+  Widget     *sentinel;
+};
+
 #include "trader_platform.h"
 #include "trader_render.h"
 
@@ -373,6 +400,7 @@ internal inline void ui_add_interaction(Widget *cur_widget, i32 frames_left, u32
 
 internal inline void ui_add_key_event(Key_Event event, b32 is_down);
 
+internal void ui_initialize(UI_Context *ui);
 internal void ui_initialize_frame(void);
 internal void ui_prepare_render(void);
 

@@ -1,5 +1,33 @@
 #if !defined(TRADER_UI_IMPL_H)
 
+internal UI_Context *ui_get_context()
+{
+  return(&platform_get_global_state()->ui_context);
+}
+
+internal void ui_initialize(UI_Context *ui)
+{
+  Arena *global_arena = platform_get_global_arena();
+
+  // NOTE(antonio): ui init
+  ui->widget_memory =
+    push_array_zero(global_arena, Widget, default_widget_count);
+  ui->widget_memory_size = sizeof(Widget) * default_widget_count;
+
+  ui->string_pool  = push_struct(global_arena, Arena);
+  *ui->string_pool = arena_alloc(default_string_pool_size, 1, NULL);
+
+  // TODO(antonio): do I need to do back links?
+  Widget *free_widget_list = ui->widget_memory;
+  for (u64 widget_index = 0;
+       widget_index < default_widget_count - 1;
+       ++widget_index)
+  {
+    free_widget_list[widget_index].next_sibling = &free_widget_list[widget_index + 1];
+    free_widget_list[widget_index].string       = string_literal_init_type("no widgets here, buddy :)", utf8);
+  }
+}
+
 internal void ui_make_widget(Widget_Flag widget_flags,
                              Widget_Size_Flag   size_flags,
                              String_Const_utf8  string,

@@ -49,6 +49,7 @@ enum
 struct Global_Platform_State
 {
   Temp_Arena     temp_arena;
+  Arena          global_arena;
 
   Render_Context render_context;
   UI_Context     ui_context;
@@ -75,16 +76,15 @@ struct Global_Platform_State
 
 global Global_Platform_State win32_global_state = {};
 
-internal UI_Context *ui_get_context(void)
-{
-  UI_Context *context = &win32_global_state.ui_context;
-  return(context);
-}
-
 internal Render_Context *render_get_context(void)
 {
   Render_Context *context = &win32_global_state.render_context;
   return(context);
+}
+
+internal Arena *platform_get_global_arena()
+{
+  return(&platform_get_global_state()->global_arena);
 }
 
 inline internal Arena *get_temp_arena(Thread_Context *context)

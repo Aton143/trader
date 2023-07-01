@@ -6,6 +6,7 @@ typedef u32 (THREAD_CALL_CONVENTION *Thread_Routine)(void *arg);
 struct Thread_Handle;
 
 internal Global_Platform_State *platform_get_global_state(void);
+internal Arena *platform_get_global_arena(void);
 
 internal void platform_debug_print(char *text);
 internal void platform_debug_printf(char *format, ...);
@@ -54,5 +55,6 @@ internal void platform_debug_printf(char *format, ...)
 
   va_end(args);
 }
+
 #define TRADER_PLATFORM_H
 #endif

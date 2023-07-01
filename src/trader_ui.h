@@ -409,7 +409,7 @@ internal inline void ui_add_key_event(Key_Event event, b32 is_down);
 internal void ui_initialize(UI_Context *ui);
 internal void ui_initialize_frame(void);
 
-internal void ui_prepare_render(Widget *widgets);
+internal void ui_prepare_render(Widget *widgets, Rect_f32 rect);
 
 internal void ui_update_persistent_data(Persistent_Widget_Data *data);
 internal Persistent_Widget_Data *ui_search_persistent_data(Widget *widget);
@@ -455,6 +455,6 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
                              u64                data_size        = 0);
 // NOTE(antonio): panels
 internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent);
-internal void ui_prepare_render_from_panels(Panel *panel);
+internal void   ui_prepare_render_from_panels(Panel *panel);
 #define TRADER_UI_H
 #endif

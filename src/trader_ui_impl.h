@@ -635,7 +635,23 @@ internal b32 ui_is_key_equal(UI_Key a, UI_Key b)
   return(result);
 }
 
-internal void ui_prepare_render(Widget *widgets)
+internal void ui_prepare_render_from_panels(Panel *panel)
+{
+  if (panel == NULL) {
+    return;
+  }
+
+  Panel *first_child = NULL;
+  for (Panel *cur_child  = panel->first_child;
+       cur_child        != first_child;
+       cur_child         = cur_child->next_sibling)
+  {
+    // ui_prepare_render(cur_child->sentinel);
+    first_child = panel->first_child;
+  }
+}
+
+internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
 {
   Global_Platform_State *global_state = platform_get_global_state();
   Arena                 *temp_arena   = get_temp_arena();
@@ -742,7 +758,8 @@ internal void ui_prepare_render(Widget *widgets)
       first_child = ui->allocated_widgets->first_child;
     }
 
-    V2_f32 cur_top_left = rect_get_top_left(&ui_get_sentinel()->rectangle);
+    V2_f32 cur_top_left = rect_get_top_left(&rect);
+    // rect_get_top_left(&ui_get_sentinel()->rectangle);
 
     // NOTE(antonio): resolve "implicit" sizes with current information, level-order 
     while (widget_queue.write != widget_queue.read)
@@ -862,7 +879,7 @@ internal void ui_prepare_render(Widget *widgets)
       cur_widget->rectangle.x1 = cur_widget->rectangle.x0 + cur_widget->computed_size_in_pixels.x;
       cur_widget->rectangle.y1 = cur_widget->rectangle.y0 + cur_widget->computed_size_in_pixels.y;
 
-      cur_top_left.x = 0.0f;
+      cur_top_left.x = rect.x0;
       cur_top_left.y = pre_sizing_top_left.y + cur_widget->computed_size_in_pixels.y;
     }
   }
@@ -871,7 +888,7 @@ internal void ui_prepare_render(Widget *widgets)
   {
     Ring_Buffer widget_queue = ring_buffer_make(temp_arena, structs_in_size(ring_buffer_size, Widget *));
     Widget *first_child = NULL;
-    for (Widget *cur_child = widgets->first_child;// ui->allocated_widgets->first_child;
+    for (Widget *cur_child = widgets->first_child;
          cur_child != first_child;
          cur_child = cur_child->next_sibling)
     {

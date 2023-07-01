@@ -716,6 +716,13 @@ internal RGBA_f32 rgba(f32 r, f32 g, f32 b, f32 a)
   return(color);
 }
 
+global_const RGBA_f32 rgba_white = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+global_const RGBA_f32 rgba_black = rgba(0.0f, 0.0f, 0.0f, 1.0f);
+
+global_const RGBA_f32 rgba_red   = rgba(1.0f, 0.0f, 0.0f, 1.0f);
+global_const RGBA_f32 rgba_green = rgba(0.0f, 1.0f, 0.0f, 1.0f);
+global_const RGBA_f32 rgba_blue  = rgba(0.0f, 0.0f, 1.0f, 1.0f);
+
 global_const V2_f32 down_v2  = V2( 0.0f,  1.0f);
 global_const V2_f32 up_v2    = V2( 0.0f, -1.0f);
 global_const V2_f32 right_v2 = V2( 1.0f,  0.0f);

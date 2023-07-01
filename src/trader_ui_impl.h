@@ -410,7 +410,7 @@ internal b32 ui_do_button(String_Const_utf8 string)
                  button_parent_to_hash,
                  V2(1.0f, 1.0f),
                  V2(0.0f, 0.0f),
-                 1.0f, 0.0f, 1.0f);
+                 4.0f, 0.6f, 1.0f);
 
   Widget *button_text_parent = ui->current_parent->last_child;
   ui_push_parent(button_text_parent);
@@ -439,12 +439,6 @@ internal b32 ui_do_button(String_Const_utf8 string)
     }
   }
 
-  /*
-  button_text_parent->end_background_color[0] = rgba(1.0f, 0.0f, 0.0f, 1.0f);
-  button_text_parent->end_background_color[1] = rgba(1.0f, 0.0f, 0.0f, 1.0f);
-  button_text_parent->end_background_color[2] = rgba(1.0f, 0.0f, 0.0f, 1.0f);
-  button_text_parent->end_background_color[3] = rgba(1.0f, 0.0f, 0.0f, 1.0f);
-  */
   button_text_parent->end_background_color[0] = rgba(0.0f, 0.0f, 0.0f, 1.0f);
   button_text_parent->end_background_color[1] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
   button_text_parent->end_background_color[2] = rgba(0.0f, 0.0f, 0.0f, 1.0f);

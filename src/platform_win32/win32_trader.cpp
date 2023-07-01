@@ -996,12 +996,10 @@ WinMain(HINSTANCE instance,
     */
 
     local_persist V2_f32 data_for_lines[4096] = {};
-    /*
+
     u32 data_index = 0;
     f32 acc_time   = 0.0f;
     f32 up_down    = 0.0f;
-
-    */
     b32 triangle = false;
 
     while (global_running)
@@ -1104,8 +1102,6 @@ WinMain(HINSTANCE instance,
 
       win32_global_state.frame_count++;
 
-      ui_do_button(string_literal_init_type("click here to save frame buffer", utf8));
-      /*
       ui_do_formatted_string("Last frame time: %.6fs", last_frame_time);
       ui_do_formatted_string("Last frame time in cycles: %lld", last_frame_time_in_cycles);
       ui_do_formatted_string("Frame count: %lld", win32_global_state.frame_count);
@@ -1272,7 +1268,6 @@ WinMain(HINSTANCE instance,
         u64 lines_to_render = (u64) ceilf(slider_float * data_index);
         render_data_to_lines(data_for_lines, lines_to_render);
       }
-      */
 
       ui_prepare_render();
 
@@ -1469,7 +1464,7 @@ WinMain(HINSTANCE instance,
         u32 *data = push_array(temp_arena, u32, width * height);
         device->ReadFromSubresource(data, width * 4, width * height * 4, copy_frame_buffer_texture, 0, NULL);
 
-        int write_result = stbi_write_png("./debug/framebuffer.png", width, height, 4, data, width * 4);
+        i32 write_result = stbi_write_png("./debug/framebuffer.png", width, height, 4, data, width * 4);
         expect(write_result);
 
         device_context->Unmap(copy_frame_buffer_texture, 0);

@@ -82,8 +82,8 @@ PS_Input VS_Main(VS_Input input)
 
   PS_Input output;
 
-  float2 dst_half_size = (input.bottom_right - input.top_left)     / 2;
-  float2 dst_center    = (input.top_left     + input.bottom_right) / 2;
+  float2 dst_half_size = (input.bottom_right - input.top_left)     / 2.0f;
+  float2 dst_center    = (input.top_left     + input.bottom_right) / 2.0f;
   float2 dst_position  = (vertices[input.vertex_id] * dst_half_size) + dst_center;
 
   dst_position.xy += input.position.xy;
@@ -106,7 +106,7 @@ PS_Input VS_Main(VS_Input input)
   output.color = input.color[input.vertex_id];
 
   output.dst_pos       = dst_position;
-  output.dst_center    = dst_center;
+  output.dst_center    = dst_center + input.position.xy;
   output.dst_half_size = dst_half_size;
 
   output.border_thickness = input.border_thickness;
@@ -146,8 +146,8 @@ float4 PS_Main(PS_Input input): SV_Target
                                       interior_corner_radius);
 
     // map distance => factor
-    // float inside_f = smoothstep(0, 1.0f, inside_d);
-    if (inside_d > 0.0f) border_factor = 0.0f;
+    float inside_f = 1.0f - smoothstep(0, 2.0f * input.edge_softness, inside_d);
+    if (inside_d > 0.0f) border_factor = inside_f;
   }
 
   float3 combined  = float3(input.color.rgb) * alpha_sample * border_factor;

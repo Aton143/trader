@@ -305,6 +305,9 @@ struct UI_Panel;
 struct UI_Context
 {
   UI_Panel               *panels_start;
+  UI_Panel               *panel_free_list_head;
+  u32                     panel_memory_size;
+  u32                     panel_count;
 
   // NOTE(antonio): only one can be active at any given time
   UI_Key                  hot_key;    // NOTE(antonio): about to interact
@@ -376,13 +379,14 @@ struct UI_Panel
 #include "trader_platform.h"
 #include "trader_render.h"
 
-global_const UI_Key   nil_key                     = 0;
-global_const f32      default_text_height         = 24.0f;
-global_const V2_i16   default_text_gutter_dim     = {2, 4};
-global_const RGBA_f32 default_text_color          = rgba(1.0f, 1.0f, 1.0f, 1.0);
-global_const u64      default_widget_count        = 4096;
-global_const u64      default_string_pool_size    = kb(16);
-global_const V2_f32   default_widget_sizing       = V2(1.0f, 1.0f);
+global_const UI_Key   nil_key                  = 0;
+global_const f32      default_text_height      = 24.0f;
+global_const V2_i16   default_text_gutter_dim  = {2, 4};
+global_const RGBA_f32 default_text_color       = rgba(1.0f, 1.0f, 1.0f, 1.0);
+global_const u32      default_widget_count     = 4096;
+global_const u64      default_string_pool_size = kb(16);
+global_const V2_f32   default_widget_sizing    = V2(1.0f, 1.0f);
+global_const u32      default_panel_count      = 64;
 
 global Persistent_Widget_Data default_persistent_data = {};
 global_const RGBA_f32 default_background_color[4] =

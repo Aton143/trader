@@ -1,34 +1,5 @@
 #if !defined(TRADER_UI_IMPL_H)
-
-internal UI_Context *ui_get_context()
-{
-  return(&platform_get_global_state()->ui_context);
-}
-
-internal void ui_initialize(UI_Context *ui)
-{
-  Arena *global_arena = platform_get_global_arena();
-
-  // NOTE(antonio): ui init
-  ui->widget_memory =
-    push_array_zero(global_arena, Widget, default_widget_count);
-  ui->widget_memory_size = sizeof(Widget) * default_widget_count;
-
-  ui->string_pool  = push_struct(global_arena, Arena);
-  *ui->string_pool = arena_alloc(default_string_pool_size, 1, NULL);
-
-  // TODO(antonio): do I need to do back links?
-  Widget *free_widget_list = ui->widget_memory;
-  for (u64 widget_index = 0;
-       widget_index < default_widget_count - 1;
-       ++widget_index)
-  {
-    free_widget_list[widget_index].next_sibling = &free_widget_list[widget_index + 1];
-    free_widget_list[widget_index].string       = string_literal_init_type("no widgets here, buddy :)", utf8);
-  }
-}
-
-internal void ui_make_widget(Widget_Flag widget_flags,
+internal void ui_make_widget(Widget_Flag        widget_flags,
                              Widget_Size_Flag   size_flags,
                              String_Const_utf8  string,
                              V2_f32             sizing,
@@ -148,6 +119,10 @@ internal void ui_make_widget(Widget_Flag widget_flags,
   }
 }
 
+internal UI_Context *ui_get_context()
+{
+  return(&platform_get_global_state()->ui_context);
+}
 
 internal inline void ui_add_interaction(Widget *cur_widget, i32 frames_left, u32 event, UI_Event_Value *event_value)
 {
@@ -213,45 +188,94 @@ internal inline void ui_add_key_event(Key_Event event, b32 is_down)
   ui->key_events[event] = (b8) is_down;
 }
 
+internal void ui_initialize(UI_Context *ui)
+{
+  Arena *global_arena = platform_get_global_arena();
+
+  // NOTE(antonio): ui init
+  ui->widget_memory      = push_array_zero(global_arena, Widget, default_widget_count);
+  ui->widget_memory_size = sizeof(Widget) * default_widget_count;
+
+  ui->string_pool  = push_struct(global_arena, Arena);
+  *ui->string_pool = arena_alloc(default_string_pool_size, 1, NULL);
+
+  // TODO(antonio): do I need to do back links?
+  Widget *free_widget_list = ui->widget_memory;
+  for (u64 widget_index = 0;
+       widget_index < default_widget_count - 1;
+       ++widget_index)
+  {
+    free_widget_list[widget_index].next_sibling = &free_widget_list[widget_index + 1];
+    free_widget_list[widget_index].string       = string_literal_init_type("no widgets here, buddy :)", utf8);
+  }
+
+  UI_Panel *panel_memory = push_array_zero(global_arena, UI_Panel, default_panel_count);
+  for (u32 panel_index = 0;
+       panel_index < default_panel_count - 1;
+       ++panel_index)
+  {
+    panel_memory[panel_index].next_sibling = &panel_memory[panel_index + 1];
+  }
+
+  ui->panels_start      = panel_memory;
+  ui->panel_memory_size = default_panel_count * sizeof(*ui->panels_start);
+  ui->panel_count       = 0;
+};
 
 internal void ui_initialize_frame(void)
 {
   UI_Context *ui = ui_get_context();
 
   arena_reset_zero(ui->string_pool);
-  zero_memory_block(ui->widget_memory, sizeof(Widget) * ui->current_widget_count);
 
-  Widget *current_free;
-  for (u32 widget_index = 0;
-       widget_index < ui->current_widget_count;
-       ++widget_index)
   {
-    current_free               = &ui->widget_memory[widget_index];
-    current_free->next_sibling = &ui->widget_memory[widget_index + 1];
-    current_free->string       = string_literal_init_type("you reset this one", utf8);
+    zero_memory_block(ui->widget_memory, sizeof(Widget) * ui->current_widget_count);
+
+    Widget *current_free;
+    for (u32 widget_index = 0;
+         widget_index < ui->current_widget_count;
+         ++widget_index)
+    {
+      current_free               = &ui->widget_memory[widget_index];
+      current_free->next_sibling = &ui->widget_memory[widget_index + 1];
+      current_free->string       = string_literal_init_type("you reset this one", utf8);
+    }
+
+    Widget *sentinel_widget    = ui->widget_memory;
+
+    zero_struct(sentinel_widget);
+
+    sentinel_widget->rectangle = render_get_client_rect();
+    sentinel_widget->computed_size_in_pixels = rect_get_dimensions(&sentinel_widget->rectangle);
+
+    sentinel_widget->string    = string_literal_init_type("sentinel", utf8);
+
+    ui->max_widget_count       = (u32) (ui->widget_memory_size / sizeof(Widget));
+    ui->current_widget_count   = 1;
+
+    ui->widget_free_list_head  = ui->widget_memory + 1;
+    ui->allocated_widgets      = sentinel_widget;
+    ui->current_parent         = sentinel_widget;
   }
 
-  Widget *sentinel_widget    = ui->widget_memory;
+  {
+    zero_memory_block(ui->panels_start, sizeof(UI_Panel) * ui->panel_count);
+    for (u32 panel_index = 0;
+         panel_index < ui->panel_count;
+         ++panel_index)
+    {
+      ui->panels_start[panel_index].next_sibling = &ui->panels_start[panel_index + 1];
+    }
 
-  zero_struct(sentinel_widget);
-
-  sentinel_widget->rectangle = render_get_client_rect();
-  sentinel_widget->computed_size_in_pixels = rect_get_dimensions(&sentinel_widget->rectangle);
-
-  sentinel_widget->string    = string_literal_init_type("sentinel", utf8);
+    ui->panel_count          = 0;
+    ui->panel_free_list_head = ui->panels_start;
+  }
 
   ui->text_height            = default_text_height;
   ui->text_gutter_dim        = default_text_gutter_dim;
   ui->text_color             = default_text_color;
 
   copy_memory_block(ui->background_color, (void *) default_background_color, sizeof(default_background_color));
-
-  ui->max_widget_count       = (u32) (ui->widget_memory_size / sizeof(Widget));
-  ui->current_widget_count   = 1;
-
-  ui->widget_free_list_head  = ui->widget_memory + 1;
-  ui->allocated_widgets      = sentinel_widget;
-  ui->current_parent         = sentinel_widget;
 
   ui->canvas_viewport        = {};
 

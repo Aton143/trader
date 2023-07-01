@@ -410,7 +410,7 @@ internal b32 ui_do_button(String_Const_utf8 string)
                  button_parent_to_hash,
                  V2(1.0f, 1.0f),
                  V2(0.0f, 0.0f),
-                 5.0f, 1.0f, 1.0f);
+                 1.0f, 0.0f, 1.0f);
 
   Widget *button_text_parent = ui->current_parent->last_child;
   ui_push_parent(button_text_parent);
@@ -439,16 +439,16 @@ internal b32 ui_do_button(String_Const_utf8 string)
     }
   }
 
-  button_text_parent->end_background_color[0] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
-  button_text_parent->end_background_color[1] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
-  button_text_parent->end_background_color[2] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
-  button_text_parent->end_background_color[3] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
   /*
+  button_text_parent->end_background_color[0] = rgba(1.0f, 0.0f, 0.0f, 1.0f);
+  button_text_parent->end_background_color[1] = rgba(1.0f, 0.0f, 0.0f, 1.0f);
+  button_text_parent->end_background_color[2] = rgba(1.0f, 0.0f, 0.0f, 1.0f);
+  button_text_parent->end_background_color[3] = rgba(1.0f, 0.0f, 0.0f, 1.0f);
+  */
   button_text_parent->end_background_color[0] = rgba(0.0f, 0.0f, 0.0f, 1.0f);
   button_text_parent->end_background_color[1] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
   button_text_parent->end_background_color[2] = rgba(0.0f, 0.0f, 0.0f, 1.0f);
   button_text_parent->end_background_color[3] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
-  */
 
   return(result);
 }
@@ -912,10 +912,11 @@ internal void ui_prepare_render(void)
 
         copy_memory_block(draw_call->color, found_data->background_color, sizeof(found_data->background_color));
 
+        // this is weird...
         draw_call->size = 
         {
           0.0f, 0.0f,
-          cur_widget->computed_size_in_pixels.x,
+          cur_widget->computed_size_in_pixels.x - 0.5f,
           cur_widget->computed_size_in_pixels.y,
         };
 
@@ -934,8 +935,9 @@ internal void ui_prepare_render(void)
           0.5f,
         };
 
+        draw_call->corner_radius    = cur_widget->corner_radius;
         draw_call->border_thickness = cur_widget->border_thickness;
-        draw_call->edge_softness    = cur_widget->border_thickness;
+        draw_call->edge_softness    = cur_widget->edge_softness;
       }
 
       if (cur_widget->widget_flags & widget_flag_draw_text)

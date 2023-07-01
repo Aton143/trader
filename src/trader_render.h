@@ -25,7 +25,6 @@ struct Constant_Buffer
     };
   };
 };
-#pragma pack(pop)
 
 struct Instance_Buffer_Element
 {
@@ -37,6 +36,7 @@ struct Instance_Buffer_Element
   f32       border_thickness;
   Rect_f32  uv;
 };
+#pragma pack(pop)
 
 struct Vertex_Buffer_Element
 {

@@ -56,13 +56,13 @@ SamplerState global_sampler: register(s0);
 //     +-------------+
 //  (-1,  1)        (1,  1)
 
-float rounded_rect_sdf(float2 sample_pos,
+float sdf_rounded_rect(float2 sample_pos,
                        float2 rect_center,
                        float2 rect_half_size,
                        float  r)
 {
-  float2 d2 = (abs(rect_center - sample_pos) - rect_half_size + float2(r, r));
-  return min(max(d2.x, d2.y), 0.0) + length(max(d2, 0.0)) - r;
+  float2 d2 = abs(sample_pos - rect_center) - rect_half_size + float2(r, r);
+  return length(max(d2, float2(0.0f, 0.0f))) /*+ min(max(d2.x, d2.y), 0.0) */ - r;
 }
 
 PS_Input VS_Main(VS_Input input)
@@ -140,14 +140,14 @@ float4 PS_Main(PS_Input input): SV_Target
                                     interior_radius_reduce_f);
 
     // calculate sample distance from "interior"
-    float inside_d = rounded_rect_sdf(input.dst_pos,
+    float inside_d = sdf_rounded_rect(input.dst_pos,
                                       input.dst_center,
                                       interior_half_size,
                                       interior_corner_radius);
 
     // map distance => factor
-    float inside_f = 1.0f - smoothstep(0, 2 * 0.5, inside_d);
-    border_factor = inside_f;
+    // float inside_f = smoothstep(0, 1.0f, inside_d);
+    if (inside_d > 0.0f) border_factor = 0.0f;
   }
 
   float3 combined  = float3(input.color.rgb) * alpha_sample * border_factor;

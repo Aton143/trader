@@ -1278,7 +1278,7 @@ WinMain(HINSTANCE instance,
 
       // NOTE(antonio): instances
       u32 draw_call_count;
-      FLOAT background_color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+      FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
       Constant_Buffer constant_buffer_items = {};
       {
         device_context->ClearRenderTargetView(frame_buffer_view, background_color);

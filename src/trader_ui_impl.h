@@ -119,7 +119,50 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
   }
 }
 
-internal UI_Context *ui_get_context()
+internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent)
+{
+  UI_Context *ui      = ui_get_context();
+  u32 max_panel_count = ui->panel_memory_size / sizeof(Panel); 
+
+  expect(ui    != NULL);
+  expect(split != axis_split_none);
+  expect(is_between_exclusive(0.0f, size_relative_to_parent, 1.0f));
+
+  if (ui->panel_count < max_panel_count)
+  {
+    Panel *panel   = ui->panel_free_list_head;
+
+    ++ui->panel_count;
+    ui->panel_free_list_head = ui->panel_free_list_head->next_sibling;
+
+    Panel *cur_par = ui->current_panel_parent;
+    expect(cur_par != NULL);
+
+    if (cur_par->first_child == NULL)
+    {
+      panel->next_sibling     = panel;
+      panel->previous_sibling = panel;
+
+      cur_par->first_child = panel;
+      cur_par->last_child  = panel;
+    }
+    else
+    {
+      panel->previous_sibling = cur_par->last_child;
+      panel->next_sibling     = cur_par->first_child;
+
+      cur_par->last_child->next_sibling      = panel;
+      cur_par->first_child->previous_sibling = panel;
+      cur_par->last_child                    = panel;
+    }
+
+    panel->parent                  = cur_par;
+    panel->split                   = split;
+    panel->size_relative_to_parent = size_relative_to_parent;
+  }
+}
+
+internal inline UI_Context *ui_get_context()
 {
   return(&platform_get_global_state()->ui_context);
 }
@@ -209,7 +252,7 @@ internal void ui_initialize(UI_Context *ui)
     free_widget_list[widget_index].string       = string_literal_init_type("no widgets here, buddy :)", utf8);
   }
 
-  UI_Panel *panel_memory = push_array_zero(global_arena, UI_Panel, default_panel_count);
+  Panel *panel_memory = push_array_zero(global_arena, Panel, default_panel_count);
   for (u32 panel_index = 0;
        panel_index < default_panel_count - 1;
        ++panel_index)
@@ -231,18 +274,16 @@ internal void ui_initialize_frame(void)
   {
     zero_memory_block(ui->widget_memory, sizeof(Widget) * ui->current_widget_count);
 
-    Widget *current_free;
     for (u32 widget_index = 0;
          widget_index < ui->current_widget_count;
          ++widget_index)
     {
-      current_free               = &ui->widget_memory[widget_index];
+      Widget *current_free       = &ui->widget_memory[widget_index];
       current_free->next_sibling = &ui->widget_memory[widget_index + 1];
       current_free->string       = string_literal_init_type("you reset this one", utf8);
     }
 
     Widget *sentinel_widget    = ui->widget_memory;
-
     zero_struct(sentinel_widget);
 
     sentinel_widget->rectangle = render_get_client_rect();
@@ -259,16 +300,22 @@ internal void ui_initialize_frame(void)
   }
 
   {
-    zero_memory_block(ui->panels_start, sizeof(UI_Panel) * ui->panel_count);
+    zero_memory_block(ui->panels_start, sizeof(Panel) * ui->panel_count);
     for (u32 panel_index = 0;
          panel_index < ui->panel_count;
          ++panel_index)
     {
-      ui->panels_start[panel_index].next_sibling = &ui->panels_start[panel_index + 1];
+      Panel *current_free        = &ui->panels_start[panel_index];
+      current_free->next_sibling = current_free + 1;
+      current_free->split        = axis_split_none;
+      current_free->sizing_left  = 1.0f;
     }
 
-    ui->panel_count          = 0;
+    Panel *sentinel_panel    = ui->panels_start;
+
+    ui->current_panel_parent = sentinel_panel;
     ui->panel_free_list_head = ui->panels_start;
+    ui->panel_count          = 1;
   }
 
   ui->text_height            = default_text_height;
@@ -277,7 +324,7 @@ internal void ui_initialize_frame(void)
 
   copy_memory_block(ui->background_color, (void *) default_background_color, sizeof(default_background_color));
 
-  ui->canvas_viewport        = {};
+  ui->canvas_viewport = {};
 
   default_persistent_data    = {};
 }
@@ -588,7 +635,7 @@ internal b32 ui_is_key_equal(UI_Key a, UI_Key b)
   return(result);
 }
 
-internal void ui_prepare_render(void)
+internal void ui_prepare_render(Widget *widgets)
 {
   Global_Platform_State *global_state = platform_get_global_state();
   Arena                 *temp_arena   = get_temp_arena();
@@ -604,7 +651,7 @@ internal void ui_prepare_render(void)
     // NOTE(antonio): stack grows from high to low
     Arena *widget_stack = temp_arena;
 
-    Widget **data = &ui->allocated_widgets;
+    Widget **data = &widgets; // ui->allocated_widgets;
     arena_append(widget_stack, data, sizeof(Widget *));
 
     // NOTE(antonio): first-child biased loop
@@ -687,7 +734,7 @@ internal void ui_prepare_render(void)
 
     // NOTE(antonio): don't care about the sentinel
     Widget *first_child = NULL;
-    for (Widget *cur_child  = ui->allocated_widgets->first_child;
+    for (Widget *cur_child  = widgets->first_child;// ui->allocated_widgets->first_child;
          cur_child         != first_child;
          cur_child          = cur_child->next_sibling)
     {
@@ -824,7 +871,7 @@ internal void ui_prepare_render(void)
   {
     Ring_Buffer widget_queue = ring_buffer_make(temp_arena, structs_in_size(ring_buffer_size, Widget *));
     Widget *first_child = NULL;
-    for (Widget *cur_child = ui->allocated_widgets->first_child;
+    for (Widget *cur_child = widgets->first_child;// ui->allocated_widgets->first_child;
          cur_child != first_child;
          cur_child = cur_child->next_sibling)
     {

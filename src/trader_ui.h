@@ -301,11 +301,12 @@ struct Persistent_Widget_Data
   RGBA_f32 background_color[4];
 };
 
-struct UI_Panel;
+struct Panel;
 struct UI_Context
 {
-  UI_Panel               *panels_start;
-  UI_Panel               *panel_free_list_head;
+  Panel                  *current_panel_parent;
+  Panel                  *panels_start;
+  Panel                  *panel_free_list_head;
   u32                     panel_memory_size;
   u32                     panel_count;
 
@@ -354,26 +355,27 @@ struct UI_Context
 
 enum
 {
-  ui_axis_none,
-  ui_axis_horizontal,
-  ui_axis_vertical,
+  axis_split_none,
+  axis_split_horizontal,
+  axis_split_vertical,
 };
 typedef u32 Axis_Split;
 
-struct UI_Panel
+struct Panel
 {
-  UI_Panel   *first_child;
-  UI_Panel   *last_child;
+  Panel   *first_child;
+  Panel   *last_child;
 
-  UI_Panel   *next_sibling;
-  UI_Panel   *previous_sibling;
+  Panel   *next_sibling;
+  Panel   *previous_sibling;
 
-  UI_Panel   *parent;
+  Panel   *parent;
 
   Axis_Split  split;
   f32         size_relative_to_parent;
 
   Widget     *sentinel;
+  f32         sizing_left;
 };
 
 #include "trader_platform.h"
@@ -406,7 +408,8 @@ internal inline void ui_add_key_event(Key_Event event, b32 is_down);
 
 internal void ui_initialize(UI_Context *ui);
 internal void ui_initialize_frame(void);
-internal void ui_prepare_render(void);
+
+internal void ui_prepare_render(Widget *widgets);
 
 internal void ui_update_persistent_data(Persistent_Widget_Data *data);
 internal Persistent_Widget_Data *ui_search_persistent_data(Widget *widget);
@@ -450,5 +453,8 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
                              f32                border_thickness = 0.0f,
                              void              *data             = NULL,
                              u64                data_size        = 0);
+// NOTE(antonio): panels
+internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent);
+internal void ui_prepare_render_from_panels(Panel *panel);
 #define TRADER_UI_H
 #endif

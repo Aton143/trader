@@ -1255,7 +1255,7 @@ WinMain(HINSTANCE instance,
         render_data_to_lines(data_for_lines, lines_to_render);
       }
 
-      ui_prepare_render();
+      ui_prepare_render(ui->allocated_widgets);
 
       // NOTE(antonio): instances
       u32 draw_call_count;

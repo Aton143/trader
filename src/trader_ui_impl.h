@@ -635,7 +635,7 @@ internal b32 ui_is_key_equal(UI_Key a, UI_Key b)
   return(result);
 }
 
-internal void ui_prepare_render_from_panels(Panel *panel)
+internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
 {
   if (panel == NULL) {
     return;
@@ -646,7 +646,22 @@ internal void ui_prepare_render_from_panels(Panel *panel)
        cur_child        != first_child;
        cur_child         = cur_child->next_sibling)
   {
-    // ui_prepare_render(cur_child->sentinel);
+    Rect_f32 to_place = rect;
+
+    expect(cur_child->split != axis_split_none);
+    if (cur_child->split == axis_split_horizontal)
+    {
+      to_place.y1 = rect.y0 + lerpf(rect.y0, cur_child->size_relative_to_parent, rect.y1);
+    }
+    else
+    {
+      to_place.x1 = rect.x0 + lerpf(rect.x0, cur_child->size_relative_to_parent, rect.x1);
+    }
+
+    rect.x0 = to_place.x0;
+    rect.y0 = to_place.y0;
+
+    ui_prepare_render(cur_child->sentinel, to_place);
     first_child = panel->first_child;
   }
 }

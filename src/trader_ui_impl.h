@@ -27,7 +27,7 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
     zero_struct(widget);
 
     // TODO(antonio): append_widget?
-    Widget *cur_par = ui->current_parent;
+    Widget *cur_par = ui->current_panel_parent->current_parent;
 
     if (cur_par->first_child == NULL)
     {
@@ -119,6 +119,25 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
   }
 }
 
+internal Widget *ui_make_sentinel_widget()
+{
+  Widget     *sentinel     = NULL;
+  UI_Context *ui           = ui_get_context();
+
+  if (ui->current_widget_count < ui->max_widget_count)
+  {
+    sentinel = ui->widget_free_list_head;
+
+    ++ui->current_widget_count;
+    ui->widget_free_list_head = ui->widget_free_list_head->next_sibling;
+
+    zero_struct(sentinel);
+    sentinel->string = string_literal_init_type("sentinel widget", utf8);
+  }
+
+  return(sentinel);
+}
+
 internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent, String_Const_utf8 string)
 {
   Panel      *panel   = NULL;
@@ -161,6 +180,12 @@ internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent, Str
     panel->split                   = split;
     panel->size_relative_to_parent = size_relative_to_parent;
     panel->string                  = string;
+
+    panel->sentinel = panel->current_parent = ui_make_sentinel_widget();
+
+    expect(panel->current_parent != NULL);
+
+    ui->current_panel_parent = panel;
   }
 
   return(panel);
@@ -202,13 +227,6 @@ internal inline void ui_add_interaction(Widget *cur_widget, i32 frames_left, u32
     cur_interaction->start_frame = platform_get_global_state()->frame_count;
 #endif
   }
-}
-
-internal inline Widget *ui_get_sentinel(void)
-{
-  UI_Context *ui       = ui_get_context();
-  Widget     *sentinel = ui->allocated_widgets;
-  return(sentinel);
 }
 
 internal inline void ui_add_key_event(Key_Event event, b32 is_down)
@@ -287,20 +305,11 @@ internal void ui_initialize_frame(void)
       current_free->string       = string_literal_init_type("you reset this one", utf8);
     }
 
-    Widget *sentinel_widget    = ui->widget_memory;
-    zero_struct(sentinel_widget);
-
-    sentinel_widget->rectangle = render_get_client_rect();
-    sentinel_widget->computed_size_in_pixels = rect_get_dimensions(&sentinel_widget->rectangle);
-
-    sentinel_widget->string    = string_literal_init_type("sentinel widget", utf8);
-
     ui->max_widget_count       = (u32) (ui->widget_memory_size / sizeof(Widget));
     ui->current_widget_count   = 1;
 
     ui->widget_free_list_head  = ui->widget_memory + 1;
-    ui->allocated_widgets      = sentinel_widget;
-    ui->current_parent         = sentinel_widget;
+    ui->allocated_widgets      = ui->widget_memory;
   }
 
   {
@@ -426,29 +435,30 @@ internal void ui_pop_background_color()
 internal void ui_push_parent(Widget *widget)
 {
   UI_Context *ui = ui_get_context();
-  ui->current_parent = widget;
+  ui->current_panel_parent->current_parent = widget;
 }
 
 internal void ui_pop_parent(void)
 {
-  UI_Context *ui = ui_get_context();
-  if (ui->current_parent->parent)
+  Panel *panel_parent = ui_get_context()->current_panel_parent;
+  if (panel_parent->current_parent->parent)
   {
-    ui->current_parent = ui->current_parent->parent;
+    panel_parent->current_parent = panel_parent->current_parent->parent;
   }
 }
 
 // TODO(antonio): consider what to do for format and string
 internal void ui_do_string(String_Const_utf8 string)
 {
-  UI_Context *ui = ui_get_context();
-  Widget *last_parent = ui->current_parent;
+  UI_Context *ui           = ui_get_context();
+  Panel      *panel_parent = ui->current_panel_parent;
+  Widget     *last_parent  = panel_parent->current_parent;
 
   ui_make_widget(widget_flag_draw_background,
                  size_flag_text_content,
                  string_literal_init_type("String parent", utf8));
 
-  Widget *text_parent = ui->current_parent->last_child;
+  Widget *text_parent = panel_parent->current_parent->last_child;
   ui_push_parent(text_parent);
 
   String_Const_utf8 copy_string;
@@ -468,14 +478,15 @@ internal void ui_do_string(String_Const_utf8 string)
 
 internal void ui_do_formatted_string(char *format, ...)
 {
-  UI_Context *ui          = ui_get_context();
-  Widget     *last_parent = ui->current_parent;
+  UI_Context *ui           = ui_get_context();
+  Panel      *panel_parent = ui->current_panel_parent;
+  Widget     *last_parent  = panel_parent->current_parent;
 
   ui_make_widget(widget_flag_draw_background,
                  size_flag_text_content,
                  string_literal_init_type("Text parent", utf8));
 
-  Widget *text_parent = ui->current_parent->last_child;
+  Widget *text_parent = panel_parent->current_parent->last_child;
   ui_push_parent(text_parent);
 
   va_list args;
@@ -502,9 +513,10 @@ internal void ui_do_formatted_string(char *format, ...)
 
 internal b32 ui_do_button(String_Const_utf8 string)
 {
-  UI_Context *ui          = ui_get_context();
-  Widget     *last_parent = ui->current_parent;
-  b32         result      = false;
+  UI_Context *ui           = ui_get_context();
+  Panel      *panel_parent = ui->current_panel_parent;
+  Widget     *last_parent  = panel_parent->current_parent;
+  b32         result       = false;
 
   String_Const_utf8 button_parent_to_hash_prefix = string_literal_init_type("Button parent::", utf8);
   String_Const_utf8 button_parent_to_hash = concat_string_to_c_string(ui->string_pool, button_parent_to_hash_prefix, string);
@@ -516,7 +528,7 @@ internal b32 ui_do_button(String_Const_utf8 string)
                  V2(0.0f, 0.0f),
                  4.0f, 0.6f, 1.0f);
 
-  Widget *button_text_parent = ui->current_parent->last_child;
+  Widget *button_text_parent = panel_parent->current_parent->last_child;
   ui_push_parent(button_text_parent);
 
   String_Const_utf8 copy_string;
@@ -553,12 +565,13 @@ internal b32 ui_do_button(String_Const_utf8 string)
 
 internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 minimum, f32 maximum)
 {
-  UI_Context *ui          = ui_get_context();
-  Widget     *last_parent = ui->current_parent;
+  UI_Context *ui           = ui_get_context();
+  Panel      *panel_parent = ui->current_panel_parent;
+  Widget     *last_parent  = panel_parent->current_parent;
 
   expect(in_out_value != NULL);
   expect((minimum <= *in_out_value) && (*in_out_value <= maximum));
-  expect(compare_string_utf8(last_parent->string, ui_get_sentinel()->string));
+  expect(compare_string_utf8(last_parent->string, panel_parent->sentinel->string));
 
   String_Const_utf8 slider_parent_to_hash_prefix = string_literal_init_type("Slider parent::", utf8);
   String_Const_utf8 slider_parent_to_hash = concat_string_to_c_string(ui->string_pool, slider_parent_to_hash_prefix, string);
@@ -568,7 +581,7 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
                  slider_parent_to_hash,
                  V2(0.5f, ui->text_height));
 
-  Widget *slider_parent = ui->current_parent->last_child;
+  Widget *slider_parent = panel_parent->current_parent->last_child;
   ui_push_parent(slider_parent);
 
   ui_push_background_color(*in_out_value, *in_out_value, 0.0f, 1.0f);
@@ -589,7 +602,7 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
                  V2(slider_width_scale, 1.0f), 
                  V2(slider_x_scale, 0.0f));
 
-  Widget *slider = ui->current_parent->last_child;
+  Widget *slider = panel_parent->current_parent->last_child;
   ui_pop_background_color();
 
   ui_pop_parent();
@@ -610,10 +623,11 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
 
 internal void ui_canvas(String_Const_utf8 string, V2_f32 size)
 {
-  UI_Context *ui          = ui_get_context();
-  Widget     *last_parent = ui->current_parent;
+  UI_Context *ui           = ui_get_context();
+  Panel      *panel_parent = ui->current_panel_parent;
+  Widget     *last_parent  = panel_parent->current_parent;
 
-  expect(compare_string_utf8(last_parent->string, ui_get_sentinel()->string));
+  expect(compare_string_utf8(last_parent->string, panel_parent->sentinel->string));
   ui_push_background_color(1.0f, 0.0f, 0.0f, 1.0f);
 
   ui_make_widget(widget_flag_arbitrary_draw,
@@ -675,6 +689,9 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
     rect.x0 = to_place.x0;
     rect.y0 = to_place.y0;
 
+    cur_child->sentinel->rectangle = to_place;
+    cur_child->sentinel->computed_size_in_pixels = rect_get_dimensions(&to_place);
+
     ui_prepare_render(cur_child->sentinel, to_place);
     first_child = panel->first_child;
   }
@@ -690,13 +707,13 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
   u64 ring_buffer_size       = temp_arena->size / 2;
 
   expect_message(render->render_data.used == 0, "expected no render data");
-  expect_message(compare_string_utf8(ui->allocated_widgets->string, string_literal_init_type("sentinel widget", utf8)),
+  expect_message(compare_string_utf8(widgets->string, string_literal_init_type("sentinel widget", utf8)),
                  "expected first widget to be sentinel widget");
   {
     // NOTE(antonio): stack grows from high to low
     Arena *widget_stack = temp_arena;
 
-    Widget **data = &widgets; // ui->allocated_widgets;
+    Widget **data = &widgets;
     arena_append(widget_stack, data, sizeof(Widget *));
 
     // NOTE(antonio): first-child biased loop
@@ -779,12 +796,12 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
 
     // NOTE(antonio): don't care about the sentinel
     Widget *first_child = NULL;
-    for (Widget *cur_child  = widgets->first_child;// ui->allocated_widgets->first_child;
+    for (Widget *cur_child  = widgets->first_child;
          cur_child         != first_child;
          cur_child          = cur_child->next_sibling)
     {
       ring_buffer_append(&widget_queue, &cur_child, sizeof(Widget *));
-      first_child = ui->allocated_widgets->first_child;
+      first_child = widgets->first_child;
     }
 
     V2_f32 cur_top_left = rect_get_top_left(&rect);
@@ -922,7 +939,7 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
          cur_child = cur_child->next_sibling)
     {
       ring_buffer_append(&widget_queue, &cur_child, sizeof(Widget *));
-      first_child = ui->allocated_widgets->first_child;
+      first_child = widgets->first_child;
     }
 
     b32 hot_key_should_be_kept = false;

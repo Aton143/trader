@@ -314,8 +314,6 @@ struct UI_Context
   UI_Key                  hot_key;    // NOTE(antonio): about to interact
   UI_Key                  active_key; // NOTE(antonio): interacting
 
-  Widget                 *current_parent;
-
   Widget                 *widget_memory;
   u64                     widget_memory_size;
 
@@ -377,6 +375,8 @@ struct Panel
   String_Const_utf8 string;
 
   Widget     *sentinel;
+  Widget     *current_parent;
+
   f32         sizing_left;
 };
 
@@ -403,7 +403,6 @@ global_const RGBA_f32 default_background_color[4] =
 };
 
 internal inline UI_Context *ui_get_context(void);
-internal inline Widget     *ui_get_sentinel(void);
 
 internal inline void ui_add_interaction(Widget *cur_widget, i32 frames_left, u32 event, UI_Event_Value *event_value);
 
@@ -441,10 +440,11 @@ internal void ui_canvas(String_Const_utf8 string, V2_f32 size = {400.0f, 400.0f}
 internal UI_Key ui_make_key(String_Const_utf8 string);
 internal b32 ui_is_key_equal(UI_Key a, UI_Key b);
 
-internal void ui_make_widget(Widget_Flag        widget_flags,
-                             Widget_Size_Flag   size_flags,
-                             String_Const_utf8  string,
-                             Widget_Parameters *params);
+internal Widget *ui_make_sentinel_widget();
+internal void    ui_make_widget(Widget_Flag        widget_flags,
+                                Widget_Size_Flag   size_flags,
+                                String_Const_utf8  string,
+                                Widget_Parameters *params);
 
 internal void ui_make_widget(Widget_Flag        widget_flags,
                              Widget_Size_Flag   size_flags,

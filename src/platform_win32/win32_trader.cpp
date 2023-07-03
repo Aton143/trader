@@ -1086,7 +1086,7 @@ WinMain(HINSTANCE instance,
       ui_initialize_frame();
 
       Panel *first_panel = ui_make_panel(axis_split_horizontal, 1.0f, string_literal_init_type("first", utf8));
-      first_panel->sentinel = ui_get_sentinel();
+      // first_panel->sentinel = ui_get_sentinel();
       unused(first_panel);
 
       ui_push_background_color(0.0f, 0.0f, 0.0f, 1.0f);

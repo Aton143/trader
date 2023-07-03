@@ -684,7 +684,7 @@ internal inline Panel *ui_get_sentinel_panel()
 
 internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
 {
-  if ((panel == NULL) || (panel->first_child == NULL)) {
+  if (panel == NULL) {
     return;
   }
 
@@ -712,8 +712,14 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
     cur_child->sentinel->rectangle = to_place;
     cur_child->sentinel->computed_size_in_pixels = rect_get_dimensions(&to_place);
 
-    ui_prepare_render(cur_child->sentinel, to_place);
-    ui_prepare_render_from_panels(cur_child, to_place);
+    if (cur_child->first_child == NULL)
+    {
+      ui_prepare_render(cur_child->sentinel, to_place);
+    }
+    else
+    {
+      ui_prepare_render_from_panels(cur_child, to_place);
+    }
 
     if (cur_child->split == axis_split_horizontal)
     {
@@ -1139,7 +1145,7 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
         f32 baseline = cur_widget->rectangle.y0 + ui->text_height - ((f32) ui->text_gutter_dim.y);
 
         set_temp_arena_wait(1);
-        render_draw_text(&x, &baseline, cur_widget->text_color, cur_widget->string.str);
+        render_draw_text(&x, &baseline, cur_widget->text_color, rect, cur_widget->string.str);
       }
 
       // TODO(antonio): is this right

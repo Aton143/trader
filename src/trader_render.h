@@ -103,7 +103,7 @@ internal void render_data_to_lines(V2_f32 *points, u64 point_count);
 internal i64 render_get_font_height_index(f32 font_height);
 internal i64 render_get_packed_char_start(f32 font_height);
 
-internal void render_draw_text(f32 *x, f32 *y, RGBA_f32 color, utf8 *format, ...);
+internal void render_draw_text(f32 *x, f32 *y, RGBA_f32 color, Rect_f32 bounds, utf8 *format, ...);
 
 internal b32 render_atlas_initialize(Arena         *arena,
                                      Texture_Atlas *atlas,
@@ -356,6 +356,106 @@ internal void render_data_to_lines(V2_f32 *points, u64 point_count)
       };
     }
   }
+}
+
+internal void render_draw_text(f32 *baseline_x, f32 *baseline_y, RGBA_f32 color, Rect_f32 bounds, utf8 *format, ...)
+{
+  expect(baseline_x != NULL);
+  expect(baseline_y != NULL);
+
+  expect(bounds.x0 <= bounds.x1);
+  expect(bounds.y0 <= bounds.y1);
+
+  Arena *temp_arena = get_temp_arena();
+
+  u64 sprinted_text_cap = 512;
+  String_utf8 sprinted_text =
+  {
+    (utf8 *) arena_push(temp_arena, sprinted_text_cap),
+    0,
+    sprinted_text_cap
+  };
+
+  va_list args;
+  va_start(args, format);
+  sprinted_text.size = stbsp_vsnprintf((char *) sprinted_text.str, (i32) sprinted_text.cap, (char *) format, args);
+  va_end(args);
+
+  Common_Render_Context   *render_context  = render_get_common_context();
+  Texture_Atlas           *atlas           = render_context->atlas;
+  Instance_Buffer_Element *render_elements = push_array_zero(&render_context->render_data,
+                                                             Instance_Buffer_Element,
+                                                             sprinted_text.size);
+
+  f32 font_scale = stbtt_ScaleForPixelHeight(&atlas->font_info, atlas->heights[0]);
+
+  V2_f32 cur_pos = V2(*baseline_x, *baseline_y);
+  for (u64 text_index = 0;
+       (sprinted_text.str[text_index] != '\0') && (text_index < sprinted_text.size);
+       ++text_index)
+  {
+    if (is_between_inclusive(bounds.x0, cur_pos.x, bounds.x1) && is_between_inclusive(bounds.y0, cur_pos.y, bounds.y1))
+    {
+      // TODO(antonio): deal with new lines more gracefully
+      if (is_newline(sprinted_text.str[text_index]))
+      {
+        continue;
+      }
+      else
+      {
+        Instance_Buffer_Element *cur_element     = render_elements  +  text_index;
+        stbtt_packedchar        *cur_packed_char = atlas->char_data + (sprinted_text.str[text_index] - starting_code_point);
+
+        cur_element->pos = 
+        {
+          cur_pos.x + cur_packed_char->xoff,
+          cur_pos.y + cur_packed_char->yoff,
+          1.0f
+        };
+
+        cur_element->size = 
+        {
+          0.0f,
+          0.0f,
+          (f32) (cur_packed_char->xoff2 - cur_packed_char->xoff),
+          (f32) (cur_packed_char->yoff2 - cur_packed_char->yoff)
+        };
+
+        cur_element->uv = 
+        {
+          (f32) cur_packed_char->x0,
+          (f32) cur_packed_char->y0,
+          (f32) cur_packed_char->x1,
+          (f32) cur_packed_char->y1,
+        };
+
+        cur_element->color[0] = color;
+        cur_element->color[1] = color;
+        cur_element->color[2] = color;
+        cur_element->color[3] = color;
+
+        cur_element->edge_softness = 0.0f;
+
+        f32 kern_advance = 0.0f;
+        if (text_index < (sprinted_text.size - 1))
+        {
+          kern_advance = font_scale *
+            stbtt_GetCodepointKernAdvance(&atlas->font_info,
+                                          sprinted_text.str[text_index],
+                                          sprinted_text.str[text_index + 1]);
+        }
+
+        cur_pos.x += kern_advance + cur_packed_char->xadvance;
+      }
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  *baseline_x = cur_pos.x;
+  *baseline_y = cur_pos.y;
 }
 
 #define TRADER_RENDER_H

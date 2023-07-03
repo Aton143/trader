@@ -1253,9 +1253,15 @@ WinMain(HINSTANCE instance,
       }
 
       ui_push_panel_parent(ui_get_sentinel_panel());
-      ui_make_panel(axis_split_vertical, 0.5, string_literal_init_type("other half", utf8));
+      Panel *the_other_half = ui_make_panel(axis_split_vertical, 0.5, string_literal_init_type("the other half", utf8));
       
-      ui_do_string(string_literal_init_type("I should be on the other side", utf8));
+      ui_do_string(string_literal_init_type("I should be on the other half", utf8));
+
+      ui_make_panel(axis_split_horizontal, 0.5, string_literal_init_type("first upper half of the other half", utf8));
+      ui_push_panel_parent(the_other_half);
+      ui_make_panel(axis_split_horizontal, 0.5, string_literal_init_type("first bottom half of the other half", utf8));
+      ui_do_string(string_literal_init_type("I should be on first bottom half of the other half", utf8));
+
 
       Rect_f32 render_rect = render_get_client_rect();
       // render_rect = translate(render_rect, V2(50.0f * cosf(acc_time * tau_f32), 50.0f * sinf(acc_time * tau_f32)));

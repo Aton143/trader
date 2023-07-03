@@ -684,7 +684,7 @@ internal inline Panel *ui_get_sentinel_panel()
 
 internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
 {
-  if (panel == NULL) {
+  if ((panel == NULL) || (panel->first_child == NULL)) {
     return;
   }
 
@@ -703,18 +703,27 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
     if (cur_child->split == axis_split_horizontal)
     {
       to_place.y1 = rect.y0 + lerpf(0.0f, cur_child->size_relative_to_parent, rect_dimensions.y);
-      rect.y0     = to_place.y1;
     }
     else
     {
       to_place.x1 = rect.x0 + lerpf(0.0f, cur_child->size_relative_to_parent, rect_dimensions.x);
-      rect.x0     = to_place.x1;
     }
 
     cur_child->sentinel->rectangle = to_place;
     cur_child->sentinel->computed_size_in_pixels = rect_get_dimensions(&to_place);
 
     ui_prepare_render(cur_child->sentinel, to_place);
+    ui_prepare_render_from_panels(cur_child, to_place);
+
+    if (cur_child->split == axis_split_horizontal)
+    {
+      rect.y0     = to_place.y1;
+    }
+    else
+    {
+      rect.x0     = to_place.x1;
+    }
+
     first_child = panel->first_child;
   }
 }

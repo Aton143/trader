@@ -138,6 +138,7 @@ internal Widget *ui_make_sentinel_widget()
   return(sentinel);
 }
 
+// TODO(antonio): cannot have two directions in a children list
 internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent, String_Const_utf8 string)
 {
   Panel      *panel   = NULL;
@@ -180,10 +181,13 @@ internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent, Str
     panel->split                   = split;
     panel->size_relative_to_parent = size_relative_to_parent;
     panel->string                  = string;
+    panel->sizing_left             = 1.0f;
 
     panel->sentinel = panel->current_parent = ui_make_sentinel_widget();
-
     expect(panel->current_parent != NULL);
+
+    panel->parent->sizing_left -= size_relative_to_parent;
+    expect(0 <= panel->parent->sizing_left);
 
     ui->current_panel_parent = panel;
   }
@@ -324,17 +328,18 @@ internal void ui_initialize_frame(void)
       current_free->sizing_left  = 1.0f;
     }
 
-    Panel *sentinel_panel    = ui->panels_start;
-    sentinel_panel->string   = string_literal_init_type("sentinel panel", utf8);
-    ui->current_panel_parent = sentinel_panel;
+    Panel *sentinel_panel       = ui->panels_start;
+    sentinel_panel->string      = string_literal_init_type("sentinel panel", utf8);
+    sentinel_panel->sizing_left = 1.0f;
+    ui->current_panel_parent    = sentinel_panel;
 
-    ui->panel_free_list_head = ui->panels_start + 1;
-    ui->panel_count          = 1;
+    ui->panel_free_list_head    = ui->panels_start + 1;
+    ui->panel_count             = 1;
   }
 
-  ui->text_height            = default_text_height;
-  ui->text_gutter_dim        = default_text_gutter_dim;
-  ui->text_color             = default_text_color;
+  ui->text_height     = default_text_height;
+  ui->text_gutter_dim = default_text_gutter_dim;
+  ui->text_color      = default_text_color;
 
   copy_memory_block(ui->background_color, (void *) default_background_color, sizeof(default_background_color));
 
@@ -444,6 +449,22 @@ internal void ui_pop_parent(void)
   if (panel_parent->current_parent->parent)
   {
     panel_parent->current_parent = panel_parent->current_parent->parent;
+  }
+}
+
+internal inline void ui_push_panel_parent(Panel *new_parent)
+{
+  UI_Context *ui = ui_get_context();
+  ui->current_panel_parent = new_parent;
+}
+
+internal inline void ui_pop_panel_parent()
+{
+  UI_Context *ui           = ui_get_context();
+  Panel      *panel_parent = ui->current_panel_parent;
+  if (panel_parent->parent)
+  {
+    ui->current_panel_parent = panel_parent->parent;
   }
 }
 
@@ -668,6 +689,8 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
   }
 
   Panel *first_child = NULL;
+  V2_f32 rect_dimensions = rect_get_dimensions(&rect);
+
   for (Panel *cur_child  = panel->first_child;
        cur_child        != first_child;
        cur_child         = cur_child->next_sibling)
@@ -679,15 +702,14 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
 
     if (cur_child->split == axis_split_horizontal)
     {
-      to_place.y1 = rect.y0 + lerpf(rect.y0, cur_child->size_relative_to_parent, rect.y1);
+      to_place.y1 = rect.y0 + lerpf(0.0f, cur_child->size_relative_to_parent, rect_dimensions.y);
+      rect.y0     = to_place.y1;
     }
     else
     {
-      to_place.x1 = rect.x0 + lerpf(rect.x0, cur_child->size_relative_to_parent, rect.x1);
+      to_place.x1 = rect.x0 + lerpf(0.0f, cur_child->size_relative_to_parent, rect_dimensions.x);
+      rect.x0     = to_place.x1;
     }
-
-    rect.x0 = to_place.x0;
-    rect.y0 = to_place.y0;
 
     cur_child->sentinel->rectangle = to_place;
     cur_child->sentinel->computed_size_in_pixels = rect_get_dimensions(&to_place);
@@ -706,7 +728,6 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
 
   u64 ring_buffer_size       = temp_arena->size / 2;
 
-  expect_message(render->render_data.used == 0, "expected no render data");
   expect_message(compare_string_utf8(widgets->string, string_literal_init_type("sentinel widget", utf8)),
                  "expected first widget to be sentinel widget");
   {

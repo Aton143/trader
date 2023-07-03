@@ -458,6 +458,10 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
                              u64                data_size        = 0);
 // NOTE(antonio): panels
 internal inline Panel *ui_get_sentinel_panel();
+
+internal inline void ui_push_panel_parent(Panel *panel);
+internal inline void ui_pop_panel_parent();
+
 internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent, String_Const_utf8 string = {});
 internal void   ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect);
 #define TRADER_UI_H

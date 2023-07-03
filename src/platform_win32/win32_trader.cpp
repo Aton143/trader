@@ -1089,7 +1089,7 @@ WinMain(HINSTANCE instance,
       // first_panel->sentinel = ui_get_sentinel();
       unused(first_panel);
 
-      ui_push_background_color(0.0f, 0.0f, 0.0f, 1.0f);
+      ui_push_background_color(rgba_from_u8(55, 47, 36, 255));
 
       win32_global_state.frame_count++;
 
@@ -1162,7 +1162,7 @@ WinMain(HINSTANCE instance,
 
       ui_do_formatted_string("Slider float: %.16f", slider_float);
       ui_do_slider_f32(string_literal_init_type("slider", utf8), &slider_float, 0.0f, 1.0f);
-      ui_push_background_color(0.0f, 0.0f, 0.0f, 1.0f);
+      ui_push_background_color(rgba_from_u8(0, 0, 0, 0));
 
       ui_do_formatted_string("Interaction Results:");
       for (u32 interaction_index = 0;
@@ -1198,7 +1198,7 @@ WinMain(HINSTANCE instance,
       }
 
       ui_pop_background_color();
-      ui_push_background_color(1.0f, 0.0f, 0.0f, 1.0f);
+      ui_push_background_color(rgba_from_u8(0, 0, 0, 0));
 
       if (ui_do_button(string_literal_init_type("Click me!", utf8)))
       {
@@ -1252,6 +1252,7 @@ WinMain(HINSTANCE instance,
         render_data_to_lines(data_for_lines, lines_to_render);
       }
 
+      ui_push_background_color(rgba_from_u8(0, 0, 0, 0));
       ui_push_panel_parent(ui_get_sentinel_panel());
       Panel *the_other_half = ui_make_panel(axis_split_vertical, 0.5, string_literal_init_type("the other half", utf8));
       

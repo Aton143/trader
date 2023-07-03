@@ -416,7 +416,12 @@ internal void ui_pop_text_color(void)
   ui->text_color = default_text_color;
 }
 
-internal void ui_push_background_color(f32 r, f32 g, f32 b, f32 a)
+internal inline void ui_push_background_color(RGBA_f32 color)
+{
+  ui_push_background_color(color.r, color.g, color.b, color.a);
+}
+
+internal inline void ui_push_background_color(f32 r, f32 g, f32 b, f32 a)
 {
   expect(is_between_inclusive(0.0f, r, 1.0f) && 
          is_between_inclusive(0.0f, g, 1.0f) && 
@@ -688,8 +693,10 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
     return;
   }
 
-  Panel *first_child = NULL;
-  V2_f32 rect_dimensions = rect_get_dimensions(&rect);
+  Common_Render_Context *render = render_get_common_context();
+
+  Panel  *first_child     = NULL;
+  V2_f32  rect_dimensions = rect_get_dimensions(&rect);
 
   for (Panel *cur_child  = panel->first_child;
        cur_child        != first_child;
@@ -714,6 +721,25 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
 
     if (cur_child->first_child == NULL)
     {
+      Instance_Buffer_Element *draw_call = push_struct(&render->render_data, Instance_Buffer_Element);
+
+      draw_call->size  = {0.0f, 0.0f, rect_get_width(&to_place), rect_get_height(&to_place)};
+      draw_call->uv    =
+      {
+        (f32) render->atlas->solid_color_rect.x0,
+        (f32) render->atlas->solid_color_rect.y0,
+        (f32) render->atlas->solid_color_rect.x1,
+        (f32) render->atlas->solid_color_rect.y1,
+      };
+      draw_call->pos   = {to_place.x0, to_place.y0, 0.4f};
+      draw_call->color[0] = rgba_from_u8(55, 47, 36, 255);
+      draw_call->color[1] = rgba_from_u8(55, 47, 36, 255);
+      draw_call->color[2] = rgba_from_u8(55, 47, 36, 255);
+      draw_call->color[3] = rgba_from_u8(55, 47, 36, 255);
+      draw_call->corner_radius    = 5.0f;
+      draw_call->border_thickness = 3.0f;
+      draw_call->edge_softness    = 0.5f;
+
       ui_prepare_render(cur_child->sentinel, to_place);
     }
     else

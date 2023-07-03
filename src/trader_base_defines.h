@@ -704,7 +704,7 @@ typedef V4_f32        RGBA_f32;
 internal inline V2_f32 V2(f32 x, f32 y);
 internal inline V4_f32 V4(f32 x, f32 y, f32 z, f32 w = 1.0f);
 
-internal RGBA_f32 rgba(f32 r, f32 g, f32 b, f32 a)
+internal inline RGBA_f32 rgba(f32 r, f32 g, f32 b, f32 a)
 {
   RGBA_f32 color; 
 
@@ -714,6 +714,13 @@ internal RGBA_f32 rgba(f32 r, f32 g, f32 b, f32 a)
   color.a = clamp(0.0f, a, 1.0f);
 
   return(color);
+}
+
+internal inline RGBA_f32 rgba_from_u8(u8 r, u8 g, u8 b, u8 a)
+{
+  f32 conv_factor = 1.0f / 255.0f;
+  RGBA_f32 conv_rgba = rgba(r * conv_factor, g * conv_factor, b * conv_factor, a * conv_factor);
+  return(conv_rgba);
 }
 
 global_const RGBA_f32 rgba_white = rgba(1.0f, 1.0f, 1.0f, 1.0f);

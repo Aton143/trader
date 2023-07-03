@@ -3,8 +3,10 @@
 
 internal inline f32 lerpf(f32 a, f32 t, f32 b);
 internal inline f64 lerpd(f64 a, f64 t, f64 b);
+internal inline V4_f32 wide_lerp(V4_f32 a, f32 t, V4_f32 b);
 
-internal inline V4_f32 lerp(V4_f32 a, f32 t, V4_f32 b);
+internal inline V2_f32 wide_clamp(V2_f32 bottom, V2_f32 v, V2_f32 top);
+internal inline V4_f32 wide_clamp(V4_f32 bottom, V4_f32 v, V4_f32 top);
 
 internal inline f32 fast_powf(f32 a, f32 b);
 
@@ -24,8 +26,6 @@ internal inline f32 dot(V2_f32 u, V2_f32 v);
 internal inline f32 squared_length(V2_f32 v);
 
 internal inline V2_f32 normalize(V2_f32 v);
-
-internal inline V4_f32 wide_clamp(V4_f32 bottom, V4_f32 v, V4_f32 top);
 
 internal inline Matrix_f32_4x4 matrix4x4_from_rows(V4_f32 row0, V4_f32 row1, V4_f32 row2, V4_f32 row3);
 
@@ -49,7 +49,7 @@ internal inline f64 lerpd(f64 a, f64 t, f64 b)
   return(interp);
 }
 
-internal inline V4_f32 lerp(V4_f32 a, f32 t, V4_f32 b)
+internal inline V4_f32 wide_lerp(V4_f32 a, f32 t, V4_f32 b)
 {
   V4_f32 res;
 
@@ -143,6 +143,16 @@ internal inline V2_f32 operator *(f32 s, V2_f32 v)
 internal inline V4_f32 V4(f32 x, f32 y, f32 z, f32 w)
 {
   V4_f32 res = {x, y, z, w};
+  return(res);
+}
+
+internal inline V2_f32 wide_clamp(V2_f32 bottom, V2_f32 v, V2_f32 top)
+{
+  V2_f32 res =
+  V2( 
+    clamp(bottom.v[0], v.v[0], top.v[0]),
+    clamp(bottom.v[1], v.v[1], top.v[1])
+  );
   return(res);
 }
 

@@ -717,11 +717,11 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
 
     if (cur_child->split == axis_split_horizontal)
     {
-      rect.y0     = to_place.y1;
+      rect.y0 = to_place.y1;
     }
     else
     {
-      rect.x0     = to_place.x1;
+      rect.x0 = to_place.x1;
     }
 
     first_child = panel->first_child;
@@ -1083,10 +1083,10 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
         f32 t = 1 - fast_powf(2.0f, 16.0f * -((f32) global_state->dt));
 
         // NOTE(antonio): I KNOW
-        found_data->background_color[0] = lerp(found_data->background_color[0], t, cur_widget->end_background_color[0]);
-        found_data->background_color[1] = lerp(found_data->background_color[1], t, cur_widget->end_background_color[1]);
-        found_data->background_color[2] = lerp(found_data->background_color[2], t, cur_widget->end_background_color[2]);
-        found_data->background_color[3] = lerp(found_data->background_color[3], t, cur_widget->end_background_color[3]);
+        found_data->background_color[0] = wide_lerp(found_data->background_color[0], t, cur_widget->end_background_color[0]);
+        found_data->background_color[1] = wide_lerp(found_data->background_color[1], t, cur_widget->end_background_color[1]);
+        found_data->background_color[2] = wide_lerp(found_data->background_color[2], t, cur_widget->end_background_color[2]);
+        found_data->background_color[3] = wide_lerp(found_data->background_color[3], t, cur_widget->end_background_color[3]);
 
         RGBA_f32 color_bottom = rgba(0.0f, 0.0f, 0.0f, 0.0f);
         RGBA_f32 color_top    = rgba(1.0f, 1.0f, 1.0f, 1.0f);
@@ -1097,6 +1097,13 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
         found_data->background_color[3] = wide_clamp(color_bottom, found_data->background_color[3], color_top);
 
         copy_memory_block(draw_call->color, found_data->background_color, sizeof(found_data->background_color));
+
+        expect(rect.x0 <= rect.x1);
+        expect(rect.y0 <= rect.y1);
+
+        cur_widget->rectangle.p0 = wide_clamp(rect.p0, cur_widget->rectangle.p0, rect.p1);
+        cur_widget->rectangle.p1 = wide_clamp(rect.p0, cur_widget->rectangle.p1, rect.p1);
+        cur_widget->computed_size_in_pixels = rect_get_dimensions(&cur_widget->rectangle);
 
         // this is weird...
         draw_call->size = 

@@ -1084,6 +1084,11 @@ WinMain(HINSTANCE instance,
       platform_collect_notifications();
 
       ui_initialize_frame();
+
+      Panel *first_panel = ui_make_panel(axis_split_horizontal, 1.0f, string_literal_init_type("first", utf8));
+      first_panel->sentinel = ui_get_sentinel();
+      unused(first_panel);
+
       ui_push_background_color(0.0f, 0.0f, 0.0f, 1.0f);
 
       win32_global_state.frame_count++;
@@ -1248,10 +1253,8 @@ WinMain(HINSTANCE instance,
       }
 
       Rect_f32 render_rect = render_get_client_rect();
-      render_rect.x0 = 50.0f * cosf(acc_time * tau_f32);
-      render_rect.y0 = 50.0f * sinf(acc_time * tau_f32);
-
-      ui_prepare_render(ui->allocated_widgets, render_rect);
+      // render_rect = translate(render_rect, V2(50.0f * cosf(acc_time * tau_f32), 50.0f * sinf(acc_time * tau_f32)));
+      ui_prepare_render_from_panels(ui_get_sentinel_panel(), render_rect);
 
       acc_time += 1.0f/60.0f;
       if (acc_time > 1.0f)

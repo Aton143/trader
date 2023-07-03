@@ -363,16 +363,18 @@ typedef u32 Axis_Split;
 
 struct Panel
 {
-  Panel   *first_child;
-  Panel   *last_child;
+  Panel      *first_child;
+  Panel      *last_child;
 
-  Panel   *next_sibling;
-  Panel   *previous_sibling;
+  Panel      *next_sibling;
+  Panel      *previous_sibling;
 
-  Panel   *parent;
+  Panel      *parent;
 
   Axis_Split  split;
   f32         size_relative_to_parent;
+
+  String_Const_utf8 string;
 
   Widget     *sentinel;
   f32         sizing_left;
@@ -381,14 +383,15 @@ struct Panel
 #include "trader_platform.h"
 #include "trader_render.h"
 
-global_const UI_Key   nil_key                  = 0;
-global_const f32      default_text_height      = 24.0f;
-global_const V2_i16   default_text_gutter_dim  = {2, 4};
-global_const RGBA_f32 default_text_color       = rgba(1.0f, 1.0f, 1.0f, 1.0);
-global_const u32      default_widget_count     = 4096;
-global_const u64      default_string_pool_size = kb(16);
-global_const V2_f32   default_widget_sizing    = V2(1.0f, 1.0f);
-global_const u32      default_panel_count      = 64;
+global_const UI_Key             nil_key                  = 0;
+global_const f32                default_text_height      = 24.0f;
+global_const V2_i16             default_text_gutter_dim  = {2, 4};
+global_const RGBA_f32           default_text_color       = rgba(1.0f, 1.0f, 1.0f, 1.0);
+global_const u32                default_widget_count     = 4096;
+global_const u64                default_string_pool_size = kb(16);
+global_const V2_f32             default_widget_sizing    = V2(1.0f, 1.0f);
+global_const u32                default_panel_count      = 64;
+global_const String_Const_utf8  default_panel_string     = string_literal_init_type("default panel string", utf8);
 
 global Persistent_Widget_Data default_persistent_data = {};
 global_const RGBA_f32 default_background_color[4] =
@@ -454,7 +457,8 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
                              void              *data             = NULL,
                              u64                data_size        = 0);
 // NOTE(antonio): panels
-internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent);
-internal void   ui_prepare_render_from_panels(Panel *panel);
+internal inline Panel *ui_get_sentinel_panel();
+internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent, String_Const_utf8 string = {});
+internal void   ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect);
 #define TRADER_UI_H
 #endif

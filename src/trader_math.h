@@ -34,6 +34,8 @@ internal inline Matrix_f32_4x4 matrix4x4_rotate_about_x(f32 amount);
 internal inline Matrix_f32_4x4 matrix4x4_rotate_about_y(f32 amount);
 internal inline Matrix_f32_4x4 matrix4x4_rotate_about_z(f32 amount);
 
+internal inline Rect_f32 translate(Rect_f32 rect, V2_f32 v);
+
 // implementation
 internal inline f32 lerpf(f32 a, f32 t, f32 b)
 {
@@ -198,6 +200,16 @@ internal inline Matrix_f32_4x4 matrix4x4_rotate_about_z(f32 amount)
                                            V4( sin,   cos,  0.0f, 0.0f),
                                            V4( 0.0f,  0.0f, 1.0f, 0.0f),
                                            V4( 0.0f,  0.0f, 0.0f, 1.0f));
+  return(res);
+}
+
+internal inline Rect_f32 translate(Rect_f32 rect, V2_f32 v)
+{
+  Rect_f32 res = {};
+
+  res.p0 = rect.p0 + v;
+  res.p1 = rect.p1 + v;
+
   return(res);
 }
 

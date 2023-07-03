@@ -119,18 +119,19 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
   }
 }
 
-internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent)
+internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent, String_Const_utf8 string)
 {
+  Panel      *panel   = NULL;
   UI_Context *ui      = ui_get_context();
   u32 max_panel_count = ui->panel_memory_size / sizeof(Panel); 
 
   expect(ui    != NULL);
   expect(split != axis_split_none);
-  expect(is_between_exclusive(0.0f, size_relative_to_parent, 1.0f));
+  expect(is_between_inclusive(0.0f, size_relative_to_parent, 1.0f));
 
   if (ui->panel_count < max_panel_count)
   {
-    Panel *panel   = ui->panel_free_list_head;
+    panel = ui->panel_free_list_head;
 
     ++ui->panel_count;
     ui->panel_free_list_head = ui->panel_free_list_head->next_sibling;
@@ -159,7 +160,10 @@ internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent)
     panel->parent                  = cur_par;
     panel->split                   = split;
     panel->size_relative_to_parent = size_relative_to_parent;
+    panel->string                  = string;
   }
+
+  return(panel);
 }
 
 internal inline UI_Context *ui_get_context()
@@ -289,7 +293,7 @@ internal void ui_initialize_frame(void)
     sentinel_widget->rectangle = render_get_client_rect();
     sentinel_widget->computed_size_in_pixels = rect_get_dimensions(&sentinel_widget->rectangle);
 
-    sentinel_widget->string    = string_literal_init_type("sentinel", utf8);
+    sentinel_widget->string    = string_literal_init_type("sentinel widget", utf8);
 
     ui->max_widget_count       = (u32) (ui->widget_memory_size / sizeof(Widget));
     ui->current_widget_count   = 1;
@@ -312,9 +316,10 @@ internal void ui_initialize_frame(void)
     }
 
     Panel *sentinel_panel    = ui->panels_start;
-
+    sentinel_panel->string   = string_literal_init_type("sentinel panel", utf8);
     ui->current_panel_parent = sentinel_panel;
-    ui->panel_free_list_head = ui->panels_start;
+
+    ui->panel_free_list_head = ui->panels_start + 1;
     ui->panel_count          = 1;
   }
 
@@ -635,6 +640,13 @@ internal b32 ui_is_key_equal(UI_Key a, UI_Key b)
   return(result);
 }
 
+internal inline Panel *ui_get_sentinel_panel()
+{
+  UI_Context *ui       = ui_get_context();
+  Panel      *sentinel = ui->panels_start;
+  return(sentinel);
+}
+
 internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
 {
   if (panel == NULL) {
@@ -649,6 +661,8 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
     Rect_f32 to_place = rect;
 
     expect(cur_child->split != axis_split_none);
+    expect(is_between_inclusive(0.0f, cur_child->size_relative_to_parent, 1.0f));
+
     if (cur_child->split == axis_split_horizontal)
     {
       to_place.y1 = rect.y0 + lerpf(rect.y0, cur_child->size_relative_to_parent, rect.y1);
@@ -676,7 +690,7 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
   u64 ring_buffer_size       = temp_arena->size / 2;
 
   expect_message(render->render_data.used == 0, "expected no render data");
-  expect_message(compare_string_utf8(ui->allocated_widgets->string, string_literal_init_type("sentinel", utf8)),
+  expect_message(compare_string_utf8(ui->allocated_widgets->string, string_literal_init_type("sentinel widget", utf8)),
                  "expected first widget to be sentinel widget");
   {
     // NOTE(antonio): stack grows from high to low

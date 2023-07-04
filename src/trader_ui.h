@@ -349,6 +349,7 @@ struct UI_Context
 
   Mod_Keys                mod_keys;
   b8                      key_events[key_event_count];
+  b8                      keep_hot_key;
 };
 
 enum

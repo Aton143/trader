@@ -519,8 +519,8 @@ WinMain(HINSTANCE instance,
     }
   }
 
-  Thread_Handle network_thread = platform_create_thread(&win32_network_thread, &thread_contexts[1]);
-  unused(network_thread);
+  // Thread_Handle network_thread = platform_create_thread(&win32_network_thread, &thread_contexts[1]);
+  // unused(network_thread);
 
   if (ShowWindow(win32_global_state.window_handle, SW_NORMAL) && UpdateWindow(win32_global_state.window_handle))
   {
@@ -921,7 +921,6 @@ WinMain(HINSTANCE instance,
 #endif
 
     UI_Context *ui = &win32_global_state.ui_context;
-    unused(ui);
 
     global_running = true;
     global_window_resized = true;
@@ -986,7 +985,7 @@ WinMain(HINSTANCE instance,
     u32 data_index = 0;
     f32 acc_time   = 0.0f;
     f32 up_down    = 0.0f;
-    b32 triangle = false;
+    b32 triangle   = false;
 
     while (global_running)
     {
@@ -1484,8 +1483,8 @@ WinMain(HINSTANCE instance,
       // Post-frame
       win32_global_state.focus_event = focus_event_none;
 
-      ui->mouse_delta = {0.0f, 0.0f};
-      ui->mouse_wheel_delta = {0.0f, 0.0f};
+      ui->mouse_delta            = {0.0f, 0.0f};
+      ui->mouse_wheel_delta      = {0.0f, 0.0f};
       ui->prev_frame_mouse_event = ui->cur_frame_mouse_event;
 
       for (u32 interaction_index = 0;
@@ -1511,6 +1510,10 @@ WinMain(HINSTANCE instance,
         last_pts = cur_pts;
 
         win32_global_state.dt = last_frame_time;
+      }
+
+      if (!ui->keep_hot_key) {
+        ui->hot_key = nil_key;
       }
 
       TIMED_BLOCK_END();

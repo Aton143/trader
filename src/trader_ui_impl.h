@@ -344,6 +344,7 @@ internal void ui_initialize_frame(void)
   copy_memory_block(ui->background_color, (void *) default_background_color, sizeof(default_background_color));
 
   ui->canvas_viewport = {};
+  ui->keep_hot_key = false;
 
   default_persistent_data    = {};
 }
@@ -736,7 +737,7 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
       draw_call->color[1] = rgba_from_u8(55, 47, 36, 255);
       draw_call->color[2] = rgba_from_u8(55, 47, 36, 255);
       draw_call->color[3] = rgba_from_u8(55, 47, 36, 255);
-      draw_call->corner_radius    = 5.0f;
+      draw_call->corner_radius    = 100.0f;
       draw_call->border_thickness = 3.0f;
       draw_call->edge_softness    = 0.5f;
 
@@ -1004,7 +1005,7 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
       first_child = widgets->first_child;
     }
 
-    b32 hot_key_should_be_kept = false;
+    b32 keep_hot_key = false;
     UI_Event_Value event_value;
 
     // NOTE(antonio): create draw calls in parent->child level traversal
@@ -1057,7 +1058,7 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
           {
             ui->hot_key = cur_widget->key;
           }
-          hot_key_should_be_kept = true;
+          keep_hot_key = true;
         }
 
         if ((cur_widget->key == ui->active_key) && (cur_widget->key == ui->hot_key))
@@ -1096,7 +1097,7 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
           {
             ui->hot_key = cur_widget->key;
           }
-          hot_key_should_be_kept = true;
+          keep_hot_key = true;
         }
 
         if (ui->active_key == cur_widget->key)
@@ -1192,11 +1193,7 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
         first_child = cur_widget->first_child;
       }
 
-    }
-
-    if (!hot_key_should_be_kept)
-    {
-      ui->hot_key = nil_key;
+      ui->keep_hot_key = ui->keep_hot_key || keep_hot_key;
     }
   }
 }

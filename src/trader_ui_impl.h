@@ -502,15 +502,6 @@ internal inline void ui_pop_panel_parent(void)
 internal void ui_do_string(String_Const_utf8 string)
 {
   UI_Context *ui           = ui_get_context();
-  Panel      *panel_parent = ui->current_panel_parent;
-  Widget     *last_parent  = panel_parent->current_parent;
-
-  ui_make_widget(widget_flag_draw_background,
-                 size_flag_text_content,
-                 string_literal_init_type("String parent", utf8));
-
-  Widget *text_parent = panel_parent->current_parent->last_child;
-  ui_push_parent(text_parent);
 
   String_Const_utf8 copy_string;
 
@@ -522,23 +513,11 @@ internal void ui_do_string(String_Const_utf8 string)
   ui_make_widget(widget_flag_draw_text,
                  size_flag_text_content,
                  copy_string);
-
-  ui_pop_parent();
-  ui_push_parent(last_parent);
 }
 
 internal void ui_do_formatted_string(char *format, ...)
 {
   UI_Context *ui           = ui_get_context();
-  Panel      *panel_parent = ui->current_panel_parent;
-  Widget     *last_parent  = panel_parent->current_parent;
-
-  ui_make_widget(widget_flag_draw_background,
-                 size_flag_text_content,
-                 string_literal_init_type("Text parent", utf8));
-
-  Widget *text_parent = panel_parent->current_parent->last_child;
-  ui_push_parent(text_parent);
 
   va_list args;
   va_start(args, format);
@@ -558,9 +537,6 @@ internal void ui_do_formatted_string(char *format, ...)
   ui_make_widget(widget_flag_draw_text,
                  size_flag_text_content,
                  sprinted_text);
-
-  ui_pop_parent();
-  ui_push_parent(last_parent);
 }
 
 internal b32 ui_do_button(String_Const_utf8 string)

@@ -1085,12 +1085,13 @@ WinMain(HINSTANCE instance,
 
       ui_initialize_frame();
 
-      Panel *first_panel = ui_make_panel(axis_split_vertical, 0.5f, string_literal_init_type("first", utf8));
+      ui_make_panel(axis_split_vertical, 0.5f, string_literal_init_type("first", utf8));
       // first_panel->sentinel = ui_get_sentinel();
-      unused(first_panel);
 
       ui_push_background_color(rgba_from_u8(55, 47, 36, 255));
 
+      ui_do_string(scu8f(ui->string_pool, "hello"));
+      ui_do_string(scu8f(ui->string_pool, "hello2"));
       win32_global_state.frame_count++;
 
       ui_do_formatted_string("Last frame time: %.6fs", last_frame_time);
@@ -1281,18 +1282,6 @@ WinMain(HINSTANCE instance,
           panel_from_which_to_split = child->next_sibling;
         }
       }
-
-      /*
-      ui_push_panel_parent(ui_get_sentinel_panel());
-      Panel *the_other_half = ui_make_panel(axis_split_vertical, 0.5, string_literal_init_type("the other half", utf8));
-      
-      ui_make_panel(axis_split_horizontal, 0.5, string_literal_init_type("first upper half of the other half", utf8));
-      ui_do_string(string_literal_init_type("I should be on the other half", utf8));
-
-      ui_push_panel_parent(the_other_half);
-      ui_make_panel(axis_split_horizontal, 0.5, string_literal_init_type("first bottom half of the other half", utf8));
-      ui_do_string(string_literal_init_type("I should be on first bottom half of the other half", utf8));
-      */
 
       Rect_f32 render_rect = render_get_client_rect();
       // render_rect = translate(render_rect, V2(50.0f * cosf(acc_time * tau_f32), 50.0f * sinf(acc_time * tau_f32)));

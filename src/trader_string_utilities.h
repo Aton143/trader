@@ -22,6 +22,7 @@ internal inline u64 base64_encode(u8 *out_buffer, u8 *data, u64 data_length);
 internal inline String_Const_utf8 concat_str(Arena *arena, String_Const_utf8 a, String_Const_utf8 b, u64 size);
 
 internal inline String_Const_utf8 scu8f(Arena *arena, char *format, ...);
+internal inline String_Const_utf8 scu8f(Arena *arena, i32 limit, char *format, ...);
 
 // Implementation
 internal inline b32 is_newline(char c)
@@ -225,6 +226,12 @@ internal inline String_Const_utf8 scu8f(Arena *arena, i32 limit, char *format, .
 
   va_end(args);
 
+  return(res);
+}
+
+internal inline String_Const_utf8 scu8f(Arena *arena, char *format, ...)
+{
+  String_Const_utf8 res = scu8f(arena, 0, format);
   return(res);
 }
 

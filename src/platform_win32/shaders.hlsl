@@ -56,6 +56,8 @@ SamplerState global_sampler: register(s0);
 //     +-------------+
 //  (-1,  1)        (1,  1)
 
+// >= 0 if outside
+// 0 if inside
 float sdf_rounded_rect(float2 sample_pos,
                        float2 rect_center,
                        float2 rect_half_size,
@@ -150,8 +152,9 @@ float4 PS_Main(PS_Input input): SV_Target
     if (inside_d > 0.0f) border_factor = inside_f;
   }
 
-  float3 combined  = float3(input.color.rgb) * alpha_sample * border_factor;
-  float4 out_color = float4(combined, alpha_sample);
+  float  multiplied_alpha = alpha_sample * border_factor;
+  float3 combined  = float3(input.color.rgb) * multiplied_alpha;
+  float4 out_color = float4(combined, multiplied_alpha);
   return out_color;
 }
 

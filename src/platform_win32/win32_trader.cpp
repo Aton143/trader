@@ -1256,10 +1256,30 @@ WinMain(HINSTANCE instance,
       if (click_count)
       {
         ui_push_panel_parent(ui_get_sentinel_panel());
-        ui_make_panel(axis_split_vertical, 0.5, string_literal_init_type("the other half", utf8));
+        Panel *other_half = ui_make_panel(axis_split_vertical, 0.5, string_literal_init_type("the other half", utf8));
 
-        String_Const_utf8 string = string_literal_init_type("", utf8);
-        unused(string);
+        Panel *panel_from_which_to_split = other_half;
+
+        for (u32 click_index = 1;
+             click_index < click_count;
+             ++click_index)
+        {
+          String_Const_utf8 panel_strings[2];
+
+          panel_strings[0] = scu8f(ui->string_pool, 512, "half: %d",       click_count * 2);
+          panel_strings[1] = scu8f(ui->string_pool, 512, "other half: %d", (click_count * 2) + 1);
+
+          f32 panel_sizes[2] = {0.5f, 0.5f};
+
+          Panel *child = ui_make_panels((click_index % 2 == 1) ? axis_split_horizontal : axis_split_vertical,
+                                        panel_sizes,
+                                        panel_strings,
+                                        array_count(panel_strings),
+                                        panel_from_which_to_split);
+
+          // ui_do_formatted_string("split half: %d", click_count);
+          panel_from_which_to_split = child->next_sibling;
+        }
       }
 
       /*

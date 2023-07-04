@@ -211,7 +211,7 @@ internal Panel *ui_make_panels(Axis_Split split, f32 *sizes, String_Const_utf8 *
 
   for (u32 panel_index = 0;
        panel_index < count;
-       ++count)
+       ++panel_index)
   {
     ui_make_panel(split, sizes[panel_index], strings[panel_index], to_split);
   }

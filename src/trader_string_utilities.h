@@ -1,35 +1,37 @@
 #ifndef TRADER_STRING_H
 #include <wchar.h>
 
-internal b32 is_newline(char c);
+internal inline b32 is_newline(char c);
 
-internal b32 compare_string_utf8(String_Const_utf8 a, String_Const_utf8 b, u64 size);
-internal b32 compare_string_utf8(String_Const_utf8 a, String_Const_utf8 b);
+internal inline b32 compare_string_utf8(String_Const_utf8 a, String_Const_utf8 b, u64 size);
+internal inline b32 compare_string_utf8(String_Const_utf8 a, String_Const_utf8 b);
 
-internal u64 c_string_length(char *string);
-internal u64 c_string_length(char *string, u64 max_length);
+internal inline u64 c_string_length(char *string);
+internal inline u64 c_string_length(char *string, u64 max_length);
 
-internal u64 c_string_length(utf8 *string);
-internal u64 c_string_length(utf8 *string, u64 max_length);
+internal inline u64 c_string_length(utf8 *string);
+internal inline u64 c_string_length(utf8 *string, u64 max_length);
 
-internal u64 c_string_length(utf16 *string);
-internal u64 c_string_count(utf16 *string);
+internal inline u64 c_string_length(utf16 *string);
+internal inline u64 c_string_count(utf16 *string);
 
-internal String_Const_char string_const_char(char *string);
-internal String_Const_utf16 string_const_utf16(utf16 *string);
-internal u64 base64_encode(u8 *out_buffer, u8 *data, u64 data_length);
+internal inline String_Const_char string_const_char(char *string);
+internal inline String_Const_utf16 string_const_utf16(utf16 *string);
+internal inline u64 base64_encode(u8 *out_buffer, u8 *data, u64 data_length);
 
-internal String_Const_utf8 concat_str(Arena *arena, String_Const_utf8 a, String_Const_utf8 b, u64 size);
+internal inline String_Const_utf8 concat_str(Arena *arena, String_Const_utf8 a, String_Const_utf8 b, u64 size);
+
+internal inline String_Const_utf8 scu8f(Arena *arena, char *format, ...);
 
 // Implementation
-internal b32 is_newline(char c)
+internal inline b32 is_newline(char c)
 {
   b32 result = ((c == '\r') || 
                 (c == '\n'));
   return(result);
 }
 
-internal b32 compare_string_utf8(String_Const_utf8 a, String_Const_utf8 b, u64 size)
+internal inline b32 compare_string_utf8(String_Const_utf8 a, String_Const_utf8 b, u64 size)
 {
   b32 result = true;
 
@@ -49,7 +51,7 @@ internal b32 compare_string_utf8(String_Const_utf8 a, String_Const_utf8 b, u64 s
   return(result);
 }
 
-internal b32 compare_string_utf8(String_Const_utf8 a, String_Const_utf8 b)
+internal inline b32 compare_string_utf8(String_Const_utf8 a, String_Const_utf8 b)
 {
   b32 result = true;
 
@@ -74,7 +76,7 @@ internal b32 compare_string_utf8(String_Const_utf8 a, String_Const_utf8 b)
   return(result);
 }
 
-internal u64 c_string_length(char *string)
+internal inline u64 c_string_length(char *string)
 {
   u64 result = 0;
   while (string[result] != '\0')
@@ -84,7 +86,7 @@ internal u64 c_string_length(char *string)
   return(result);
 }
 
-internal u64 c_string_length(char *string, u64 n)
+internal inline u64 c_string_length(char *string, u64 n)
 {
   u64 result = 0;
   while ((n-- > 0) && string[result] != '\0')
@@ -94,17 +96,17 @@ internal u64 c_string_length(char *string, u64 n)
   return(result);
 }
 
-internal u64 c_string_length(utf8 *string)
+internal inline u64 c_string_length(utf8 *string)
 {
   return(c_string_length((char *) string));
 }
 
-internal u64 c_string_length(utf8 *string, u64 max_length)
+internal inline u64 c_string_length(utf8 *string, u64 max_length)
 {
   return(c_string_length((char *) string, max_length));
 }
 
-internal u64 c_string_length(utf16 *string)
+internal inline u64 c_string_length(utf16 *string)
 {
   u64 result = 0;
   while (string[result] != '\0') {
@@ -113,13 +115,13 @@ internal u64 c_string_length(utf16 *string)
   return(result);
 }
 
-internal u64 c_string_count(utf16 *string)
+internal inline u64 c_string_count(utf16 *string)
 {
   u64 result = wcslen(string); 
   return(result);
 }
 
-internal String_Const_char string_const_char(char *string)
+internal inline String_Const_char string_const_char(char *string)
 {
   String_Const_char result = {};
 
@@ -129,7 +131,7 @@ internal String_Const_char string_const_char(char *string)
   return(result);
 }
 
-internal String_Const_utf16 string_const_utf16(utf16 *string)
+internal inline String_Const_utf16 string_const_utf16(utf16 *string)
 {
   String_Const_utf16 result = {};
 
@@ -153,7 +155,7 @@ global_const u8 base64_encoding_table[] = {
 global_const i32 base64_mod_table[] = {0, 2, 1};
 
 // from https://stackoverflow.com/questions/342409/how-do-i-base64-encode-decode-in-c
-internal u64 base64_encode(u8 *out_buffer,
+internal inline u64 base64_encode(u8 *out_buffer,
                            u8 *data,
                            u64 data_length)
 {
@@ -185,7 +187,7 @@ internal u64 base64_encode(u8 *out_buffer,
   return(result);
 }
 
-internal String_Const_utf8 concat_str(Arena *arena, String_Const_utf8 a, String_Const_utf8 b, u64 size)
+internal inline String_Const_utf8 concat_str(Arena *arena, String_Const_utf8 a, String_Const_utf8 b, u64 size)
 {
   String_Const_utf8 res = {};
 
@@ -206,6 +208,25 @@ internal String_Const_utf8 concat_str(Arena *arena, String_Const_utf8 a, String_
 }
 #define concat_string(arena, a, b) concat_str(arena, (a), (b), (a).size + (b).size)
 #define concat_string_to_c_string(arena, a, b) concat_str(arena, (a), (b), (a).size + (b).size + 1)
+
+internal inline String_Const_utf8 scu8f(Arena *arena, i32 limit, char *format, ...)
+{
+  String_Const_utf8 res = {};
+
+  va_list args;
+  va_start(args, format);
+
+  utf8 *string_start = (utf8 *) (arena->start + arena->used);
+
+  res.size = stbsp_vsnprintf((char *) string_start, (limit > 0) ? limit : 512, format, args);
+  res.str  = string_start;
+
+  arena_push(arena, res.size + 1);
+
+  va_end(args);
+
+  return(res);
+}
 
 #define TRADER_STRING_H
 #endif

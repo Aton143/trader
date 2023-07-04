@@ -4,6 +4,12 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
+#define STB_SPRINTF_IMPLEMENTATION
+#include "./foreign/stb_sprintf.h"
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "./foreign/stb_image_write.h"
+
 struct Global_Platform_State;
 struct Render_Context;
 
@@ -23,12 +29,6 @@ struct Render_Context;
 #include "trader_memory.h"
 #include "trader_handle.h"
 #include "trader_string_utilities.h"
-
-#define STB_SPRINTF_IMPLEMENTATION
-#include "./foreign/stb_sprintf.h"
-
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "./foreign/stb_image_write.h"
 
 #include "trader_render.h"
 #include "trader_font.h"

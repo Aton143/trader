@@ -139,7 +139,7 @@ internal Widget *ui_make_sentinel_widget()
 }
 
 // TODO(antonio): cannot have two directions in a children list
-internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent, String_Const_utf8 string)
+internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent, String_Const_utf8 string, Panel *from)
 {
   Panel      *panel   = NULL;
   UI_Context *ui      = ui_get_context();
@@ -156,7 +156,7 @@ internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent, Str
     ++ui->panel_count;
     ui->panel_free_list_head = ui->panel_free_list_head->next_sibling;
 
-    Panel *cur_par = ui->current_panel_parent;
+    Panel *cur_par = from == NULL ? ui->current_panel_parent : from;
     expect(cur_par != NULL);
 
     if (cur_par->first_child == NULL)
@@ -193,6 +193,30 @@ internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent, Str
   }
 
   return(panel);
+}
+
+internal Panel *ui_make_panels(Axis_Split split, f32 *sizes, String_Const_utf8 *strings, u32 count, Panel *to_split)
+{
+  UI_Context *ui = ui_get_context();
+  if (to_split == NULL)
+  {
+    expect(ui->current_panel_parent != NULL);
+    to_split = ui->current_panel_parent;
+  }
+
+  if (to_split->first_child != NULL)
+  {
+    expect_message(to_split->first_child->split == split, "Panels only accept one split direction");
+  }
+
+  for (u32 panel_index = 0;
+       panel_index < count;
+       ++count)
+  {
+    ui_make_panel(split, sizes[panel_index], strings[panel_index], to_split);
+  }
+
+  return(to_split->first_child);
 }
 
 internal inline UI_Context *ui_get_context()
@@ -437,7 +461,7 @@ internal inline void ui_push_background_color(f32 r, f32 g, f32 b, f32 a)
   ui->background_color[3] = rgba(r, g, b, a);
 }
 
-internal void ui_pop_background_color()
+internal void ui_pop_background_color(void)
 {
   UI_Context *ui = ui_get_context();
   copy_memory_block(ui->background_color, (void *) default_background_color, sizeof(default_background_color));
@@ -464,7 +488,7 @@ internal inline void ui_push_panel_parent(Panel *new_parent)
   ui->current_panel_parent = new_parent;
 }
 
-internal inline void ui_pop_panel_parent()
+internal inline void ui_pop_panel_parent(void)
 {
   UI_Context *ui           = ui_get_context();
   Panel      *panel_parent = ui->current_panel_parent;
@@ -528,6 +552,7 @@ internal void ui_do_formatted_string(char *format, ...)
   sprinted_text.str  = (utf8 *) string_start;
 
   arena_push(ui->string_pool, sprinted_text.size + 1);
+
   va_end(args);
 
   ui_make_widget(widget_flag_draw_text,
@@ -737,7 +762,7 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
       draw_call->color[1] = rgba_from_u8(55, 47, 36, 255);
       draw_call->color[2] = rgba_from_u8(55, 47, 36, 255);
       draw_call->color[3] = rgba_from_u8(55, 47, 36, 255);
-      draw_call->corner_radius    = 100.0f;
+      draw_call->corner_radius    = 5.0f;
       draw_call->border_thickness = 3.0f;
       draw_call->edge_softness    = 0.5f;
 

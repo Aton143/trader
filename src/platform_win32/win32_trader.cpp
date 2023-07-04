@@ -982,10 +982,11 @@ WinMain(HINSTANCE instance,
 
     local_persist V2_f32 data_for_lines[4096] = {};
 
-    u32 data_index = 0;
-    f32 acc_time   = 0.0f;
-    f32 up_down    = 0.0f;
-    b32 triangle   = false;
+    u32 data_index  = 0;
+    f32 acc_time    = 0.0f;
+    f32 up_down     = 0.0f;
+    b32 triangle    = false;
+    u32 click_count = 0;
 
     while (global_running)
     {
@@ -1204,6 +1205,7 @@ WinMain(HINSTANCE instance,
         // ui_do_string(string_literal_init_type("That was the good action", utf8));
         // slider_float = 1.0f;
         triangle = !triangle;
+        click_count++;
       }
 
       if (ui_do_button(string_literal_init_type("Open a file", utf8)))
@@ -1251,7 +1253,16 @@ WinMain(HINSTANCE instance,
         render_data_to_lines(data_for_lines, lines_to_render);
       }
 
-      ui_push_background_color(rgba_from_u8(0, 0, 0, 0));
+      if (click_count)
+      {
+        ui_push_panel_parent(ui_get_sentinel_panel());
+        ui_make_panel(axis_split_vertical, 0.5, string_literal_init_type("the other half", utf8));
+
+        String_Const_utf8 string = string_literal_init_type("", utf8);
+        unused(string);
+      }
+
+      /*
       ui_push_panel_parent(ui_get_sentinel_panel());
       Panel *the_other_half = ui_make_panel(axis_split_vertical, 0.5, string_literal_init_type("the other half", utf8));
       
@@ -1261,6 +1272,7 @@ WinMain(HINSTANCE instance,
       ui_push_panel_parent(the_other_half);
       ui_make_panel(axis_split_horizontal, 0.5, string_literal_init_type("first bottom half of the other half", utf8));
       ui_do_string(string_literal_init_type("I should be on first bottom half of the other half", utf8));
+      */
 
       Rect_f32 render_rect = render_get_client_rect();
       // render_rect = translate(render_rect, V2(50.0f * cosf(acc_time * tau_f32), 50.0f * sinf(acc_time * tau_f32)));

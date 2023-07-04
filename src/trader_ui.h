@@ -442,7 +442,7 @@ internal void ui_canvas(String_Const_utf8 string, V2_f32 size = {400.0f, 400.0f}
 internal UI_Key ui_make_key(String_Const_utf8 string);
 internal b32 ui_is_key_equal(UI_Key a, UI_Key b);
 
-internal Widget *ui_make_sentinel_widget();
+internal Widget *ui_make_sentinel_widget(void);
 internal void    ui_make_widget(Widget_Flag        widget_flags,
                                 Widget_Size_Flag   size_flags,
                                 String_Const_utf8  string,
@@ -459,12 +459,24 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
                              void              *data             = NULL,
                              u64                data_size        = 0);
 // NOTE(antonio): panels
-internal inline Panel *ui_get_sentinel_panel();
+internal inline Panel *ui_get_sentinel_panel(void);
 
 internal inline void ui_push_panel_parent(Panel *panel);
-internal inline void ui_pop_panel_parent();
+internal inline void ui_pop_panel_parent(void);
 
-internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent, String_Const_utf8 string = {});
+internal inline f32  ui_get_remaining_sizing_from_implicit_panel_parent(void);
+
+internal Panel *ui_make_panel(Axis_Split         split,
+                              f32                size_relative_to_parent,
+                              String_Const_utf8  string = {},
+                              Panel             *from   = NULL);
+// returns first child
+internal Panel *ui_make_panels(Axis_Split         split,
+                               f32               *sizes,
+                               String_Const_utf8 *strings,
+                               u32                count,
+                               Panel             *to_split = NULL);
+
 internal void   ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect);
 #define TRADER_UI_H
 #endif

@@ -738,7 +738,7 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
       draw_call->color[1] = rgba_from_u8(55, 47, 36, 255);
       draw_call->color[2] = rgba_from_u8(55, 47, 36, 255);
       draw_call->color[3] = rgba_from_u8(55, 47, 36, 255);
-      draw_call->corner_radius    = 5.0f;
+      draw_call->corner_radius    = global_slider_float * 1000.0f;
       draw_call->border_thickness = 3.0f;
       draw_call->edge_softness    = 0.5f;
 

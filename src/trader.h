@@ -16,6 +16,8 @@ struct Render_Context;
 #define TRADER_VERSION 1LL
 #include "trader_base_defines.h"
 
+static f32 global_slider_float;
+
 #if OS_WINDOWS
 #  include <intrin.h>
 # if ARCH_X64

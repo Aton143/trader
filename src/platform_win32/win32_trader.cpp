@@ -201,19 +201,61 @@ internal u32 win32_network_thread(void *arg)
   return(0);
 }
 
-internal LRESULT
-win32_window_procedure(HWND window_handle, UINT message,
-                       WPARAM wparam, LPARAM lparam)
+internal void win32_message_fiber(void *args)
+{
+  unused(args);
+
+  while(1)
+  {
+    MSG message;
+    while (PeekMessageW(&message, NULL, 0, 0, PM_REMOVE))
+    {
+      if (message.message == WM_QUIT)
+      {
+        global_running = false;
+      }
+
+      TranslateMessage(&message);
+      DispatchMessageW(&message);
+    }
+
+    SwitchToFiber(win32_global_state.main_fiber_address);
+  }
+}
+
+internal LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM wparam, LPARAM lparam)
 {
   LRESULT result = 0;
 
   UI_Context *ui = ui_get_context();
+
   switch (message)
   {
     // TODO(antonio): when y ~= 0, mouse is registered as not in client
     case WM_MOUSEMOVE:
     case WM_NCMOUSEMOVE: // NOTE(antonio): NC - non-client
     {
+      POINT mouse_pos =
+      {
+        (LONG) GET_X_LPARAM(lparam),
+        (LONG) GET_Y_LPARAM(lparam)
+      };
+
+      if (win32_global_state.nonclient_mouse_button != 0)
+      {
+        if ((GET_X_LPARAM(win32_global_state.nonclient_mouse_pos) != mouse_pos.x) ||
+            (GET_Y_LPARAM(win32_global_state.nonclient_mouse_pos) != mouse_pos.y))
+        {
+          //__debugbreak();
+
+          DefWindowProcW(window_handle,
+                         win32_global_state.nonclient_mouse_button,
+                         HTCAPTION,
+                         win32_global_state.nonclient_mouse_pos);
+          win32_global_state.nonclient_mouse_button = 0;
+        }
+      }
+
       Mouse_Area cur_mouse_area = (message == WM_MOUSEMOVE) ? mouse_area_in_client : mouse_area_other;
       if (ui->mouse_area != cur_mouse_area)
       {
@@ -235,12 +277,6 @@ win32_window_procedure(HWND window_handle, UINT message,
         ui->mouse_area = cur_mouse_area;
       }
 
-      POINT mouse_pos =
-      {
-        (LONG) GET_X_LPARAM(lparam),
-        (LONG) GET_Y_LPARAM(lparam)
-      };
-
       // WM_NCMOUSEMOVE are provided in absolute coordinates.
       if ((message == WM_NCMOUSEMOVE) && (ScreenToClient(window_handle, &mouse_pos) == FALSE))
       {
@@ -260,6 +296,19 @@ win32_window_procedure(HWND window_handle, UINT message,
         (f32) mouse_pos.x,
         (f32) mouse_pos.y
       };
+    } break;
+
+    case WM_NCLBUTTONDOWN:
+    {
+      if (wparam == HTCAPTION)
+      {
+        win32_global_state.nonclient_mouse_pos    = lparam;
+        win32_global_state.nonclient_mouse_button = message;
+      }
+      else
+      {
+        result = DefWindowProc(window_handle, message, wparam, lparam);
+      }
     } break;
 
     case WM_MOUSELEAVE:
@@ -375,8 +424,58 @@ win32_window_procedure(HWND window_handle, UINT message,
 
     case WM_SIZE:
     {
+      //__debugbreak();
       global_window_resized = true;
-      result = DefWindowProc(window_handle, message, wparam, lparam);
+      //result = DefWindowProc(window_handle, message, wparam, lparam);
+    } break;
+
+    case WM_SIZING:
+    {
+      //__debugbreak();
+      result = TRUE;
+    } break;
+
+    case WM_ENTERSIZEMOVE:
+    case WM_ENTERMENULOOP:
+    {
+      //__debugbreak();
+      SetTimer(window_handle, 1, 1, NULL);
+    } break;
+
+    case WM_EXITSIZEMOVE:
+    case WM_EXITMENULOOP:
+    {
+      //__debugbreak();
+      KillTimer(window_handle, 1);
+      result = DefWindowProcW(window_handle, message, wparam, lparam);
+    } break;
+
+    case WM_TIMER:
+    {
+      if (wparam == 1)
+      {
+        SwitchToFiber(win32_global_state.main_fiber_address);
+        result = DefWindowProcW(window_handle, message, wparam, lparam);
+      }
+    } break;
+
+    case WM_SYSCOMMAND:
+    {
+      switch (wparam & 0xff0)
+      {
+        case SC_SCREENSAVE:
+        case SC_MONITORPOWER:
+        {
+
+        } break;
+
+        case SC_KEYMENU:
+        {
+
+        } break;
+      }
+
+      result = DefWindowProcW(window_handle, message, wparam, lparam);
     } break;
 
     case WM_QUIT:
@@ -388,7 +487,7 @@ win32_window_procedure(HWND window_handle, UINT message,
 
     default:
     {
-      result = DefWindowProc(window_handle, message, wparam, lparam);
+      result = DefWindowProcW(window_handle, message, wparam, lparam);
     } break;
   }
 
@@ -988,16 +1087,18 @@ WinMain(HINSTANCE instance,
     b32 triangle    = false;
     u32 click_count = 0;
 
+    // NOTE(antonio): experimental change
+    win32_global_state.main_fiber_address = ConvertThreadToFiber(NULL);
+    expect_message(win32_global_state.main_fiber_address != NULL, "expected to use fiber path");
+
+    void *win32_message_fiber_handle = CreateFiber(0, &win32_message_fiber, NULL);
+    expect_message(win32_global_state.main_fiber_address != NULL, "could not create a fiber for messages");
+
     while (global_running)
     {
       TIMED_BLOCK_START();
-      MSG message;
 
-      while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE))
-      {
-        TranslateMessage(&message);
-        DispatchMessage(&message);
-      }
+      SwitchToFiber(win32_message_fiber_handle);
 
       if (global_window_resized && !IsIconic(win32_global_state.window_handle))
       {
@@ -1163,6 +1264,7 @@ WinMain(HINSTANCE instance,
 
       ui_do_formatted_string("Slider float: %.16f", slider_float);
       ui_do_slider_f32(string_literal_init_type("slider", utf8), &slider_float, 0.0f, 1.0f);
+      global_slider_float = slider_float;
       ui_push_background_color(rgba_from_u8(0, 0, 0, 0));
 
       ui_do_formatted_string("Interaction Results:");

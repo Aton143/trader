@@ -48,21 +48,25 @@ enum
 #pragma pack(push, 4)
 struct Global_Platform_State
 {
-  Temp_Arena     temp_arena;
-  Arena          global_arena;
+  Temp_Arena      temp_arena;
+  Arena           global_arena;
 
-  Render_Context render_context;
-  UI_Context     ui_context;
+  Render_Context  render_context;
+  UI_Context      ui_context;
 
-  Focus_Event    focus_event;
-  f64            dt;
+  Focus_Event     focus_event;
+  f64             dt;
 
-  HWND           window_handle;
+  HWND            window_handle;
 
-  HANDLE         notify_iocp;
-  HANDLE         notify_dir;
-  HANDLE         notify_dir_iocp;
-  OVERLAPPED     notify_overlapped;
+  HANDLE          notify_iocp;
+  HANDLE          notify_dir;
+  HANDLE          notify_dir_iocp;
+  OVERLAPPED      notify_overlapped;
+
+  void           *main_fiber_address;
+  u64             nonclient_mouse_pos;
+  u32             nonclient_mouse_button;
 
 #if !SHIP_MODE
   u64 frame_count;

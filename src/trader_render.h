@@ -394,18 +394,28 @@ internal void render_draw_text(f32 *baseline_x, f32 *baseline_y, RGBA_f32 color,
        (sprinted_text.str[text_index] != '\0') && (text_index < sprinted_text.size);
        ++text_index)
   {
-    if (is_between_inclusive(bounds.x0, cur_pos.x, bounds.x1) && is_between_inclusive(bounds.y0, cur_pos.y, bounds.y1))
+    // TODO(antonio): deal with new lines more gracefully
+    if (is_newline(sprinted_text.str[text_index]))
     {
-      // TODO(antonio): deal with new lines more gracefully
-      if (is_newline(sprinted_text.str[text_index]))
-      {
-        continue;
-      }
-      else
-      {
-        Instance_Buffer_Element *cur_element     = render_elements  +  text_index;
-        stbtt_packedchar        *cur_packed_char = atlas->char_data + (sprinted_text.str[text_index] - starting_code_point);
+      continue;
+    }
+    else
+    {
+      Instance_Buffer_Element *cur_element     = render_elements  +  text_index;
+      stbtt_packedchar        *cur_packed_char = atlas->char_data + (sprinted_text.str[text_index] - starting_code_point);
 
+      f32 kern_advance = 0.0f;
+      if (text_index < (sprinted_text.size - 1))
+      {
+        kern_advance = font_scale *
+          stbtt_GetCodepointKernAdvance(&atlas->font_info,
+                                        sprinted_text.str[text_index],
+                                        sprinted_text.str[text_index + 1]);
+      }
+
+      if (is_between_inclusive(bounds.x0, cur_pos.x + cur_packed_char->xadvance, bounds.x1) &&
+          is_between_inclusive(bounds.y0, cur_pos.y, bounds.y1))
+      {
         cur_element->pos = 
         {
           cur_pos.x + cur_packed_char->xoff,
@@ -436,21 +446,12 @@ internal void render_draw_text(f32 *baseline_x, f32 *baseline_y, RGBA_f32 color,
 
         cur_element->edge_softness = 0.0f;
 
-        f32 kern_advance = 0.0f;
-        if (text_index < (sprinted_text.size - 1))
-        {
-          kern_advance = font_scale *
-            stbtt_GetCodepointKernAdvance(&atlas->font_info,
-                                          sprinted_text.str[text_index],
-                                          sprinted_text.str[text_index + 1]);
-        }
-
         cur_pos.x += kern_advance + cur_packed_char->xadvance;
       }
-    }
-    else
-    {
-      break;
+      else
+      {
+        break;
+      }
     }
   }
 

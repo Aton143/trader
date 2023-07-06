@@ -6,7 +6,7 @@ enum
   widget_flag_none               = (0LL),
 
   widget_flag_clickable          = (1LL << 0),
-  widget_flag_dragable           = (1LL << 1),
+  widget_flag_draggable          = (1LL << 1),
 
   widget_flag_view_scroll        = (1LL << 2),
   widget_flag_keyboard_focusable = (1LL << 3),
@@ -37,35 +37,36 @@ enum
   widget_flag_smooth_animation_x = (1LL << 17),
   widget_flag_smooth_animation_y = (1LL << 18),
 
-  widget_flag_arbitrary_draw     = (1LL << 19)
+  widget_flag_arbitrary_draw     = (1LL << 19),
+  widget_flag_border_draggable   = (1LL << 20),
 };
 
 typedef u64 Widget_Size_Flag;
 enum
 {
-  size_flag_none                = (0LL),
+  size_flag_none                     = (0LL),
 
-  size_flag_content_size_x      = (1LL << 0),
-  size_flag_content_size_y      = (1LL << 1),
-  size_flag_text_content        = (size_flag_content_size_x | size_flag_content_size_y),
+  size_flag_content_size_x           = (1LL << 0),
+  size_flag_content_size_y           = (1LL << 1),
+  size_flag_text_content             = (size_flag_content_size_x | size_flag_content_size_y),
 
-  size_flag_fill_rest_of_axis_x = (1LL << 2),
-  size_flag_fill_rest_of_axis_y = (1LL << 3),
+  size_flag_fill_rest_of_axis_x      = (1LL << 2),
+  size_flag_fill_rest_of_axis_y      = (1LL << 3),
 
-  size_flag_copy_parent_size_x  = (1LL << 4),
-  size_flag_copy_parent_size_y  = (1LL << 5),
+  size_flag_copy_parent_size_x       = (1LL << 4),
+  size_flag_copy_parent_size_y       = (1LL << 5),
 
-  size_flag_to_be_sized_x       = (1LL << 6),
-  size_flag_to_be_sized_y       = (1LL << 7),
+  size_flag_to_be_sized_x            = (1LL << 6),
+  size_flag_to_be_sized_y            = (1LL << 7),
 
-  size_flag_given_size_x        = (1LL << 8),
-  size_flag_given_size_y        = (1LL << 9),
+  size_flag_given_size_x             = (1LL << 8),
+  size_flag_given_size_y             = (1LL << 9),
 
-  size_flag_absolute_pos_x      = (1LL << 10),
-  size_flag_absolute_pos_y      = (1LL << 11),
+  size_flag_absolute_pos_x           = (1LL << 10),
+  size_flag_absolute_pos_y           = (1LL << 11),
 
-  size_flag_relative_to_parent_pos_x      = (1LL << 10),
-  size_flag_relative_to_parent_pos_y      = (1LL << 11),
+  size_flag_relative_to_parent_pos_x = (1LL << 10),
+  size_flag_relative_to_parent_pos_y = (1LL << 11),
 };
 
 typedef u32 Mouse_Area;

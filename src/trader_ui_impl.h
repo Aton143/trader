@@ -177,10 +177,13 @@ internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent, Str
       cur_par->last_child                    = panel;
     }
 
+    String_Const_utf8 panel_prefix         = string_literal_init_type("Button parent::", utf8);
+    String_Const_utf8 panel_to_hash_string = concat_string_to_c_string(ui->string_pool, panel_prefix, string);
+
     panel->parent                  = cur_par;
     panel->split                   = split;
     panel->size_relative_to_parent = size_relative_to_parent;
-    panel->string                  = string;
+    panel->string                  = panel_to_hash_string;
     panel->sizing_left             = 1.0f;
 
     panel->sentinel = panel->current_parent = ui_make_sentinel_widget();
@@ -190,6 +193,15 @@ internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent, Str
     expect(0 <= panel->parent->sizing_left);
 
     ui->current_panel_parent = panel;
+
+    ui_make_widget(widget_flag_clickable | widget_flag_border_draggable | widget_flag_draw_background,
+                   size_flag_copy_parent_size_x | size_flag_copy_parent_size_y, 
+                   string,
+                   V2(1.0f, 1.0f),
+                   V2(0.0f, 0.0f),
+                   global_slider_float * 1000.0f,
+                   0.5f,
+                   3.0f);
   }
 
   return(panel);
@@ -623,7 +635,7 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
   f32 norm = 1.0f / (maximum - minimum);
   f32 slider_x_scale = lerpf(0.0f, clamp(minimum, *in_out_value, maximum) * norm, 1.0f);
 
-  ui_make_widget(widget_flag_draw_background  | widget_flag_dragable,
+  ui_make_widget(widget_flag_draw_background  | widget_flag_draggable,
                  size_flag_copy_parent_size_x | size_flag_copy_parent_size_y |
                  size_flag_relative_to_parent_pos_x | size_flag_relative_to_parent_pos_y,
                  slider_to_hash,
@@ -1095,7 +1107,7 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
         }
       }
 
-      if (cur_widget->widget_flags & widget_flag_dragable)
+      if (cur_widget->widget_flags & widget_flag_draggable)
       {
         b32 mouse_left_change = ((ui->prev_frame_mouse_event & mouse_event_lclick) !=
                                  (ui->cur_frame_mouse_event  & mouse_event_lclick));

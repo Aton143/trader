@@ -96,7 +96,7 @@ internal Arena *platform_get_global_arena()
   return(&platform_get_global_state()->global_arena);
 }
 
-inline internal Arena *get_temp_arena(Thread_Context *context)
+internal inline Arena *get_temp_arena(Thread_Context *context)
 {
   Temp_Arena *temp_arena = &context->local_temp_arena;
 
@@ -110,6 +110,36 @@ inline internal Arena *get_temp_arena(Thread_Context *context)
   }
 
   return(&temp_arena->arena);
+}
+
+internal inline Arena  get_rest_of_temp_arena(f32 rest, Thread_Context *context)
+{
+  expect(is_between_inclusive(0.0f, rest, 1.0f));
+  expect(context != NULL);
+
+  Temp_Arena *temp_arena = &context->local_temp_arena;
+
+  Arena res;
+  res.start     = temp_arena->arena.start + temp_arena->arena.used;
+  res.size      = (u64) (rest * (temp_arena->arena.size  - temp_arena->arena.used));
+  res.used      = 0;
+  res.alignment = temp_arena->arena.alignment;
+
+  temp_arena->arena.used += res.size;
+  expect(temp_arena->arena.used < temp_arena->arena.size);
+
+  return(res);
+}
+
+internal inline u64 get_temp_arena_used(Thread_Context *context)
+{
+  Temp_Arena *temp_arena = &context->local_temp_arena;
+  return(temp_arena->arena.used);
+}
+internal inline void set_temp_arena_used(u64 size, Thread_Context *context)
+{
+  Temp_Arena *temp_arena = &context->local_temp_arena;
+  temp_arena->arena.used = size;
 }
 
 internal void set_temp_arena_wait(u64 wait, Thread_Context *context)

@@ -140,6 +140,12 @@ internal inline V2_f32 operator *(f32 s, V2_f32 v)
   return(scale(s, v));
 }
 
+internal inline V3_f32 V3(f32 x, f32 y, f32 z)
+{
+  V3_f32 res = {x, y, z};
+  return(res);
+}
+
 internal inline V4_f32 V4(f32 x, f32 y, f32 z, f32 w)
 {
   V4_f32 res = {x, y, z, w};

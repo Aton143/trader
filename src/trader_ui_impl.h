@@ -696,32 +696,44 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
   }
 
   Common_Render_Context *render = render_get_common_context();
-
-  Panel  *first_child     = NULL;
   V2_f32  rect_dimensions = rect_get_dimensions(&rect);
 
+  Arena *temp_arena  = get_temp_arena();
+  Arena *panel_stack = temp_arena;
+
+  Panel *first_child = NULL;
   for (Panel *cur_child  = panel->first_child;
        cur_child        != first_child;
        cur_child         = cur_child->next_sibling)
   {
+    arena_append(panel_stack, &cur_child, sizeof(Panel *));
+    first_child = panel->first_child;
+  }
+
+  Panel **stack_top = NULL;
+  Panel  *cur_panel = NULL;
+  while ((stack_top = arena_get_top(panel_stack, Panel *)))
+  {
+    cur_panel = *stack_top;
+
     Rect_f32 to_place = rect;
 
-    expect(cur_child->split != axis_split_none);
-    expect(is_between_inclusive(0.0f, cur_child->size_relative_to_parent, 1.0f));
+    expect(cur_panel->split != axis_split_none);
+    expect(is_between_inclusive(0.0f, cur_panel->size_relative_to_parent, 1.0f));
 
-    if (cur_child->split == axis_split_horizontal)
+    if (cur_panel->split == axis_split_horizontal)
     {
-      to_place.y1 = rect.y0 + lerpf(0.0f, cur_child->size_relative_to_parent, rect_dimensions.y);
+      to_place.y1 = rect.y0 + lerpf(0.0f, cur_panel->size_relative_to_parent, rect_dimensions.y);
     }
     else
     {
-      to_place.x1 = rect.x0 + lerpf(0.0f, cur_child->size_relative_to_parent, rect_dimensions.x);
+      to_place.x1 = rect.x0 + lerpf(0.0f, cur_panel->size_relative_to_parent, rect_dimensions.x);
     }
 
-    cur_child->sentinel->rectangle = to_place;
-    cur_child->sentinel->computed_size_in_pixels = rect_get_dimensions(&to_place);
+    cur_panel->sentinel->rectangle = to_place;
+    cur_panel->sentinel->computed_size_in_pixels = rect_get_dimensions(&to_place);
 
-    if (cur_child->first_child == NULL)
+    if (cur_panel->first_child == NULL)
     {
       Instance_Buffer_Element *draw_call = push_struct(&render->render_data, Instance_Buffer_Element);
 
@@ -733,7 +745,7 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
         (f32) render->atlas->solid_color_rect.x1,
         (f32) render->atlas->solid_color_rect.y1,
       };
-      draw_call->pos   = {to_place.x0, to_place.y0, 0.4f};
+      draw_call->pos      = V3(to_place.x0, to_place.y0, 0.4f);
       draw_call->color[0] = rgba_from_u8(55, 47, 36, 255);
       draw_call->color[1] = rgba_from_u8(55, 47, 36, 255);
       draw_call->color[2] = rgba_from_u8(55, 47, 36, 255);
@@ -742,14 +754,27 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
       draw_call->border_thickness = 3.0f;
       draw_call->edge_softness    = 0.5f;
 
-      ui_prepare_render(cur_child->sentinel, to_place);
-    }
-    else
-    {
-      ui_prepare_render_from_panels(cur_child, to_place);
+      u64 initial_used = temp_arena->used;
+      ui_prepare_render(cur_panel->sentinel, to_place);
+      temp_arena->used = initial_used;
     }
 
-    if (cur_child->split == axis_split_horizontal)
+    arena_pop(panel_stack, sizeof(Panel *));
+
+    if (cur_panel->first_child != NULL)
+    {
+      first_child = NULL;
+      for (Panel *cur_child  = cur_panel->first_child;
+           cur_child        != first_child;
+           cur_child         = cur_child->next_sibling)
+      {
+        arena_append(panel_stack, &cur_child, sizeof(Panel *));
+        first_child = cur_panel->first_child;
+      }
+      ui_prepare_render_from_panels(cur_panel, to_place);
+    }
+
+    if (cur_panel->split == axis_split_horizontal)
     {
       rect.y0 = to_place.y1;
     }
@@ -757,19 +782,18 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
     {
       rect.x0 = to_place.x1;
     }
-
-    first_child = panel->first_child;
   }
 }
 
 internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
 {
   Global_Platform_State *global_state = platform_get_global_state();
-  Arena                 *temp_arena   = get_temp_arena();
+  Arena                 _temp_arena   = get_rest_of_temp_arena(0.5f);
+  Arena                 *temp_arena   = &_temp_arena;
   UI_Context            *ui           = ui_get_context();
   Render_Context        *render       = render_get_context();
 
-  u64 ring_buffer_size       = temp_arena->size / 2;
+  u64 ring_buffer_size = temp_arena->size;
 
   expect_message(compare_string_utf8(widgets->string, string_literal_init_type("sentinel widget", utf8)),
                  "expected first widget to be sentinel widget");
@@ -781,8 +805,8 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
     arena_append(widget_stack, data, sizeof(Widget *));
 
     // NOTE(antonio): first-child biased loop
-    Widget **stack_top = NULL;
-    Widget *cur_widget = NULL;
+    Widget **stack_top  = NULL;
+    Widget  *cur_widget = NULL;
     while ((stack_top = arena_get_top(widget_stack, Widget *)))
     {
       cur_widget = *stack_top;
@@ -1197,6 +1221,8 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
       ui->keep_hot_key = ui->keep_hot_key || keep_hot_key;
     }
   }
+
+  arena_reset(temp_arena);
 }
 #define TRADER_UI_IMPL_H
 #endif

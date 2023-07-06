@@ -177,7 +177,7 @@ internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent, Str
       cur_par->last_child                    = panel;
     }
 
-    String_Const_utf8 panel_prefix         = string_literal_init_type("Button parent::", utf8);
+    String_Const_utf8 panel_prefix         = string_literal_init_type("Panel::", utf8);
     String_Const_utf8 panel_to_hash_string = concat_string_to_c_string(ui->string_pool, panel_prefix, string);
 
     panel->parent                  = cur_par;
@@ -202,6 +202,7 @@ internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent, Str
                    global_slider_float * 1000.0f,
                    0.5f,
                    3.0f);
+    ui_push_parent(panel->current_parent->first_child);
   }
 
   return(panel);
@@ -611,7 +612,7 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
 
   expect(in_out_value != NULL);
   expect((minimum <= *in_out_value) && (*in_out_value <= maximum));
-  expect(compare_string_utf8(last_parent->string, panel_parent->sentinel->string));
+  // expect(compare_string_utf8(last_parent->string, panel_parent->sentinel->string));
 
   String_Const_utf8 slider_parent_to_hash_prefix = string_literal_init_type("Slider parent::", utf8);
   String_Const_utf8 slider_parent_to_hash = concat_string_to_c_string(ui->string_pool, slider_parent_to_hash_prefix, string);
@@ -655,7 +656,7 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
     UI_Interaction *cur_int = ui->interactions + interaction_index;
     if (cur_int->key == slider->key)
     {
-      f32 delta_x = lerpf(minimum, cur_int->value.mouse.x, maximum);
+      f32 delta_x   = lerpf(minimum, cur_int->value.mouse.x, maximum);
       *in_out_value = clamp(minimum, delta_x, maximum);
     }
   }
@@ -667,7 +668,7 @@ internal void ui_canvas(String_Const_utf8 string, V2_f32 size)
   Panel      *panel_parent = ui->current_panel_parent;
   Widget     *last_parent  = panel_parent->current_parent;
 
-  expect(compare_string_utf8(last_parent->string, panel_parent->sentinel->string));
+  // expect(compare_string_utf8(last_parent->string, panel_parent->sentinel->string));
   ui_push_background_color(1.0f, 0.0f, 0.0f, 1.0f);
 
   ui_make_widget(widget_flag_arbitrary_draw,

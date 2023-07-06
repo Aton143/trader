@@ -25,6 +25,8 @@ struct Render_Context
       Texture_Atlas       *atlas;
       Arena                render_data;
       Arena                triangle_render_data;
+      V2_f32               vertex_render_dimensions;
+      Rect_f32             client_rect;
     };
     Common_Render_Context common_context;
   };
@@ -67,6 +69,9 @@ struct Global_Platform_State
   void           *main_fiber_address;
   u64             nonclient_mouse_pos;
   u32             nonclient_mouse_button;
+
+  HCURSOR         horizontal_resize_cursor_icon;
+  HCURSOR         vertical_resize_cursor_icon;
 
 #if !SHIP_MODE
   u64 frame_count;
@@ -136,22 +141,6 @@ internal Global_Platform_State *platform_get_global_state(void)
 {
   Global_Platform_State *state = &win32_global_state;
   return(state);
-}
-
-internal Rect_f32 render_get_client_rect(void)
-{
-  Rect_f32 client_rect = {};
-
-  RECT win32_client_rect = {};
-  GetClientRect(platform_get_global_state()->window_handle, &win32_client_rect);
-
-  client_rect.x0 = 0;
-  client_rect.y0 = 0;
-
-  client_rect.x1 = (f32) (win32_client_rect.right  - win32_client_rect.left);
-  client_rect.y1 = (f32) (win32_client_rect.bottom - win32_client_rect.top);
-
-  return(client_rect);
 }
 
 internal void meta_init(void)

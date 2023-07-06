@@ -3,6 +3,7 @@
 #define UNICODE
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #define _CRT_NO_VA_START_VALIDATION
+#define OEMRESOURCE
 #include <windows.h>
 #include <windowsx.h>
 
@@ -246,8 +247,6 @@ internal LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM
         if ((GET_X_LPARAM(win32_global_state.nonclient_mouse_pos) != mouse_pos.x) ||
             (GET_Y_LPARAM(win32_global_state.nonclient_mouse_pos) != mouse_pos.y))
         {
-          //__debugbreak();
-
           DefWindowProcW(window_handle,
                          win32_global_state.nonclient_mouse_button,
                          HTCAPTION,
@@ -424,28 +423,24 @@ internal LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM
 
     case WM_SIZE:
     {
-      //__debugbreak();
       global_window_resized = true;
       //result = DefWindowProc(window_handle, message, wparam, lparam);
     } break;
 
     case WM_SIZING:
     {
-      //__debugbreak();
       result = TRUE;
     } break;
 
     case WM_ENTERSIZEMOVE:
     case WM_ENTERMENULOOP:
     {
-      //__debugbreak();
-      SetTimer(window_handle, 1, 1, NULL);
+      SetTimer(window_handle, 1, 2, NULL);
     } break;
 
     case WM_EXITSIZEMOVE:
     case WM_EXITMENULOOP:
     {
-      //__debugbreak();
       KillTimer(window_handle, 1);
       result = DefWindowProcW(window_handle, message, wparam, lparam);
     } break;
@@ -1043,6 +1038,14 @@ WinMain(HINSTANCE instance,
     File_Buffer file = {};
     String_Const_utf8 file_str = {};
 
+#pragma warning(disable:4302)
+    win32_global_state.horizontal_resize_cursor_icon =
+      (HCURSOR) LoadImage(NULL, MAKEINTRESOURCEW(IDC_SIZEWE), IMAGE_CURSOR, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
+
+    win32_global_state.vertical_resize_cursor_icon =
+      (HCURSOR) LoadImage(NULL, MAKEINTRESOURCEW(IDC_SIZENS), IMAGE_CURSOR, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
+#pragma warning(default:4302)
+
     /*
     V2_f32 data_for_lines[] =
     {
@@ -1103,6 +1106,21 @@ WinMain(HINSTANCE instance,
       if (global_window_resized && !IsIconic(win32_global_state.window_handle))
       {
         global_window_resized = false;
+
+        {
+          Rect_f32 new_client_rect = {};
+
+          RECT win32_client_rect = {};
+          GetClientRect(platform_get_global_state()->window_handle, &win32_client_rect);
+
+          new_client_rect.x0 = 0;
+          new_client_rect.y0 = 0;
+
+          new_client_rect.x1 = (f32) (win32_client_rect.right  - win32_client_rect.left);
+          new_client_rect.y1 = (f32) (win32_client_rect.bottom - win32_client_rect.top);
+
+          render_set_client_rect(new_client_rect);
+        }
 
         device_context->OMSetRenderTargets(0, 0, 0);
         frame_buffer_view->Release();

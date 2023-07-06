@@ -73,10 +73,11 @@ struct Pixel_Shader;
 
 struct Common_Render_Context
 {
-  Texture_Atlas  *atlas;
-  Arena           render_data;
-  Arena           triangle_render_data;
-  V2_f32          vertex_render_dimensions;
+  Texture_Atlas *atlas;
+  Arena          render_data;
+  Arena          triangle_render_data;
+  V2_f32         vertex_render_dimensions;
+  Rect_f32       client_rect;
 };
 
 #include "trader_platform.h"
@@ -91,6 +92,7 @@ global_const utf32 ending_code_point   = 126; // '~'
 // extern Asset_Handle render_make_texture(void *texture_data, u64 width, u64 height, u64 channels);
 internal Render_Context        *render_get_context(void);
 internal Common_Render_Context *render_get_common_context(void);
+internal void                   render_set_client_rect(Rect_f32 new_rect);
 internal Rect_f32               render_get_client_rect(void);
 
 internal void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *shader, b32 force = false);
@@ -259,6 +261,18 @@ internal Common_Render_Context *render_get_common_context(void)
 {
   Common_Render_Context *common = (Common_Render_Context *) render_get_context();
   return(common);
+}
+
+internal void render_set_client_rect(Rect_f32 new_rect)
+{
+  Common_Render_Context *render = render_get_common_context();
+  render->client_rect = new_rect;
+}
+
+internal Rect_f32 render_get_client_rect(void)
+{
+  Common_Render_Context *render = render_get_common_context();
+  return(render->client_rect);
 }
 
 internal Vertex_Buffer_Element *render_push_triangles(u64 triangle_count)

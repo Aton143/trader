@@ -698,23 +698,23 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
   Common_Render_Context *render = render_get_common_context();
   V2_f32  rect_dimensions = rect_get_dimensions(&rect);
 
-  Arena *temp_arena  = get_temp_arena();
-  Arena *panel_stack = temp_arena;
-
+  Arena *temp_arena     = get_temp_arena();
+  u64    remaining_size = arena_get_remaining_size(temp_arena);
+  
+  Ring_Buffer panel_queue = ring_buffer_make(temp_arena, structs_in_size(remaining_size / 2, Panel *));
   Panel *first_child = NULL;
-  for (Panel *cur_child  = panel->first_child;
-       cur_child        != first_child;
-       cur_child         = cur_child->next_sibling)
+  for (Panel *cur_child = panel->first_child;
+       cur_child != first_child;
+       cur_child  = cur_child->next_sibling)
   {
-    arena_append(panel_stack, &cur_child, sizeof(Panel *));
+    ring_buffer_append(&panel_queue, &cur_child, sizeof(Widget *));
     first_child = panel->first_child;
   }
 
-  Panel **stack_top = NULL;
-  Panel  *cur_panel = NULL;
-  while ((stack_top = arena_get_top(panel_stack, Panel *)))
+  while (panel_queue.read != panel_queue.write)
   {
-    cur_panel = *stack_top;
+    Panel *cur_panel = NULL;
+    ring_buffer_pop_and_put(&panel_queue, &cur_panel, sizeof(Panel **));
 
     Rect_f32 to_place = rect;
 
@@ -759,18 +759,17 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
       temp_arena->used = initial_used;
     }
 
-    arena_pop(panel_stack, sizeof(Panel *));
-
     if (cur_panel->first_child != NULL)
     {
       first_child = NULL;
-      for (Panel *cur_child  = cur_panel->first_child;
-           cur_child        != first_child;
-           cur_child         = cur_child->next_sibling)
+      for (Panel *cur_child = cur_panel->first_child;
+           cur_child != first_child;
+           cur_child  = cur_child->next_sibling)
       {
-        arena_append(panel_stack, &cur_child, sizeof(Panel *));
+        ring_buffer_append(&panel_queue, &cur_child, sizeof(Widget *));
         first_child = cur_panel->first_child;
       }
+
       ui_prepare_render_from_panels(cur_panel, to_place);
     }
 
@@ -1024,7 +1023,7 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
     Widget *first_child = NULL;
     for (Widget *cur_child = widgets->first_child;
          cur_child != first_child;
-         cur_child = cur_child->next_sibling)
+         cur_child  = cur_child->next_sibling)
     {
       ring_buffer_append(&widget_queue, &cur_child, sizeof(Widget *));
       first_child = widgets->first_child;

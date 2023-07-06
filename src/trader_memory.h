@@ -85,6 +85,7 @@ internal inline void arena_pop(Arena *arena, u64 size);
 #define pop_array(arena, type, count) arena_pop((arena), sizeof(type)*(count))
 #define pop_struct(arena, type) arena_pop((arena), sizeof(type))
 
+internal      inline u64 arena_get_remaining_size(Arena *arena);
 unimplemented inline u64 arena_get_pos(Arena *arena);
 
 unimplemented inline void arena_set_pos_back(Arena *arena, u64 pos);
@@ -303,6 +304,13 @@ internal inline void *arena_append(Arena *arena, void *data, u64 size)
   }
 
   return(result);
+}
+
+internal inline u64 arena_get_remaining_size(Arena *arena)
+{
+  expect(arena != NULL);
+  u64 remaining_size = arena->size - arena->used;
+  return(remaining_size);
 }
 
 internal inline void *_arena_get_top(Arena *arena, u64 size)

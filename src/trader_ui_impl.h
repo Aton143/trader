@@ -579,7 +579,7 @@ internal b32 ui_do_button(String_Const_utf8 string)
   copy_string.size = string.size + 1;
 
   ui_make_widget(widget_flag_draw_text,
-                 size_flag_text_content,
+                 size_flag_text_content | size_flag_relative_to_parent_pos_y,
                  copy_string);
 
   ui_pop_parent();
@@ -961,6 +961,7 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
       }
 
       // NOTE(antonio): place the children
+      /*
       {
         first_child = NULL;
         for (Widget *cur_child  = cur_widget->first_child;
@@ -984,7 +985,7 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
             if (cur_child->size_flags & size_flag_relative_to_parent_pos_x)
             {
               cur_child->rectangle.x0 =
-                pre_sizing_top_left.x + 
+                child_parent->rectangle.x0 + // pre_sizing_top_left.x + 
                 (cur_child->position_relative_to_parent.x * child_parent->computed_size_in_pixels.x);
             }
             else
@@ -995,7 +996,7 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
             if (cur_child->size_flags & size_flag_relative_to_parent_pos_y)
             {
               cur_child->rectangle.y0 =
-                pre_sizing_top_left.y + 
+                child_parent->rectangle.y0 + // pre_sizing_top_left.y + 
                 (cur_child->position_relative_to_parent.y * child_parent->computed_size_in_pixels.y);
              }
             else
@@ -1008,19 +1009,39 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
             cur_child->rectangle.y1 = cur_child->rectangle.y0 + cur_child->computed_size_in_pixels.y;
           }
 
-          /*
           if ((cur_widget->widget_flags & widget_flag_top_level) == 0)
           {
             cur_top_left.y += cur_child->computed_size_in_pixels.y;
           }
-          */
 
           first_child = cur_widget->first_child;
         }
       }
+      */
 
-      cur_widget->rectangle.x0 = pre_sizing_top_left.x + cur_widget->position_relative_to_parent.x;
-      cur_widget->rectangle.y0 = pre_sizing_top_left.y + cur_widget->position_relative_to_parent.y;
+      Widget *widget_parent = cur_widget->parent;
+
+      if (cur_widget->size_flags & size_flag_relative_to_parent_pos_x)
+      {
+        cur_widget->rectangle.x0 =
+          widget_parent->rectangle.x0 +
+          (cur_widget->position_relative_to_parent.x * widget_parent->computed_size_in_pixels.x);
+      }
+      else
+      {
+        cur_widget->rectangle.x0 = pre_sizing_top_left.x + cur_widget->position_relative_to_parent.x;
+      }
+
+      if (cur_widget->size_flags & size_flag_relative_to_parent_pos_y)
+      {
+        cur_widget->rectangle.y0 =
+          widget_parent->rectangle.y0 +
+          (cur_widget->position_relative_to_parent.y * widget_parent->computed_size_in_pixels.y);
+      }
+      else
+      {
+        cur_widget->rectangle.y0 = pre_sizing_top_left.y + cur_widget->position_relative_to_parent.y;
+      }
 
       cur_widget->rectangle.x1 = cur_widget->rectangle.x0 + cur_widget->computed_size_in_pixels.x;
       cur_widget->rectangle.y1 = cur_widget->rectangle.y0 + cur_widget->computed_size_in_pixels.y;

@@ -1084,10 +1084,8 @@ WinMain(HINSTANCE instance,
 
     local_persist V2_f32 data_for_lines[4096] = {};
 
-    /*
     u32 data_index  = 0;
     u32 click_count = 0;
-    */
 
     f32 acc_time    = 0.0f;
     f32 up_down     = 0.0f;
@@ -1213,18 +1211,15 @@ WinMain(HINSTANCE instance,
 
       win32_global_state.frame_count++;
 
-      /*
       ui_do_formatted_string("Last frame time: %.6fs", last_frame_time);
       ui_do_formatted_string("Last frame time in cycles: %lld", last_frame_time_in_cycles);
-      */
-      ui_do_button(string_literal_init_type("click here to save frame buffer", utf8));
-      /*
       ui_do_formatted_string("Frame count: %lld", win32_global_state.frame_count);
 
       if (ui_do_button(string_literal_init_type("click here to save frame buffer", utf8)))
       {
         save_current_frame_buffer = true;
       }
+
       if (ui->mouse_area == mouse_area_out_client)
       {
         ui_do_string(string_literal_init_type("Mouse is not in client", utf8));
@@ -1406,7 +1401,6 @@ WinMain(HINSTANCE instance,
           panel_from_which_to_split = child->next_sibling;
         }
       }
-      */
 
       Rect_f32 render_rect = render_get_client_rect();
       // render_rect = translate(render_rect, V2(50.0f * cosf(acc_time * tau_f32), 50.0f * sinf(acc_time * tau_f32)));

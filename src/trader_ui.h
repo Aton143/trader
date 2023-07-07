@@ -472,7 +472,7 @@ internal inline void ui_pop_panel_parent(void);
 internal inline f32  ui_get_remaining_sizing_from_implicit_panel_parent(void);
 
 internal Panel *ui_make_panel(Axis_Split         split,
-                              f32                size_relative_to_parent,
+                              f32               *size_relative_to_parent,
                               String_Const_utf8  string = {},
                               Panel             *from   = NULL);
 // returns first child

@@ -139,7 +139,7 @@ internal Widget *ui_make_sentinel_widget()
 }
 
 // TODO(antonio): cannot have two directions in a children list
-internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent, String_Const_utf8 string, Panel *from)
+internal Panel *ui_make_panel(Axis_Split split, f32 *size_relative_to_parent, String_Const_utf8 string, Panel *from)
 {
   Panel      *panel   = NULL;
   UI_Context *ui      = ui_get_context();
@@ -147,7 +147,8 @@ internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent, Str
 
   expect(ui    != NULL);
   expect(split != axis_split_none);
-  expect(is_between_inclusive(0.0f, size_relative_to_parent, 1.0f));
+  expect(size_relative_to_parent != NULL);
+  expect(is_between_inclusive(0.0f, *size_relative_to_parent, 1.0f));
 
   if (ui->panel_count < max_panel_count)
   {
@@ -182,15 +183,15 @@ internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent, Str
 
     panel->parent                  = cur_par;
     panel->split                   = split;
-    panel->size_relative_to_parent = size_relative_to_parent;
+    panel->size_relative_to_parent = *size_relative_to_parent;
     panel->string                  = panel_to_hash_string;
     panel->sizing_left             = 1.0f;
 
     panel->sentinel = panel->current_parent = ui_make_sentinel_widget();
     expect(panel->current_parent != NULL);
 
-    panel->parent->sizing_left -= size_relative_to_parent;
-    expect(0 <= panel->parent->sizing_left);
+    panel->parent->sizing_left -= *size_relative_to_parent;
+    // expect(0 <= panel->parent->sizing_left);
 
     ui->current_panel_parent = panel;
 
@@ -200,9 +201,23 @@ internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent, Str
                    V2(1.0f, 1.0f),
                    V2(0.0f, 0.0f),
                    global_slider_float * 1000.0f,
-                   0.5f,
+                   panel->size_relative_to_parent,
                    3.0f);
     ui_push_parent(panel->current_parent->first_child);
+
+    UI_Key panel_key = panel->current_parent->key;
+    for (u32 interaction_index = 0;
+         interaction_index < array_count(ui->interactions);
+         ++interaction_index)
+    {
+      UI_Interaction *cur_int = ui->interactions + interaction_index;
+      if (cur_int->key == panel_key)
+      {
+        f32 delta_x = lerpf(0.0f, cur_int->value.mouse.x, 1.0f);
+        *size_relative_to_parent = clamp(0.0f, delta_x, 1.0f);
+        SetCursor(win32_global_state.horizontal_resize_cursor_icon);
+      }
+    }
   }
 
   return(panel);
@@ -226,7 +241,7 @@ internal Panel *ui_make_panels(Axis_Split split, f32 *sizes, String_Const_utf8 *
        panel_index < count;
        ++panel_index)
   {
-    ui_make_panel(split, sizes[panel_index], strings[panel_index], to_split);
+    ui_make_panel(split, &sizes[panel_index], strings[panel_index], to_split);
   }
 
   return(to_split->first_child);
@@ -961,15 +976,13 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
       }
 
       // NOTE(antonio): place the children
-      /*
+      if (to_be_sized_x > 0)
       {
         first_child = NULL;
         for (Widget *cur_child  = cur_widget->first_child;
              cur_child         != first_child;
              cur_child          = cur_child->next_sibling)
         {
-          Widget *child_parent = cur_widget;
-
           if (cur_child->size_flags & size_flag_to_be_sized_x)
           {
             expect(to_be_sized_x > 0);
@@ -980,44 +993,8 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
           {
             cur_child->computed_size_in_pixels.y = max_height;
           }
-
-          {
-            if (cur_child->size_flags & size_flag_relative_to_parent_pos_x)
-            {
-              cur_child->rectangle.x0 =
-                child_parent->rectangle.x0 + // pre_sizing_top_left.x + 
-                (cur_child->position_relative_to_parent.x * child_parent->computed_size_in_pixels.x);
-            }
-            else
-            {
-              cur_child->rectangle.x0 = cur_top_left.x + cur_child->position_relative_to_parent.x;
-            }
-
-            if (cur_child->size_flags & size_flag_relative_to_parent_pos_y)
-            {
-              cur_child->rectangle.y0 =
-                child_parent->rectangle.y0 + // pre_sizing_top_left.y + 
-                (cur_child->position_relative_to_parent.y * child_parent->computed_size_in_pixels.y);
-             }
-            else
-            {
-              cur_child->rectangle.y0 = cur_top_left.y + cur_child->position_relative_to_parent.x;
-            }
-
-            // TODO(antonio): this could mess up text alignment
-            cur_child->rectangle.x1 = cur_child->rectangle.x0 + cur_child->computed_size_in_pixels.x;
-            cur_child->rectangle.y1 = cur_child->rectangle.y0 + cur_child->computed_size_in_pixels.y;
-          }
-
-          if ((cur_widget->widget_flags & widget_flag_top_level) == 0)
-          {
-            cur_top_left.y += cur_child->computed_size_in_pixels.y;
-          }
-
-          first_child = cur_widget->first_child;
         }
       }
-      */
 
       Widget *widget_parent = cur_widget->parent;
 
@@ -1143,8 +1120,13 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
         }
       }
 
-      if (cur_widget->widget_flags & widget_flag_draggable)
+      if ((cur_widget->widget_flags & widget_flag_draggable) || 
+          (cur_widget->widget_flags & widget_flag_border_draggable))
       {
+        b32 border_draggable = (cur_widget->widget_flags & widget_flag_border_draggable) > 0;
+        b32 draggable        = (cur_widget->widget_flags & widget_flag_draggable)        > 0;
+        expect(draggable != border_draggable);
+
         b32 mouse_left_change = ((ui->prev_frame_mouse_event & mouse_event_lclick) !=
                                  (ui->cur_frame_mouse_event  & mouse_event_lclick));
         if (mouse_left_change)
@@ -1163,10 +1145,27 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
           }
         }
 
-        if (is_point_in_rect(ui->mouse_pos, cur_widget->rectangle))
+        b32 make_hot = is_point_in_rect(ui->mouse_pos, cur_widget->rectangle);
+
+        if (cur_widget->widget_flags & widget_flag_border_draggable)
+        {
+          Rect_f32 inner_rect              = cur_widget->rectangle;
+          f32      scaled_border_thickness = 2.0f * cur_widget->border_thickness;
+
+          inner_rect.x0 += scaled_border_thickness;
+          inner_rect.y0 += scaled_border_thickness;
+
+          inner_rect.x1 -= scaled_border_thickness;
+          inner_rect.y1 -= scaled_border_thickness;
+
+          make_hot = make_hot && !is_point_in_rect(ui->mouse_pos, inner_rect);
+        }
+
+        if (make_hot)
         {
           if (ui->active_key == nil_key)
           {
+            SetCursor(win32_global_state.horizontal_resize_cursor_icon);
             ui->hot_key = cur_widget->key;
           }
           keep_hot_key = true;
@@ -1174,8 +1173,8 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
 
         if (ui->active_key == cur_widget->key)
         {
-          Widget *parent = cur_widget->parent;
-          event_value.mouse = V2((ui->mouse_pos.x - parent->rectangle.x0) / parent->computed_size_in_pixels.x, 0.0f);
+          Rect_f32 rect_to_use = border_draggable ? render_get_client_rect() : cur_widget->parent->rectangle;
+          event_value.mouse = V2((ui->mouse_pos.x - rect_to_use.x0) / rect_get_width(&rect_to_use), 0.0f);
           ui_add_interaction(cur_widget, 1, 0, &event_value);
         }
       }

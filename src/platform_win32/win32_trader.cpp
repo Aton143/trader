@@ -1027,7 +1027,6 @@ WinMain(HINSTANCE instance,
 
     win32_global_state.dt = 0.0;
 
-    f32 slider_float; slider_float = 1.0f;
     String_Const_utf8 text_to_render = string_literal_init_type("abcdefg", utf8);
       /*string_literal_init_type("abcdefghijklmnopqrstuvwxyz"
                                  "ABCDEFGHIJKLMNOPQRSTUVWXYZ "
@@ -1086,6 +1085,9 @@ WinMain(HINSTANCE instance,
 
     u32 data_index  = 0;
     u32 click_count = 0;
+
+    f32 slider_float = 1.0f;
+    f32 panel_float  = 0.5f;
 
     f32 acc_time    = 0.0f;
     f32 up_down     = 0.0f;
@@ -1206,7 +1208,9 @@ WinMain(HINSTANCE instance,
       ui_initialize_frame();
 
       ui_push_background_color(rgba_from_u8(55, 47, 36, 255));
-      ui_make_panel(axis_split_vertical, 0.5f, string_literal_init_type("first", utf8));
+
+      f32 old_panel_float = panel_float;
+      ui_make_panel(axis_split_vertical, &panel_float, string_literal_init_type("first", utf8));
       // first_panel->sentinel = ui_get_sentinel();
 
       win32_global_state.frame_count++;
@@ -1279,6 +1283,7 @@ WinMain(HINSTANCE instance,
                              ui->key_events[key_event_y],
                              ui->key_events[key_event_z]);
 
+      ui_do_formatted_string("Panel float: %.16f",  panel_float);
       ui_do_formatted_string("Slider float: %.16f", slider_float);
       ui_do_slider_f32(string_literal_init_type("slider", utf8), &slider_float, 0.0f, 1.0f);
       global_slider_float = slider_float;
@@ -1373,11 +1378,17 @@ WinMain(HINSTANCE instance,
         render_data_to_lines(data_for_lines, lines_to_render);
       }
 
+        ui_push_panel_parent(ui_get_sentinel_panel());
+
+        f32 other_half_float = 1 - old_panel_float;
+        Panel *other_half = ui_make_panel(axis_split_vertical,
+                                          &other_half_float,
+                                          string_literal_init_type("the other half", utf8));
       if (click_count)
       {
-        ui_push_panel_parent(ui_get_sentinel_panel());
-        Panel *other_half = ui_make_panel(axis_split_vertical, 0.5, string_literal_init_type("the other half", utf8));
+        unused(other_half);
 
+        /*
         Panel *panel_from_which_to_split = other_half;
 
         for (u32 click_index = 1;
@@ -1400,6 +1411,7 @@ WinMain(HINSTANCE instance,
           // ui_do_formatted_string("split half: %d", click_count);
           panel_from_which_to_split = child->next_sibling;
         }
+          */
       }
 
       Rect_f32 render_rect = render_get_client_rect();

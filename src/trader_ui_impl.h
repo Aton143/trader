@@ -194,7 +194,7 @@ internal Panel *ui_make_panel(Axis_Split split, f32 size_relative_to_parent, Str
 
     ui->current_panel_parent = panel;
 
-    ui_make_widget(widget_flag_clickable | widget_flag_border_draggable | widget_flag_draw_background,
+    ui_make_widget(widget_flag_border_draggable | widget_flag_draw_background | widget_flag_top_level,
                    size_flag_copy_parent_size_x | size_flag_copy_parent_size_y, 
                    string,
                    V2(1.0f, 1.0f),
@@ -524,7 +524,7 @@ internal void ui_do_string(String_Const_utf8 string)
   copy_string.size = string.size + 1;
 
   ui_make_widget(widget_flag_draw_text,
-                 size_flag_text_content,
+                 size_flag_text_content | size_flag_advancer_y,
                  copy_string);
 }
 
@@ -548,7 +548,7 @@ internal void ui_do_formatted_string(char *format, ...)
   va_end(args);
 
   ui_make_widget(widget_flag_draw_text,
-                 size_flag_text_content,
+                 size_flag_text_content | size_flag_advancer_y,
                  sprinted_text);
 }
 
@@ -563,7 +563,7 @@ internal b32 ui_do_button(String_Const_utf8 string)
   String_Const_utf8 button_parent_to_hash = concat_string_to_c_string(ui->string_pool, button_parent_to_hash_prefix, string);
 
   ui_make_widget(widget_flag_draw_background | widget_flag_clickable,
-                 size_flag_text_content,
+                 size_flag_text_content | size_flag_advancer_y,
                  button_parent_to_hash,
                  V2(1.0f, 1.0f),
                  V2(0.0f, 0.0f),
@@ -618,7 +618,7 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
   String_Const_utf8 slider_parent_to_hash = concat_string_to_c_string(ui->string_pool, slider_parent_to_hash_prefix, string);
 
   ui_make_widget(widget_flag_none,
-                 size_flag_copy_parent_size_x | size_flag_given_size_y,
+                 size_flag_copy_parent_size_x | size_flag_given_size_y | size_flag_advancer_y,
                  slider_parent_to_hash,
                  V2(0.5f, ui->text_height));
 
@@ -672,7 +672,7 @@ internal void ui_canvas(String_Const_utf8 string, V2_f32 size)
   ui_push_background_color(1.0f, 0.0f, 0.0f, 1.0f);
 
   ui_make_widget(widget_flag_arbitrary_draw,
-                 size_flag_given_size_x | size_flag_given_size_y,  
+                 size_flag_given_size_x | size_flag_given_size_y | size_flag_advancer_y,
                  string, 
                  size,
                  V2(0.0f, 0.0f));
@@ -1008,14 +1008,14 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
             cur_child->rectangle.y1 = cur_child->rectangle.y0 + cur_child->computed_size_in_pixels.y;
           }
 
-          cur_top_left.x += cur_child->computed_size_in_pixels.x;
+          /*
+          if ((cur_widget->widget_flags & widget_flag_top_level) == 0)
+          {
+            cur_top_left.y += cur_child->computed_size_in_pixels.y;
+          }
+          */
 
           first_child = cur_widget->first_child;
-
-          if (cur_child->first_child)
-          {
-            ring_buffer_append(&widget_queue, &cur_child, sizeof(Widget *));
-          }
         }
       }
 
@@ -1026,7 +1026,21 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
       cur_widget->rectangle.y1 = cur_widget->rectangle.y0 + cur_widget->computed_size_in_pixels.y;
 
       cur_top_left.x = rect.x0;
-      cur_top_left.y = pre_sizing_top_left.y + cur_widget->computed_size_in_pixels.y;
+      cur_top_left.y = pre_sizing_top_left.y;
+
+      if (cur_widget->size_flags & size_flag_advancer_y)
+      {
+        cur_top_left.y += cur_widget->computed_size_in_pixels.y;
+      }
+
+      first_child = NULL;
+      for (Widget *cur_child = cur_widget->first_child;
+           cur_child != first_child;
+           cur_child = cur_child->next_sibling)
+      {
+        ring_buffer_append(&widget_queue, &cur_child, sizeof(Widget *));
+        first_child = cur_widget->first_child;
+      }
     }
   }
 
@@ -1195,7 +1209,7 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
         {
           cur_widget->rectangle.x0,
           cur_widget->rectangle.y0,
-          0.5f,
+          cur_widget->widget_flags & widget_flag_top_level ? 0.25f : 0.5f,
         };
 
         draw_call->corner_radius    = cur_widget->corner_radius;

@@ -39,6 +39,7 @@ enum
 
   widget_flag_arbitrary_draw     = (1LL << 19),
   widget_flag_border_draggable   = (1LL << 20),
+  widget_flag_top_level          = (1LL << 21),
 };
 
 typedef u64 Widget_Size_Flag;
@@ -67,6 +68,9 @@ enum
 
   size_flag_relative_to_parent_pos_x = (1LL << 10),
   size_flag_relative_to_parent_pos_y = (1LL << 11),
+
+  size_flag_advancer_x               = (1LL << 12),
+  size_flag_advancer_y               = (1LL << 13),
 };
 
 typedef u32 Mouse_Area;

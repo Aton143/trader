@@ -92,6 +92,12 @@
 #endif
 
 #if COMPILER_CL
+#  define TRADER_CDECL __cdecl
+#else
+#  define TRADER_CDECL
+#endif
+
+#if COMPILER_CL
 #  define COMPILER_NAME "cl"
 #elif COMPILER_CLANG
 #  define COMPILER_NAME "clang"
@@ -700,6 +706,7 @@ typedef V4_f32        RGBA_f32;
 #define rect_get_width(rect)      (((rect)->x1) - ((rect)->x0))
 #define rect_get_height(rect)     (((rect)->y1) - ((rect)->y0))
 #define rect_get_dimensions(rect) V2(rect_get_width(rect), rect_get_height(rect))
+#define rect_get_center(rect)     {((rect)->x0 + (rect)->x1) / 2, ((rect)->y0 + (rect)->y1) / 2}
 
 internal inline V2_f32 V2(f32 x, f32 y);
 internal inline V4_f32 V4(f32 x, f32 y, f32 z, f32 w = 1.0f);

@@ -10,7 +10,22 @@ internal inline V4_f32 wide_clamp(V4_f32 bottom, V4_f32 v, V4_f32 top);
 
 internal inline f32 fast_powf(f32 a, f32 b);
 
-internal inline b32 is_point_in_rect(V2_f32 p, Rect_f32 rect);
+internal inline V2_f32 line_get_closest_point_to_point(V2_f32 p, V2_f32 line_start, V2_f32 line_end);
+internal inline f32    line_get_squared_distance_from_point(V2_f32 p, V2_f32 line_start, V2_f32 line_end);
+
+typedef u32 Rectangle_Side;
+enum
+{
+  rectangle_side_none,
+  rectangle_side_up,
+  rectangle_side_right,
+  rectangle_side_down,
+  rectangle_side_left,
+};
+
+internal inline b32            rect_is_point_inside(V2_f32 p, Rect_f32 rect);
+internal inline V2_f32         rect_get_closest_point_to_point(V2_f32 p, Rect_f32 rect);
+internal inline Rectangle_Side rect_get_closest_side_to_point(V2_f32 p, Rect_f32 rect, Rectangle_Side bias);
 
 // NOTE(antonio): now the uninteresting functions
 internal inline V2_f32 add(V2_f32 a, V2_f32 b);
@@ -74,11 +89,92 @@ internal f32 fast_powf(f32 a, f32 b) {
 	return u.d;
 }
 
-internal inline b32 is_point_in_rect(V2_f32 p, Rect_f32 rect)
+internal inline V2_f32 line_get_closest_point_to_point(V2_f32 p, V2_f32 line_start, V2_f32 line_end)
+{
+  V2_f32 line_vector = line_end - line_start;
+  f32    t = dot(p - line_start, line_vector) / dot(line_vector, line_vector);
+  t = clamp(0.0f, t, 1.0f);
+
+  V2_f32 point_on_line = line_start + (t * line_vector);
+  return(point_on_line);
+}
+
+internal inline f32 line_get_squared_distance_from_point(V2_f32 c, V2_f32 a, V2_f32 b)
+{
+  V2_f32 ab = b - a;
+  V2_f32 ac = c - a;
+  V2_f32 bc = c - b;
+
+  f32 e = dot(ac, ab);
+  if (e <= 0.0f) return dot(ac, ac);
+
+  f32 f = dot(ab, ab);
+  if (e >= f) return dot(bc, bc);
+
+  f32 res = dot(ac, ac) - ((e * e) / f);
+  expect(res >= 0.0f);
+
+  return(res);
+}
+
+internal inline b32 rect_is_point_inside(V2_f32 p, Rect_f32 rect)
 {
   b32 result = is_between_inclusive(rect.x0, p.x, rect.x1) && 
                is_between_inclusive(rect.y0, p.y, rect.y1);
   return(result);
+}
+
+internal inline V2_f32 rect_get_closest_point_to_point(V2_f32 p, Rect_f32 rect)
+{
+  V2_f32 low_extents  = V2(rect.x0, rect.y0);
+  V2_f32 high_extents = V2(rect.x1, rect.y1);
+
+  V2_f32 closest_point = wide_clamp(low_extents, p, high_extents);
+  return(closest_point);
+}
+
+struct __Closest_Side
+{
+  f32 dist;
+  Rectangle_Side side;
+};
+
+internal int TRADER_CDECL __closest_side_comp(const void *_a, const void *_b)
+{
+  __Closest_Side a = *((__Closest_Side *) _a);
+  __Closest_Side b = *((__Closest_Side *) _b);
+
+  if (a.dist < b.dist) return -1;
+  else                 return  1;
+}
+
+internal inline Rectangle_Side rect_get_closest_side_to_point(V2_f32         p,
+                                                              Rect_f32       rect,
+                                                              Rectangle_Side bias)
+{
+  __Closest_Side dist[4];
+
+  // left-right
+  dist[0] = {line_get_squared_distance_from_point(p, V2(rect.x0, rect.y0), V2(rect.x0, rect.y1)), rectangle_side_left};
+  dist[1] = {line_get_squared_distance_from_point(p, V2(rect.x1, rect.y0), V2(rect.x1, rect.y1)), rectangle_side_right};
+
+  // up-down
+  dist[2] = {line_get_squared_distance_from_point(p, V2(rect.x0, rect.y0), V2(rect.x1, rect.y0)), rectangle_side_up};
+  dist[3] = {line_get_squared_distance_from_point(p, V2(rect.x0, rect.y1), V2(rect.x1, rect.y1)), rectangle_side_down};
+
+  qsort(dist, array_count(dist), sizeof(dist[0]), &__closest_side_comp);
+
+  Rectangle_Side closest_side        = dist[0].side;
+  if (approx_equal(dist[0].dist, dist[1].dist))
+  {
+    Rectangle_Side second_closest_side = dist[1].side;
+
+    if ((closest_side == bias) || (second_closest_side == bias)) {
+      return bias;
+    }
+  }
+
+  return(closest_side);
 }
 
 // uninteresting implementations
@@ -121,7 +217,7 @@ internal inline V2_f32 normalize(V2_f32 v)
 
 internal inline f32 dot(V2_f32 u, V2_f32 v)
 {
-  f32 dot_product = (u.x * v.x) + (u.y + v.y);
+  f32 dot_product = (u.x * v.x) + (u.y * v.y);
   return(dot_product);
 }
 

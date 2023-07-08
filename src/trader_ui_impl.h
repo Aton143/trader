@@ -731,6 +731,7 @@ internal void ui_evaluate_child_sizes_panel(Panel *panel)
   if (panel->first_child == panel->last_child) return;
 
   UI_Context *ui = ui_get_context();
+  f32 accumulated = 0.0f;
 
   for (Panel *cur_child = panel->first_child;
        cur_child != panel->last_child;
@@ -739,15 +740,29 @@ internal void ui_evaluate_child_sizes_panel(Panel *panel)
     UI_Key panel_widget_key      = cur_child->sentinel->first_child->key;
     UI_Key next_panel_widget_key = cur_child->next_sibling->sentinel->first_child->key;
 
+    accumulated += *cur_child->size_relative_to_parent;
+
     for (u32 interaction_index = 0;
          interaction_index < array_count(ui->interactions);
          ++interaction_index)
     {
       UI_Interaction *cur_int = ui->interactions + interaction_index;
-      if ((cur_int->key == panel_widget_key) || (cur_int->key == next_panel_widget_key))
+
+      Rectangle_Side side = cur_int->value.extra_data;
+      Rectangle_Side cur_side_needed  =
+        (cur_child->split == axis_split_vertical) ? rectangle_side_right : rectangle_side_down;
+      Rectangle_Side next_side_needed = 
+        (cur_child->split == axis_split_vertical) ? rectangle_side_left : rectangle_side_up;
+
+      b32 got_cur  = ((cur_int->key == panel_widget_key)      && (side == cur_side_needed));
+      b32 got_next = ((cur_int->key == next_panel_widget_key) && (side == next_side_needed));
+
+      if (got_cur || got_next)
       {
-        f32 delta_x       = lerpf(0.0, cur_int->value.mouse.x, 1.0f);
-        f32 from_original = delta_x - *cur_child->size_relative_to_parent;
+        f32 mouse_val = (cur_child->split == axis_split_vertical) ? cur_int->value.mouse.x : cur_int->value.mouse.y;
+        f32 delta     = lerpf(0.0, mouse_val, 1.0f);
+
+        f32  from_original = delta - accumulated;
 
         *cur_child->size_relative_to_parent               += from_original;
         *cur_child->next_sibling->size_relative_to_parent -= from_original;
@@ -1148,7 +1163,7 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
           }
         }
 
-        if (is_point_in_rect(ui->mouse_pos, cur_widget->rectangle))
+        if (rect_is_point_inside(ui->mouse_pos, cur_widget->rectangle))
         {
           if (ui->active_key == nil_key)
           {
@@ -1192,7 +1207,7 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
           }
         }
 
-        b32 make_hot = is_point_in_rect(ui->mouse_pos, cur_widget->rectangle);
+        b32 make_hot = rect_is_point_inside(ui->mouse_pos, cur_widget->rectangle);
 
         if (cur_widget->widget_flags & widget_flag_border_draggable)
         {
@@ -1205,7 +1220,7 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
           inner_rect.x1 -= scaled_border_thickness;
           inner_rect.y1 -= scaled_border_thickness;
 
-          make_hot = make_hot && !is_point_in_rect(ui->mouse_pos, inner_rect);
+          make_hot = make_hot && !rect_is_point_inside(ui->mouse_pos, inner_rect);
         }
 
         if (make_hot)
@@ -1220,8 +1235,12 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
 
         if (ui->active_key == cur_widget->key)
         {
-          Rect_f32 rect_to_use = border_draggable ? render_get_client_rect() : cur_widget->parent->rectangle;
-          event_value.mouse = V2((ui->mouse_pos.x - rect_to_use.x0) / rect_get_width(&rect_to_use), 0.0f);
+          Rect_f32 rect_to_use     = border_draggable ? render_get_client_rect() : cur_widget->parent->rectangle;
+          V2_f32   rect_dimensions = rect_get_dimensions(&rect_to_use);
+
+          event_value.mouse      = V2((ui->mouse_pos.x - rect_to_use.x0) / rect_dimensions.x,
+                                      (ui->mouse_pos.y - rect_to_use.y0) / rect_dimensions.y);
+          event_value.extra_data = rect_get_closest_side_to_point(ui->mouse_pos, cur_widget->rectangle, rectangle_side_none);
           ui_add_interaction(cur_widget, 1, 0, &event_value);
         }
       }

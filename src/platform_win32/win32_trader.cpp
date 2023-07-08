@@ -1093,6 +1093,9 @@ WinMain(HINSTANCE instance,
     f32 up_down     = 0.0f;
     b32 triangle    = false;
 
+    f32 panel_floats[16]  = {1.0f / 3.0f, 1.0f / 3.0f, 1.0f / 3.0f};
+    u32 panel_float_index = 0;
+
     // NOTE(antonio): experimental change
     win32_global_state.main_fiber_address = ConvertThreadToFiber(NULL);
     expect_message(win32_global_state.main_fiber_address != NULL, "expected to use fiber path");
@@ -1206,11 +1209,11 @@ WinMain(HINSTANCE instance,
       platform_collect_notifications();
 
       ui_initialize_frame();
+      panel_float_index = 0;
 
       ui_push_background_color(rgba_from_u8(55, 47, 36, 255));
 
-      f32 old_panel_float = panel_float;
-      ui_make_panel(axis_split_vertical, &panel_float, string_literal_init_type("first", utf8));
+      ui_make_panel(axis_split_horizontal, &panel_floats[panel_float_index++], string_literal_init_type("first", utf8));
       // first_panel->sentinel = ui_get_sentinel();
 
       win32_global_state.frame_count++;
@@ -1379,16 +1382,22 @@ WinMain(HINSTANCE instance,
       }
 
         ui_push_panel_parent(ui_get_sentinel_panel());
+        Panel *other_half = ui_make_panel(axis_split_horizontal,
+                                          &panel_floats[panel_float_index++],
+                                          string_literal_init_type("the middle third", utf8));
 
-        f32 other_half_float = 1 - old_panel_float;
-        Panel *other_half = ui_make_panel(axis_split_vertical,
-                                          &other_half_float,
-                                          string_literal_init_type("the other half", utf8));
+        ui_do_string(string_literal_init_type("hello from the other side", utf8));
 
-        ui_do_string(string_literal_init_type("hello fgfgfgfgrom the other side", utf8));
+        ui_push_panel_parent(ui_get_sentinel_panel());
+        Panel *last_half = ui_make_panel(axis_split_horizontal,
+                                          &panel_floats[panel_float_index++],
+                                          string_literal_init_type("the last third", utf8));
+        ui_do_string(string_literal_init_type("hello from the last side", utf8));
+
       if (click_count)
       {
         unused(other_half);
+        unused(last_half);
 
         /*
         Panel *panel_from_which_to_split = other_half;

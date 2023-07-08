@@ -286,7 +286,11 @@ struct Widget
 
 union UI_Event_Value
 {
-  V2_f32 mouse;
+  struct 
+  {
+    V2_f32 mouse;
+    u32    extra_data;
+  };
 };
 
 struct UI_Interaction

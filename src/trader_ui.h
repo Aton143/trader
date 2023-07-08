@@ -220,6 +220,15 @@ struct Mod_Keys
 
 typedef u64 UI_Key;
 
+struct Widget_Parameters
+{
+  V2_f32             pos              = {0.0f, 0.0f};
+  V2_f32             sizing           = {1.0f, 1.0f};
+  f32                corner_radius    = 0.0f;
+  f32                edge_softness    = 1.0f;
+  f32                border_thickness = 0.0f;
+};
+
 struct Widget
 {
   Widget          *first_child;
@@ -253,13 +262,18 @@ struct Widget
 
   f32               font_height;
 
-  f32               corner_radius;
-  f32               edge_softness;
-  f32               border_thickness;
 
   // NOTE(antonio): computed every frame
-  V2_f32            position_relative_to_parent;
-  V2_f32            extra_sizing;
+  union {
+    struct {
+      V2_f32           position_relative_to_parent;
+      V2_f32           extra_sizing;
+      f32              corner_radius;
+      f32              edge_softness;
+      f32              border_thickness;
+    };
+    Widget_Parameters  params;
+  };
 
   V2_f32            computed_size_in_pixels;
   Rect_f32          rectangle;
@@ -268,17 +282,6 @@ struct Widget
   f32               hot_time;
   f32               active_time;
   f32               time_alive;
-};
-
-struct Widget_Parameters
-{
-  V2_f32             sizing           = {1.0f, 1.0f};
-  V2_f32             pos              = {0.0f, 0.0f};
-  f32                corner_radius    = 0.0f;
-  f32                edge_softness    = 1.0f;
-  f32                border_thickness = 0.0f;
-  void              *data             = NULL;
-  u64                data_size        = 0;
 };
 
 union UI_Event_Value
@@ -376,7 +379,7 @@ struct Panel
   Panel      *parent;
 
   Axis_Split  split;
-  f32         size_relative_to_parent;
+  f32        *size_relative_to_parent;
 
   String_Const_utf8 string;
 
@@ -447,11 +450,10 @@ internal void ui_canvas(String_Const_utf8 string, V2_f32 size = {400.0f, 400.0f}
 internal UI_Key ui_make_key(String_Const_utf8 string);
 internal b32 ui_is_key_equal(UI_Key a, UI_Key b);
 
-internal Widget *ui_make_sentinel_widget(void);
-internal void    ui_make_widget(Widget_Flag        widget_flags,
-                                Widget_Size_Flag   size_flags,
-                                String_Const_utf8  string,
-                                Widget_Parameters *params);
+internal void ui_make_widget(Widget_Flag        widget_flags,
+                             Widget_Size_Flag   size_flags,
+                             String_Const_utf8  string,
+                             Widget_Parameters *params);
 
 internal void ui_make_widget(Widget_Flag        widget_flags,
                              Widget_Size_Flag   size_flags,
@@ -463,6 +465,10 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
                              f32                border_thickness = 0.0f,
                              void              *data             = NULL,
                              u64                data_size        = 0);
+
+internal void    ui_adjust_widget(Widget *widget_to_adjust, Widget_Parameters *params);
+internal inline Widget *ui_get_last_placed_widget();
+
 // NOTE(antonio): panels
 internal inline Panel *ui_get_sentinel_panel(void);
 

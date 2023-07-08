@@ -119,6 +119,19 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
   }
 }
 
+internal void ui_adjust_widget(Widget *widget, Widget_Parameters *params)
+{
+  copy_struct(&widget->params, params);
+}
+
+internal inline Widget *ui_get_last_placed_widget()
+{
+  UI_Context *ui            = ui_get_context();
+  Panel      *current_panel = ui->current_panel_parent;
+  Widget     *last_placed   = current_panel->current_parent;
+  return(last_placed);
+}
+
 internal Widget *ui_make_sentinel_widget()
 {
   Widget     *sentinel     = NULL;
@@ -183,7 +196,7 @@ internal Panel *ui_make_panel(Axis_Split split, f32 *size_relative_to_parent, St
 
     panel->parent                  = cur_par;
     panel->split                   = split;
-    panel->size_relative_to_parent = *size_relative_to_parent;
+    panel->size_relative_to_parent = size_relative_to_parent;
     panel->string                  = panel_to_hash_string;
     panel->sizing_left             = 1.0f;
 
@@ -195,29 +208,25 @@ internal Panel *ui_make_panel(Axis_Split split, f32 *size_relative_to_parent, St
 
     ui->current_panel_parent = panel;
 
+    Widget_Parameters new_params_just_in_case =
+    {
+      V2(0.0f, 0.0f),
+      V2(1.0f, 1.0f),
+      global_slider_float * 1000.0f,
+      *panel->size_relative_to_parent,
+      3.0f,
+    };
+
     ui_make_widget(widget_flag_border_draggable | widget_flag_draw_background | widget_flag_top_level,
                    size_flag_copy_parent_size_x | size_flag_copy_parent_size_y, 
                    string,
-                   V2(1.0f, 1.0f),
-                   V2(0.0f, 0.0f),
-                   global_slider_float * 1000.0f,
-                   panel->size_relative_to_parent,
-                   3.0f);
-    ui_push_parent(panel->current_parent->first_child);
+                   new_params_just_in_case.sizing,
+                   new_params_just_in_case.pos,
+                   new_params_just_in_case.corner_radius,
+                   *panel->size_relative_to_parent,
+                   new_params_just_in_case.border_thickness);
 
-    UI_Key panel_key = panel->current_parent->key;
-    for (u32 interaction_index = 0;
-         interaction_index < array_count(ui->interactions);
-         ++interaction_index)
-    {
-      UI_Interaction *cur_int = ui->interactions + interaction_index;
-      if (cur_int->key == panel_key)
-      {
-        f32 delta_x = lerpf(0.0f, cur_int->value.mouse.x, 1.0f);
-        *size_relative_to_parent = clamp(0.0f, delta_x, 1.0f);
-        SetCursor(win32_global_state.horizontal_resize_cursor_icon);
-      }
-    }
+    ui_push_parent(panel->current_parent->first_child);
   }
 
   return(panel);
@@ -673,6 +682,7 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
     {
       f32 delta_x   = lerpf(minimum, cur_int->value.mouse.x, maximum);
       *in_out_value = clamp(minimum, delta_x, maximum);
+      SetCursor(win32_global_state.horizontal_resize_cursor_icon);
     }
   }
 }
@@ -723,6 +733,7 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
     return;
   }
 
+  UI_Context            *ui     = ui_get_context();
   Common_Render_Context *render = render_get_common_context();
   V2_f32  rect_dimensions = rect_get_dimensions(&rect);
 
@@ -730,6 +741,32 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
   u64    remaining_size = arena_get_remaining_size(temp_arena);
   
   Ring_Buffer panel_queue = ring_buffer_make(temp_arena, structs_in_size(remaining_size / 2, Panel *));
+
+  for (Panel *cur_child = panel->first_child;
+       cur_child != panel->last_child;
+       cur_child  = cur_child->next_sibling)
+  {
+    UI_Key panel_widget_key = cur_child->sentinel->first_child->key;
+
+    for (u32 interaction_index = 0;
+         interaction_index < array_count(ui->interactions);
+         ++interaction_index)
+    {
+      UI_Interaction *cur_int = ui->interactions + interaction_index;
+      if (cur_int->key == panel_widget_key)
+      {
+        f32 delta_x   = lerpf(0.0, cur_int->value.mouse.x, 1.0f);
+        unused(delta_x);
+        // *in_out_value = clamp(minimum, delta_x, maximum);
+        SetCursor(win32_global_state.horizontal_resize_cursor_icon);
+        __debugbreak();
+
+        goto ring_append_before_main_loop;
+      }
+    }
+  }
+
+ring_append_before_main_loop:
   Panel *first_child = NULL;
   for (Panel *cur_child = panel->first_child;
        cur_child != first_child;
@@ -745,17 +782,18 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
     ring_buffer_pop_and_put(&panel_queue, &cur_panel, sizeof(Panel **));
 
     Rect_f32 to_place = rect;
+    f32      panel_sizing = *cur_panel->size_relative_to_parent;
 
     expect(cur_panel->split != axis_split_none);
-    expect(is_between_inclusive(0.0f, cur_panel->size_relative_to_parent, 1.0f));
+    expect(is_between_inclusive(0.0f, panel_sizing, 1.0f));
 
     if (cur_panel->split == axis_split_horizontal)
     {
-      to_place.y1 = rect.y0 + lerpf(0.0f, cur_panel->size_relative_to_parent, rect_dimensions.y);
+      to_place.y1 = rect.y0 + lerpf(0.0f, panel_sizing, rect_dimensions.y);
     }
     else
     {
-      to_place.x1 = rect.x0 + lerpf(0.0f, cur_panel->size_relative_to_parent, rect_dimensions.x);
+      to_place.x1 = rect.x0 + lerpf(0.0f, panel_sizing, rect_dimensions.x);
     }
 
     cur_panel->sentinel->rectangle = to_place;
@@ -789,6 +827,33 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
 
     if (cur_panel->first_child != NULL)
     {
+      // NOTE(antonio): stop right before last one
+      for (Panel *cur_child = cur_panel->first_child;
+           cur_child != cur_panel->last_child;
+           cur_child  = cur_child->next_sibling)
+      {
+        UI_Key panel_widget_key = cur_child->sentinel->first_child->key;
+
+        if (ui->active_key != nil_key) __debugbreak();
+
+        for (u32 interaction_index = 0;
+             interaction_index < array_count(ui->interactions);
+             ++interaction_index)
+        {
+          UI_Interaction *cur_int = ui->interactions + interaction_index;
+          if (cur_int->key == panel_widget_key)
+          {
+            f32 delta_x   = lerpf(0.0, cur_int->value.mouse.x, 1.0f);
+            unused(delta_x);
+            // *in_out_value = clamp(minimum, delta_x, maximum);
+            SetCursor(win32_global_state.horizontal_resize_cursor_icon);
+
+            goto ring_append_in_main_loop;
+          }
+        }
+      }
+
+ring_append_in_main_loop:
       first_child = NULL;
       for (Panel *cur_child = cur_panel->first_child;
            cur_child != first_child;

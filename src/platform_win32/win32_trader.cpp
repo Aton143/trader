@@ -1384,6 +1384,8 @@ WinMain(HINSTANCE instance,
         Panel *other_half = ui_make_panel(axis_split_vertical,
                                           &other_half_float,
                                           string_literal_init_type("the other half", utf8));
+
+        ui_do_string(string_literal_init_type("hello fgfgfgfgrom the other side", utf8));
       if (click_count)
       {
         unused(other_half);

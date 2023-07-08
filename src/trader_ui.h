@@ -488,6 +488,7 @@ internal Panel *ui_make_panels(Axis_Split         split,
                                u32                count,
                                Panel             *to_split = NULL);
 
-internal void   ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect);
+internal void ui_evaluate_child_sizes(Panel *panel);
+internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect);
 #define TRADER_UI_H
 #endif

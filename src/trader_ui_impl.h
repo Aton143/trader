@@ -726,6 +726,38 @@ internal inline Panel *ui_get_sentinel_panel()
   Panel      *sentinel = ui->panels_start;
   return(sentinel);
 }
+internal void ui_evaluate_child_sizes_panel(Panel *panel)
+{
+  if (panel->first_child == panel->last_child) return;
+
+  UI_Context *ui = ui_get_context();
+
+  for (Panel *cur_child = panel->first_child;
+       cur_child != panel->last_child;
+       cur_child  = cur_child->next_sibling)
+  {
+    UI_Key panel_widget_key      = cur_child->sentinel->first_child->key;
+    UI_Key next_panel_widget_key = cur_child->next_sibling->sentinel->first_child->key;
+
+    for (u32 interaction_index = 0;
+         interaction_index < array_count(ui->interactions);
+         ++interaction_index)
+    {
+      UI_Interaction *cur_int = ui->interactions + interaction_index;
+      if ((cur_int->key == panel_widget_key) || (cur_int->key == next_panel_widget_key))
+      {
+        f32 delta_x       = lerpf(0.0, cur_int->value.mouse.x, 1.0f);
+        f32 from_original = delta_x - *cur_child->size_relative_to_parent;
+
+        *cur_child->size_relative_to_parent               += from_original;
+        *cur_child->next_sibling->size_relative_to_parent -= from_original;
+
+        SetCursor(win32_global_state.horizontal_resize_cursor_icon);
+        return;
+      }
+    }
+  }
+}
 
 internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
 {
@@ -733,40 +765,14 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
     return;
   }
 
-  UI_Context            *ui     = ui_get_context();
   Common_Render_Context *render = render_get_common_context();
-  V2_f32  rect_dimensions = rect_get_dimensions(&rect);
+  V2_f32 rect_dimensions = rect_get_dimensions(&rect);
 
   Arena *temp_arena     = get_temp_arena();
   u64    remaining_size = arena_get_remaining_size(temp_arena);
   
   Ring_Buffer panel_queue = ring_buffer_make(temp_arena, structs_in_size(remaining_size / 2, Panel *));
 
-  for (Panel *cur_child = panel->first_child;
-       cur_child != panel->last_child;
-       cur_child  = cur_child->next_sibling)
-  {
-    UI_Key panel_widget_key = cur_child->sentinel->first_child->key;
-
-    for (u32 interaction_index = 0;
-         interaction_index < array_count(ui->interactions);
-         ++interaction_index)
-    {
-      UI_Interaction *cur_int = ui->interactions + interaction_index;
-      if (cur_int->key == panel_widget_key)
-      {
-        f32 delta_x   = lerpf(0.0, cur_int->value.mouse.x, 1.0f);
-        unused(delta_x);
-        // *in_out_value = clamp(minimum, delta_x, maximum);
-        SetCursor(win32_global_state.horizontal_resize_cursor_icon);
-        __debugbreak();
-
-        goto ring_append_before_main_loop;
-      }
-    }
-  }
-
-ring_append_before_main_loop:
   Panel *first_child = NULL;
   for (Panel *cur_child = panel->first_child;
        cur_child != first_child;
@@ -775,6 +781,8 @@ ring_append_before_main_loop:
     ring_buffer_append(&panel_queue, &cur_child, sizeof(Widget *));
     first_child = panel->first_child;
   }
+  
+  ui_evaluate_child_sizes_panel(panel);
 
   while (panel_queue.read != panel_queue.write)
   {
@@ -801,6 +809,7 @@ ring_append_before_main_loop:
 
     if (cur_panel->first_child == NULL)
     {
+      // NOTE(antonio): need to remove draw call
       Instance_Buffer_Element *draw_call = push_struct(&render->render_data, Instance_Buffer_Element);
 
       draw_call->size  = {0.0f, 0.0f, rect_get_width(&to_place), rect_get_height(&to_place)};
@@ -827,33 +836,6 @@ ring_append_before_main_loop:
 
     if (cur_panel->first_child != NULL)
     {
-      // NOTE(antonio): stop right before last one
-      for (Panel *cur_child = cur_panel->first_child;
-           cur_child != cur_panel->last_child;
-           cur_child  = cur_child->next_sibling)
-      {
-        UI_Key panel_widget_key = cur_child->sentinel->first_child->key;
-
-        if (ui->active_key != nil_key) __debugbreak();
-
-        for (u32 interaction_index = 0;
-             interaction_index < array_count(ui->interactions);
-             ++interaction_index)
-        {
-          UI_Interaction *cur_int = ui->interactions + interaction_index;
-          if (cur_int->key == panel_widget_key)
-          {
-            f32 delta_x   = lerpf(0.0, cur_int->value.mouse.x, 1.0f);
-            unused(delta_x);
-            // *in_out_value = clamp(minimum, delta_x, maximum);
-            SetCursor(win32_global_state.horizontal_resize_cursor_icon);
-
-            goto ring_append_in_main_loop;
-          }
-        }
-      }
-
-ring_append_in_main_loop:
       first_child = NULL;
       for (Panel *cur_child = cur_panel->first_child;
            cur_child != first_child;
@@ -863,7 +845,7 @@ ring_append_in_main_loop:
         first_child = cur_panel->first_child;
       }
 
-      ui_prepare_render_from_panels(cur_panel, to_place);
+      ui_evaluate_child_sizes_panel(cur_panel);
     }
 
     if (cur_panel->split == axis_split_horizontal)

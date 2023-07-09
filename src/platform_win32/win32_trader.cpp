@@ -1093,7 +1093,7 @@ WinMain(HINSTANCE instance,
     f32 up_down     = 0.0f;
     b32 triangle    = false;
 
-    f32 panel_floats[16]  = {1.0f / 3.0f, 1.0f / 3.0f, 1.0f / 3.0f};
+    f32 panel_floats[16]  = {1.0f / 4.0f, 1.0f / 4.0f, 1.0f / 4.0f, 1.0f / 4.0f};
     u32 panel_float_index = 0;
 
     // NOTE(antonio): experimental change
@@ -1381,23 +1381,32 @@ WinMain(HINSTANCE instance,
         render_data_to_lines(data_for_lines, lines_to_render);
       }
 
-        ui_push_panel_parent(ui_get_sentinel_panel());
-        Panel *other_half = ui_make_panel(axis_split_vertical,
-                                          &panel_floats[panel_float_index++],
-                                          string_literal_init_type("the middle third", utf8));
+      ui_push_text_color(0.0f, 0.0f, 0.0f, 1.0f);
 
-        ui_do_string(string_literal_init_type("hello from the other side", utf8));
+      ui_push_panel_parent(ui_get_sentinel_panel());
+      Panel *other_half = ui_make_panel(axis_split_vertical,
+                                        &panel_floats[panel_float_index++],
+                                        string_literal_init_type("the middle third", utf8));
 
-        ui_push_panel_parent(ui_get_sentinel_panel());
-        Panel *last_half = ui_make_panel(axis_split_vertical,
-                                          &panel_floats[panel_float_index++],
-                                          string_literal_init_type("the last third", utf8));
-        ui_do_string(string_literal_init_type("hello from the last side", utf8));
+      ui_do_string(string_literal_init_type("hello from the other side", utf8));
+
+      ui_push_panel_parent(ui_get_sentinel_panel());
+      Panel *last_half = ui_make_panel(axis_split_vertical,
+                                       &panel_floats[panel_float_index++],
+                                       string_literal_init_type("the last third", utf8));
+      ui_do_string(string_literal_init_type("hello from the last side", utf8));
+
+      ui_push_panel_parent(ui_get_sentinel_panel());
+      Panel *last_ = ui_make_panel(axis_split_vertical,
+                                   &panel_floats[panel_float_index++],
+                                   string_literal_init_type("the last thirdiii", utf8));
+      ui_do_string(string_literal_init_type("hello from the last sideiii", utf8));
 
       if (click_count)
       {
         unused(other_half);
         unused(last_half);
+        unused(last_);
 
         /*
         Panel *panel_from_which_to_split = other_half;

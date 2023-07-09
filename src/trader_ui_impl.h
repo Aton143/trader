@@ -405,7 +405,8 @@ internal void ui_initialize_frame(void)
   copy_memory_block(ui->background_color, (void *) default_background_color, sizeof(default_background_color));
 
   ui->canvas_viewport = {};
-  ui->keep_hot_key = false;
+  ui->keep_hot_key    = false;
+  ui->keep_active_key = false;
 
   default_persistent_data    = {};
 }
@@ -586,7 +587,8 @@ internal b32 ui_do_button(String_Const_utf8 string)
   String_Const_utf8 button_parent_to_hash_prefix = string_literal_init_type("Button parent::", utf8);
   String_Const_utf8 button_parent_to_hash = concat_string_to_c_string(ui->string_pool, button_parent_to_hash_prefix, string);
 
-  ui_make_widget(widget_flag_draw_background | widget_flag_clickable,
+  ui_make_widget(widget_flag_draw_background | widget_flag_clickable |
+                 widget_flag_hot_animation   | widget_flag_active_animation,
                  size_flag_text_content | size_flag_advancer_y,
                  button_parent_to_hash,
                  V2(1.0f, 1.0f),
@@ -620,10 +622,12 @@ internal b32 ui_do_button(String_Const_utf8 string)
     }
   }
 
+  /*
   button_text_parent->end_background_color[0] = rgba(0.0f, 0.0f, 0.0f, 1.0f);
   button_text_parent->end_background_color[1] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
   button_text_parent->end_background_color[2] = rgba(0.0f, 0.0f, 0.0f, 1.0f);
   button_text_parent->end_background_color[3] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+  */
 
   return(result);
 }
@@ -1144,7 +1148,7 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
       first_child = widgets->first_child;
     }
 
-    b32 keep_hot_key = false;
+    b32 keep_hot_key    = false;
     UI_Event_Value event_value;
 
     // NOTE(antonio): create draw calls in parent->child level traversal
@@ -1162,10 +1166,10 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
 
         b32 mouse_left_change = ((ui->prev_frame_mouse_event & mouse_event_lclick) !=
                                  (ui->cur_frame_mouse_event  & mouse_event_lclick));
+        b32 mouse_left_went_up = mouse_left_change && ((ui->cur_frame_mouse_event & mouse_event_lclick) == 0);
 
         if (ui_is_key_equal(ui->active_key, cur_widget->key))
         {
-          b32 mouse_left_went_up = mouse_left_change && ((ui->cur_frame_mouse_event & mouse_event_lclick) == 0);
           if (mouse_left_went_up)
           {
             if (ui_is_key_equal(ui->hot_key, cur_widget->key))
@@ -1199,15 +1203,6 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
           }
           keep_hot_key = true;
         }
-
-        if ((cur_widget->key == ui->active_key) && (cur_widget->key == ui->hot_key))
-        {
-          cur_widget->end_background_color[0] = cur_widget->end_background_color[1];
-          cur_widget->end_background_color[2] = cur_widget->end_background_color[3];
-
-          cur_widget->end_background_color[1] = saved_background_color[0];
-          cur_widget->end_background_color[3] = saved_background_color[2];
-        }
       }
 
       if ((cur_widget->widget_flags & widget_flag_draggable) || 
@@ -1229,7 +1224,7 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
               ui->active_key = cur_widget->key;
             }
           }
-          else
+          else if (ui->active_key == cur_widget->key)
           {
             ui->active_key = nil_key;
           }
@@ -1281,6 +1276,32 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
                                       (ui->mouse_pos.y - rect_to_use.y0) / rect_dimensions.y);
           event_value.extra_data = rect_get_closest_side_to_point(ui->mouse_pos, cur_widget->rectangle, rectangle_side_none);
           ui_add_interaction(cur_widget, 1, 0, &event_value);
+        }
+      }
+
+      if (cur_widget->widget_flags & widget_flag_hot_animation)
+      {
+        if (ui->hot_key == cur_widget->key)
+        {
+          cur_widget->end_background_color[1] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+          cur_widget->end_background_color[3] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+        }
+      }
+
+      if (cur_widget->widget_flags & widget_flag_active_animation)
+      {
+        if (cur_widget->key == ui->active_key)
+        {
+          RGBA_f32 saved_background_color[4];
+          copy_memory_block((void *) saved_background_color,
+                            (void *) cur_widget->end_background_color,
+                            sizeof(saved_background_color));
+
+          cur_widget->end_background_color[0] = cur_widget->end_background_color[1];
+          cur_widget->end_background_color[2] = cur_widget->end_background_color[3];
+
+          cur_widget->end_background_color[1] = saved_background_color[0];
+          cur_widget->end_background_color[3] = saved_background_color[2];
         }
       }
 
@@ -1369,7 +1390,7 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
         first_child = cur_widget->first_child;
       }
 
-      ui->keep_hot_key = ui->keep_hot_key || keep_hot_key;
+      ui->keep_hot_key    = ui->keep_hot_key    || keep_hot_key;
     }
   }
 

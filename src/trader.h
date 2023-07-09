@@ -37,6 +37,9 @@ static f32 global_slider_float;
 #include "trader_ui.h"
 #include "trader_platform.h"
 #include "trader_network.h"
+#include "trader_serialization.h"
+#include "trader_unicode.h"
+#include "trader_text_edit.h"
 
 #if OS_WINDOWS
 # include "platform_win32/win32_implementation.h"

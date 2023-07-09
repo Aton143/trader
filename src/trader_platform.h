@@ -1,5 +1,25 @@
 #ifndef TRADER_PLATFORM_H
 
+struct Cursor_Handle;
+typedef u32 Cursor_Kind;
+
+enum
+{
+  cursor_kind_none = 0,
+
+  cursor_kind_pointer,
+  cursor_kind_finger_pointer,
+  cursor_kind_grab,
+
+  cursor_kind_left_right_direction,
+  cursor_kind_up_down_direction,
+  cursor_kind_up_down_left_right_direction,
+
+  cursor_kind_count,
+};
+
+extern Cursor_Handle cursors[];
+
 typedef u32 Key_Event;
 
 typedef u32 (THREAD_CALL_CONVENTION *Thread_Routine)(void *arg);
@@ -40,8 +60,11 @@ internal Key_Event platform_convert_key_to_our_key(u64 key_value);
 internal String_Const_utf8 platform_get_file_from_system_prompt();
 internal File_Buffer       platform_open_and_read_entire_file_from_system_prompt(Arena *arena);
 
+internal void  platform_set_cursor(Cursor_Kind cursor);
+
 // NOTE(antonio): threads
 internal Thread_Handle platform_create_thread(Thread_Routine routine, void *routine_arg);
+
 
 // implementation
 internal void platform_debug_printf(char *format, ...)

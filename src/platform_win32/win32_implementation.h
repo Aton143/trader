@@ -6,6 +6,12 @@ struct Thread_Handle
   HANDLE _handle;
 };
 
+struct Cursor_Handle
+{
+  HCURSOR _handle;
+};
+Cursor_Handle cursors[cursor_kind_count];
+
 struct Vertex_Shader
 {
   ID3D11VertexShader *shader;
@@ -70,8 +76,10 @@ struct Global_Platform_State
   u64             nonclient_mouse_pos;
   u32             nonclient_mouse_button;
 
+  /*
   HCURSOR         horizontal_resize_cursor_icon;
   HCURSOR         vertical_resize_cursor_icon;
+  */
 
 #if !SHIP_MODE
   u64 frame_count;
@@ -1264,6 +1272,13 @@ internal Thread_Handle platform_create_thread(Thread_Routine routine, void *rout
   Thread_Handle res = {};
   res._handle = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) routine, routine_arg, 0, NULL);
   return(res);
+}
+
+internal void  platform_set_cursor(Cursor_Kind cursor)
+{
+  expect(cursor < cursor_kind_count);
+  expect(cursors[cursor]._handle != NULL);
+  SetCursor(cursors[cursor]._handle);
 }
 
 #define WIN32_IMPLEMENTATION_H

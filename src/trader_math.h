@@ -112,6 +112,7 @@ internal inline f32 line_get_squared_distance_from_point(V2_f32 c, V2_f32 a, V2_
   if (e >= f) return dot(bc, bc);
 
   f32 res = dot(ac, ac) - ((e * e) / f);
+  res = clamp_bottom(0.0f, res);
   expect(res >= 0.0f);
 
   return(res);

@@ -682,7 +682,7 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
     {
       f32 delta_x   = lerpf(minimum, cur_int->value.mouse.x, maximum);
       *in_out_value = clamp(minimum, delta_x, maximum);
-      SetCursor(win32_global_state.horizontal_resize_cursor_icon);
+      platform_set_cursor(cursor_kind_left_right_direction);
     }
   }
 }
@@ -731,7 +731,10 @@ internal void ui_evaluate_child_sizes_panel(Panel *panel)
   if (panel->first_child == panel->last_child) return;
 
   UI_Context *ui = ui_get_context();
+
+  // f32 prev_acc = 0.0f;
   f32 accumulated = 0.0f;
+  // f32 next_acc = 0.0f;
 
   for (Panel *cur_child = panel->first_child;
        cur_child != panel->last_child;
@@ -741,6 +744,7 @@ internal void ui_evaluate_child_sizes_panel(Panel *panel)
     UI_Key next_panel_widget_key = cur_child->next_sibling->sentinel->first_child->key;
 
     accumulated += *cur_child->size_relative_to_parent;
+    //next_acc     = accumulated + *cur_child->next_sibling->size_relative_to_parent;
 
     for (u32 interaction_index = 0;
          interaction_index < array_count(ui->interactions);
@@ -762,14 +766,31 @@ internal void ui_evaluate_child_sizes_panel(Panel *panel)
         f32 mouse_val = (cur_child->split == axis_split_vertical) ? cur_int->value.mouse.x : cur_int->value.mouse.y;
         f32 delta     = lerpf(0.0, mouse_val, 1.0f);
 
-        f32  from_original = delta - accumulated;
+        f32 from_original = delta - accumulated;
 
-        *cur_child->size_relative_to_parent               += from_original;
-        *cur_child->next_sibling->size_relative_to_parent -= from_original;
+        f32 cur_size  = *cur_child->size_relative_to_parent;
+        f32 next_size = *cur_child->next_sibling->size_relative_to_parent;
 
-        SetCursor(win32_global_state.horizontal_resize_cursor_icon);
+        if (((cur_size  + from_original) >= smallest_panel_size) &&
+            ((next_size - from_original) >= smallest_panel_size))
+        {
+          *cur_child->size_relative_to_parent               += from_original;
+          *cur_child->next_sibling->size_relative_to_parent -= from_original;
+        }
+
+        if (cur_child->split == axis_split_vertical)
+        {
+          platform_set_cursor(cursor_kind_left_right_direction);
+        }
+        else
+        {
+          platform_set_cursor(cursor_kind_up_down_direction);
+        }
+
         return;
       }
+
+      //prev_acc = accumulated;
     }
   }
 }
@@ -798,6 +819,9 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
   }
   
   ui_evaluate_child_sizes_panel(panel);
+
+  RGBA_f32 start_color = rgba_from_u8(0, 0, 0, 255);
+  RGBA_f32 end_color   = rgba_from_u8(255, 255, 255, 255);
 
   while (panel_queue.read != panel_queue.write)
   {
@@ -836,16 +860,20 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
         (f32) render->atlas->solid_color_rect.y1,
       };
       draw_call->pos      = V3(to_place.x0, to_place.y0, 0.4f);
-      draw_call->color[0] = rgba_from_u8(55, 47, 36, 255);
-      draw_call->color[1] = rgba_from_u8(55, 47, 36, 255);
-      draw_call->color[2] = rgba_from_u8(55, 47, 36, 255);
-      draw_call->color[3] = rgba_from_u8(55, 47, 36, 255);
+
+      draw_call->color[0] = start_color;
+      draw_call->color[1] = start_color;
+      draw_call->color[2] = start_color;
+      draw_call->color[3] = start_color;
+
+      start_color = wide_lerp(start_color, 0.5f, end_color);
+
       draw_call->corner_radius    = global_slider_float * 1000.0f;
       draw_call->border_thickness = 3.0f;
       draw_call->edge_softness    = 0.5f;
 
       u64 initial_used = temp_arena->used;
-      ui_prepare_render(cur_panel->sentinel, to_place);
+      ui_prepare_render(cur_panel, cur_panel->sentinel, to_place);
       temp_arena->used = initial_used;
     }
 
@@ -874,7 +902,7 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
   }
 }
 
-internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
+internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
 {
   Global_Platform_State *global_state = platform_get_global_state();
   Arena                 _temp_arena   = get_rest_of_temp_arena(0.5f);
@@ -1207,7 +1235,8 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
           }
         }
 
-        b32 make_hot = rect_is_point_inside(ui->mouse_pos, cur_widget->rectangle);
+        b32 make_hot       = rect_is_point_inside(ui->mouse_pos, cur_widget->rectangle);
+        u32 drag_direction = 0;
 
         if (cur_widget->widget_flags & widget_flag_border_draggable)
         {
@@ -1221,15 +1250,25 @@ internal void ui_prepare_render(Widget *widgets, Rect_f32 rect)
           inner_rect.y1 -= scaled_border_thickness;
 
           make_hot = make_hot && !rect_is_point_inside(ui->mouse_pos, inner_rect);
+          drag_direction = panel->split == axis_split_vertical ? 0 : 1;
         }
 
         if (make_hot)
         {
           if (ui->active_key == nil_key)
           {
-            SetCursor(win32_global_state.horizontal_resize_cursor_icon);
             ui->hot_key = cur_widget->key;
+
+            if (drag_direction == 0)
+            {
+              platform_set_cursor(cursor_kind_left_right_direction);
+            }
+            else
+            {
+              platform_set_cursor(cursor_kind_left_right_direction);
+            }
           }
+
           keep_hot_key = true;
         }
 

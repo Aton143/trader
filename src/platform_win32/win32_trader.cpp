@@ -1038,10 +1038,10 @@ WinMain(HINSTANCE instance,
     String_Const_utf8 file_str = {};
 
 #pragma warning(disable:4302)
-    win32_global_state.horizontal_resize_cursor_icon =
+    cursors[cursor_kind_none]._handle = NULL;
+    cursors[cursor_kind_left_right_direction]._handle =
       (HCURSOR) LoadImage(NULL, MAKEINTRESOURCEW(IDC_SIZEWE), IMAGE_CURSOR, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
-
-    win32_global_state.vertical_resize_cursor_icon =
+    cursors[cursor_kind_up_down_direction]._handle =
       (HCURSOR) LoadImage(NULL, MAKEINTRESOURCEW(IDC_SIZENS), IMAGE_CURSOR, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
 #pragma warning(default:4302)
 
@@ -1213,7 +1213,7 @@ WinMain(HINSTANCE instance,
 
       ui_push_background_color(rgba_from_u8(55, 47, 36, 255));
 
-      ui_make_panel(axis_split_horizontal, &panel_floats[panel_float_index++], string_literal_init_type("first", utf8));
+      ui_make_panel(axis_split_vertical, &panel_floats[panel_float_index++], string_literal_init_type("first", utf8));
       // first_panel->sentinel = ui_get_sentinel();
 
       win32_global_state.frame_count++;
@@ -1382,14 +1382,14 @@ WinMain(HINSTANCE instance,
       }
 
         ui_push_panel_parent(ui_get_sentinel_panel());
-        Panel *other_half = ui_make_panel(axis_split_horizontal,
+        Panel *other_half = ui_make_panel(axis_split_vertical,
                                           &panel_floats[panel_float_index++],
                                           string_literal_init_type("the middle third", utf8));
 
         ui_do_string(string_literal_init_type("hello from the other side", utf8));
 
         ui_push_panel_parent(ui_get_sentinel_panel());
-        Panel *last_half = ui_make_panel(axis_split_horizontal,
+        Panel *last_half = ui_make_panel(axis_split_vertical,
                                           &panel_floats[panel_float_index++],
                                           string_literal_init_type("the last third", utf8));
         ui_do_string(string_literal_init_type("hello from the last side", utf8));

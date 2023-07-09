@@ -405,6 +405,7 @@ global_const u64                default_string_pool_size = kb(16);
 global_const V2_f32             default_widget_sizing    = V2(1.0f, 1.0f);
 global_const u32                default_panel_count      = 64;
 global_const String_Const_utf8  default_panel_string     = string_literal_init_type("default panel string", utf8);
+global_const f32                smallest_panel_size      = 0.025f;
 
 global Persistent_Widget_Data default_persistent_data = {};
 global_const RGBA_f32 default_background_color[4] =
@@ -424,7 +425,7 @@ internal inline void ui_add_key_event(Key_Event event, b32 is_down);
 internal void ui_initialize(UI_Context *ui);
 internal void ui_initialize_frame(void);
 
-internal void ui_prepare_render(Widget *widgets, Rect_f32 rect);
+internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect);
 
 internal void ui_update_persistent_data(Persistent_Widget_Data *data);
 internal Persistent_Widget_Data *ui_search_persistent_data(Widget *widget);

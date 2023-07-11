@@ -897,16 +897,6 @@ struct String_Any {
 
 #define align(val, alignment) ((((val) + (alignment) - 1) / (alignment)) * (alignment))
 
-#if OS_WINDOWS
-#include "trader_meta.h"
-#include "trader_memory.h"
-#include "trader_string_utilities.h"
-
-#define string_literal_init(s) {(s), sizeof(s) - sizeof(*s)}
-#define string_literal_init_type(s, t) concat(String_Const_, t) {(t *) (s), sizeof(s) - 1}
-#define string_from_c_string(type, s, capacity) {(type *) s, concat(get_length_c_string_, type)((type *) s), (capacity)}
-#define string_from_fixed_size(type, buffer) {(type *) (buffer), 0, sizeof(buffer) - sizeof(type)}
-
 // TODO(antonio): does this break things???
 struct Buffer
 {
@@ -918,6 +908,16 @@ struct Buffer
 typedef Buffer File_Buffer;
 
 #define buffer_from_string_literal_type(s) {(u8 *) (s), sizeof(s), sizeof(s)}
+
+#if OS_WINDOWS
+#include "trader_meta.h"
+#include "trader_memory.h"
+#include "trader_string_utilities.h"
+
+#define string_literal_init(s) {(s), sizeof(s) - sizeof(*s)}
+#define string_literal_init_type(s, t) concat(String_Const_, t) {(t *) (s), sizeof(s) - 1}
+#define string_from_c_string(type, s, capacity) {(type *) s, concat(get_length_c_string_, type)((type *) s), (capacity)}
+#define string_from_fixed_size(type, buffer) {(type *) (buffer), 0, sizeof(buffer) - sizeof(type)}
 
 // helpful functions
 u32 count_set_bits(u64 bits)

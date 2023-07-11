@@ -8,7 +8,8 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
                              f32                edge_softness,
                              f32                border_thickness,
                              void              *data,
-                             u64                data_size)
+                             u64                data_size,
+                             String_Const_utf8 *alt_key_source)
 {
   // TODO(antonio): sprint nation?
   UI_Context     *ui     = ui_get_context();
@@ -106,7 +107,7 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
     widget->size_flags   = size_flags;
     widget->string       = string;
     widget->text_color   = ui->text_color;
-    widget->key          = ui_make_key(string);
+    widget->key          = alt_key_source == NULL ? ui_make_key(string) : ui_make_key(*alt_key_source);
 
     widget->position_relative_to_parent = position;
     widget->extra_sizing                = sizing;
@@ -539,14 +540,8 @@ internal inline void ui_pop_panel_parent(void)
 // TODO(antonio): consider what to do for format and string
 internal void ui_do_string(String_Const_utf8 string)
 {
-  UI_Context *ui           = ui_get_context();
-
-  String_Const_utf8 copy_string;
-
-  // NOTE(antonio): string pool gets cleared out every frame
-  copy_string.str = (utf8 *) arena_push(ui->string_pool, string.size + 1);
-  copy_memory_block(copy_string.str, string.str, string.size);
-  copy_string.size = string.size + 1;
+  UI_Context *ui = ui_get_context();
+  String_Const_utf8 copy_string = copy_str(ui->string_pool, string);
 
   ui_make_widget(widget_flag_draw_text,
                  size_flag_text_content | size_flag_advancer_y,
@@ -555,7 +550,7 @@ internal void ui_do_string(String_Const_utf8 string)
 
 internal void ui_do_formatted_string(char *format, ...)
 {
-  UI_Context *ui           = ui_get_context();
+  UI_Context *ui = ui_get_context();
 
   va_list args;
   va_start(args, format);
@@ -575,6 +570,62 @@ internal void ui_do_formatted_string(char *format, ...)
   ui_make_widget(widget_flag_draw_text,
                  size_flag_text_content | size_flag_advancer_y,
                  sprinted_text);
+}
+
+internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
+{
+  expect(teb != NULL);
+  UI_Context *ui = ui_get_context();
+
+  va_list args;
+  va_start(args, format);
+
+  // NOTE(antonio): string pool gets cleared out every frame
+  // NOTE(antonio): speculative "sprintf'ing"
+  String_Const_utf8 sprinted_text;
+
+  char *string_start = (char *) (ui->string_pool->start + ui->string_pool->used);
+  sprinted_text.size = stbsp_vsnprintf(string_start, 512, format, args);
+  sprinted_text.str  = (utf8 *) string_start;
+
+  arena_push(ui->string_pool, sprinted_text.size + 1);
+
+  va_end(args);
+
+  String_Const_utf8 copy_string = copy_str(ui->string_pool, teb->buf);
+  ui_make_widget(widget_flag_draw_text | widget_flag_get_user_input,
+                 size_flag_text_content | size_flag_advancer_y,
+                 copy_string,
+                 V2(1.0f, 1.0f),
+                 V2(0.0f, 0.0f),
+                 0.0f,
+                 0.0f,
+                 0.0f,
+                 NULL,
+                 0,
+                 &sprinted_text);
+
+
+  Widget *text_edit_widget = ui->current_panel_parent->current_parent->last_child;
+  for (u32 interaction_index = 0;
+       interaction_index < array_count(ui->interactions);
+       ++interaction_index) 
+  {
+    if (ui->interactions[interaction_index].key == text_edit_widget->key)
+    {
+      i32 key_event = ui->interactions[interaction_index].value.extra_data;
+      if (is_between_inclusive(key_event_a, key_event, key_event_z))
+      {
+        u32 key_event_to_ascii = (key_event - key_event_a) + 'a';
+        u8 ascii = (char) key_event_to_ascii;
+        String_utf8 to_insert = {&ascii, 1, 1};
+
+        text_edit_insert_string(teb, to_insert);
+      }
+
+      break;
+    }
+  }
 }
 
 internal b32 ui_do_button(String_Const_utf8 string)
@@ -598,11 +649,7 @@ internal b32 ui_do_button(String_Const_utf8 string)
   Widget *button_text_parent = panel_parent->current_parent->last_child;
   ui_push_parent(button_text_parent);
 
-  String_Const_utf8 copy_string;
-
-  copy_string.str  = (utf8 *) arena_push(ui->string_pool, string.size + 1);
-  copy_memory_block(copy_string.str, string.str, string.size);
-  copy_string.size = string.size + 1;
+  String_Const_utf8 copy_string = copy_str(ui->string_pool, string);
 
   ui_make_widget(widget_flag_draw_text,
                  size_flag_text_content | size_flag_relative_to_parent_pos_y,
@@ -1276,6 +1323,20 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
                                       (ui->mouse_pos.y - rect_to_use.y0) / rect_dimensions.y);
           event_value.extra_data = rect_get_closest_side_to_point(ui->mouse_pos, cur_widget->rectangle, rectangle_side_none);
           ui_add_interaction(cur_widget, 1, 0, &event_value);
+        }
+      }
+
+      if (cur_widget->widget_flags & widget_flag_get_user_input)
+      {
+        for (u32 key_event_index = 0;
+             key_event_index < key_event_count;
+             ++key_event_index)
+        {
+          if (ui->key_events[key_event_index])
+          {
+            event_value.extra_data = key_event_index;
+            ui_add_interaction(cur_widget, 1, 0, &event_value);
+          }
         }
       }
 

@@ -21,6 +21,8 @@ internal inline String_Const_char string_const_char(char *string);
 internal inline String_Const_utf16 string_const_utf16(utf16 *string);
 internal inline u64 base64_encode(u8 *out_buffer, u8 *data, u64 data_length);
 
+internal inline String_Const_utf8 copy_str(Arena *arena, Buffer buf);
+internal inline String_Const_utf8 copy_str(Arena *arena, String_Const_utf8 str);
 internal inline String_Const_utf8 concat_str(Arena *arena, String_Const_utf8 a, String_Const_utf8 b, u64 size);
 
 internal inline String_Const_utf8 scu8f(Arena *arena, char *format, ...);
@@ -191,6 +193,24 @@ internal inline u64 base64_encode(u8 *out_buffer,
   }
 
   return(result);
+}
+
+internal inline String_Const_utf8 copy_str(Arena *arena, Buffer buf)
+{
+  String_Const_utf8 string_from_buf = {buf.data, buf.used};
+  String_Const_utf8 copy_string = copy_str(arena, string_from_buf);
+  return(string_from_buf);
+}
+
+internal inline String_Const_utf8 copy_str(Arena *arena, String_Const_utf8 str)
+{
+  String_Const_utf8 copy_string;
+
+  copy_string.str  = (utf8 *) arena_push(arena, str.size + 1);
+  copy_memory_block(copy_string.str, str.str, str.size);
+  copy_string.size = str.size + 1;
+
+  return(copy_string);
 }
 
 internal inline String_Const_utf8 concat_str(Arena *arena, String_Const_utf8 a, String_Const_utf8 b, u64 size)

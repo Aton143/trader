@@ -40,6 +40,8 @@ enum
   widget_flag_arbitrary_draw     = (1LL << 19),
   widget_flag_border_draggable   = (1LL << 20),
   widget_flag_top_level          = (1LL << 21),
+
+  widget_flag_get_user_input     = (1LL << 22),
 };
 
 typedef u64 Widget_Size_Flag;
@@ -94,6 +96,7 @@ enum
   // TODO(antonio): other types?
 };
 
+typedef u32 Key_Event;
 enum
 {
   key_event_none = 0,
@@ -446,6 +449,7 @@ internal void ui_pop_parent(void);
 // NOTE(antonio): widgets
 internal void ui_do_string(String_Const_utf8 string);
 internal void ui_do_formatted_string(char *format, ...);
+internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *id, ...);
 
 internal b32  ui_do_button(String_Const_utf8 string);
 
@@ -470,9 +474,10 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
                              f32                edge_softness    = 0.0f,
                              f32                border_thickness = 0.0f,
                              void              *data             = NULL,
-                             u64                data_size        = 0);
+                             u64                data_size        = 0,
+                             String_Const_utf8 *alt_key_source   = NULL);
 
-internal void    ui_adjust_widget(Widget *widget_to_adjust, Widget_Parameters *params);
+internal void   ui_adjust_widget(Widget *widget_to_adjust, Widget_Parameters *params);
 internal inline Widget *ui_get_last_placed_widget();
 
 // NOTE(antonio): panels

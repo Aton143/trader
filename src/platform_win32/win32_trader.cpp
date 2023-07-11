@@ -1096,12 +1096,17 @@ WinMain(HINSTANCE instance,
     f32 panel_floats[16]  = {1.0f / 4.0f, 1.0f / 4.0f, 1.0f / 4.0f, 1.0f / 4.0f};
     u32 panel_float_index = 0;
 
+    Buffer           teb_buf = stack_alloc_buffer(128);
+    zero_memory_block(teb_buf.data, teb_buf.size);
+    Text_Edit_Buffer teb     = {teb_buf, 0, string_encoding_utf8};
+
     // NOTE(antonio): experimental change
     win32_global_state.main_fiber_address = ConvertThreadToFiber(NULL);
     expect_message(win32_global_state.main_fiber_address != NULL, "expected to use fiber path");
 
     void *win32_message_fiber_handle = CreateFiber(0, &win32_message_fiber, NULL);
     expect_message(win32_global_state.main_fiber_address != NULL, "could not create a fiber for messages");
+
 
     while (global_running)
     {
@@ -1217,6 +1222,8 @@ WinMain(HINSTANCE instance,
       // first_panel->sentinel = ui_get_sentinel();
 
       win32_global_state.frame_count++;
+
+      ui_do_text_edit(&teb, "text editor");
 
       ui_do_formatted_string("Last frame time: %.6fs", last_frame_time);
       ui_do_formatted_string("Last frame time in cycles: %lld", last_frame_time_in_cycles);

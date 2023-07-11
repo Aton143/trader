@@ -818,10 +818,10 @@ struct String_Const_utf32 {
 
 typedef i32 String_Encoding;
 enum {
-  StringEncoding_ASCII = 0,
-  StringEncoding_UTF8  = 1,
-  StringEncoding_UTF16 = 2,
-  StringEncoding_UTF32 = 3,
+  string_encoding_ascii = 0,
+  string_encoding_utf8  = 1,
+  string_encoding_utf16 = 2,
+  string_encoding_utf32 = 3,
 };
 
 struct String_Const_Any {

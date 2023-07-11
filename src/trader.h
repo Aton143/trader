@@ -28,6 +28,7 @@ static f32 global_slider_float;
 #include "trader_math.h"
 #include "trader_meta.h"
 
+#include "trader_unicode.h"
 #include "trader_memory.h"
 #include "trader_handle.h"
 #include "trader_string_utilities.h"
@@ -38,7 +39,6 @@ static f32 global_slider_float;
 #include "trader_platform.h"
 #include "trader_network.h"
 #include "trader_serialization.h"
-#include "trader_unicode.h"
 #include "trader_text_edit.h"
 
 #if OS_WINDOWS

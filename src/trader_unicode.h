@@ -1,4 +1,12 @@
 #if !defined(TRADER_UNICODE_H)
+internal inline b32 unicode_utf8_is_start(utf8 encoding_char);
+
+internal inline i64 unicode_utf8_get_next_start_char_pos(utf8 *encoding_start, u64 encoding_pos, u64 encoding_size_in_bytes);
+internal inline i64 unicode_utf8_get_prev_start_char_pos(utf8 *encoding_start, u64 encoding_pos, u64 encoding_size_in_bytes);
+
+internal inline i64 unicode_utf8_get_next_char_pos(utf8 *encoding_start, u64 encoding_pos, u64 encoding_size_in_bytes);
+internal inline i64 unicode_utf8_get_prev_char_pos(utf8 *encoding_start, u64 encoding_pos, u64 encoding_size_in_bytes);
+
 internal inline i64 unicode_utf8_encode(u32 *code_points, u64 code_point_length, utf8 *put, u64 put_length);
 
 // NOTE(antonio): implementation
@@ -77,6 +85,96 @@ internal inline i64 unicode_utf8_encode(u32 *code_points, u64 code_point_length,
   }
 
   return(res);
+}
+
+internal inline b32 unicode_utf8_is_start(utf8 encoding_char)
+{
+  b32 one_byte_start   = ((encoding_char >> 7) == 0b0);
+  b32 two_byte_start   = ((encoding_char >> 5) == 0b110);
+  b32 three_byte_start = ((encoding_char >> 4) == 0b1110);
+  b32 four_byte_start  = ((encoding_char >> 3) == 0b11110);
+
+  b32 is_start = (one_byte_start || two_byte_start) || (three_byte_start || four_byte_start);
+  return(is_start);
+}
+
+internal inline i64 unicode_utf8_get_next_char_pos(utf8 *encoding_start, u64 encoding_pos, u64 encoding_size_in_bytes)
+{
+  i64 next_char_pos = 0;
+
+  while (((encoding_pos + next_char_pos) < encoding_size_in_bytes) &&
+         !unicode_utf8_is_start(encoding_start[encoding_pos + next_char_pos]))
+  {
+    next_char_pos++;
+  }
+
+  if ((encoding_pos + next_char_pos) >= encoding_size_in_bytes)
+  {
+    return(-1);
+  }
+
+  return(encoding_pos + next_char_pos);
+}
+
+internal inline i64 unicode_utf8_get_prev_char_pos(utf8 *encoding_start, u64 encoding_pos, u64 encoding_size_in_bytes)
+{
+  i64 prev_char_pos = 0;
+
+  if (encoding_pos >= encoding_size_in_bytes)
+  {
+    return (-1);
+  }
+
+  while (((encoding_pos - prev_char_pos) >= 0) &&
+         !unicode_utf8_is_start(encoding_start[encoding_pos - prev_char_pos]))
+  {
+    prev_char_pos++;
+  }
+
+  if ((encoding_pos + prev_char_pos) < 0)
+  {
+    return(-1);
+  }
+
+  return(encoding_pos - prev_char_pos);
+}
+
+internal inline i64 unicode_utf8_get_next_start_char_pos(utf8 *encoding_start, u64 encoding_pos, u64 encoding_size_in_bytes)
+{
+  i64 next_start_char_pos = -1;
+
+  if (encoding_pos < encoding_size_in_bytes)
+  {
+    if (unicode_utf8_is_start(encoding_start[encoding_pos]))
+    {
+      next_start_char_pos = encoding_pos;
+    }
+    else
+    {
+      next_start_char_pos = unicode_utf8_get_next_char_pos(encoding_start, encoding_pos, encoding_size_in_bytes);
+    }
+  }
+
+  return(next_start_char_pos);
+}
+
+internal inline i64 unicode_utf8_get_prev_start_char_pos(utf8 *encoding_start, u64 encoding_pos, u64 encoding_size_in_bytes)
+{
+  i64 prev_start_char_pos = -1;
+
+  if (encoding_pos < encoding_size_in_bytes)
+  {
+    if (unicode_utf8_is_start(encoding_start[encoding_pos]))
+    {
+      prev_start_char_pos = encoding_pos;
+    }
+    else
+    {
+      prev_start_char_pos = unicode_utf8_get_prev_char_pos(encoding_start, encoding_pos, encoding_size_in_bytes);
+    }
+  }
+
+  return(prev_start_char_pos);
 }
 
 #define TRADER_UNICODE_H

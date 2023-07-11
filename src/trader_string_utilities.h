@@ -15,6 +15,8 @@ internal inline u64 c_string_length(utf8 *string, u64 max_length);
 internal inline u64 c_string_length(utf16 *string);
 internal inline u64 c_string_count(utf16 *string);
 
+internal inline u64 get_last_char_pos(String_utf8 string);
+
 internal inline String_Const_char string_const_char(char *string);
 internal inline String_Const_utf16 string_const_utf16(utf16 *string);
 internal inline u64 base64_encode(u8 *out_buffer, u8 *data, u64 data_length);
@@ -233,6 +235,16 @@ internal inline String_Const_utf8 scu8f(Arena *arena, char *format, ...)
 {
   String_Const_utf8 res = scu8f(arena, 0, format);
   return(res);
+}
+
+internal inline u64 get_last_char_pos(String_utf8 string)
+{
+  u64 last_char_pos = string.size;
+  while ((last_char_pos >= 0) && (string.str[last_char_pos] == '\0'))
+  {
+    last_char_pos--;
+  }
+  return(last_char_pos);
 }
 
 #define TRADER_STRING_H

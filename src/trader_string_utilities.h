@@ -26,6 +26,9 @@ internal inline String_Const_utf8 concat_str(Arena *arena, String_Const_utf8 a, 
 internal inline String_Const_utf8 scu8f(Arena *arena, char *format, ...);
 internal inline String_Const_utf8 scu8f(Arena *arena, i32 limit, char *format, ...);
 
+internal inline String_utf8 su8(String_Const_utf8 string);
+internal inline String_utf8 su8(utf8 *string);
+
 // Implementation
 internal inline b32 is_newline(char c)
 {
@@ -245,6 +248,26 @@ internal inline u64 get_last_char_pos(String_utf8 string)
     last_char_pos--;
   }
   return(last_char_pos);
+}
+
+internal inline String_utf8 su8(String_Const_utf8 string)
+{
+  String_utf8 res;
+
+  res.string = string;
+  res.cap    = string.size;
+
+  return(res);
+}
+
+internal inline String_utf8 su8(utf8 *string)
+{
+  String_utf8 res;
+
+  res.str = string;
+  res.cap = res.size = c_string_length(string);
+
+  return(res);
 }
 
 #define TRADER_STRING_H

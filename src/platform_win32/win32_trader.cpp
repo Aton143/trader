@@ -1262,38 +1262,6 @@ WinMain(HINSTANCE instance,
       ui_do_formatted_string("Active key: %d", (i32) ui->active_key);
       ui_do_formatted_string("Hot Key: %d", (i32) ui->hot_key);
 
-      ui_do_formatted_string("Keyboard: a %d, b %d, c %d, d %d, "
-                             "e %d, f %d, g %d, h %d, i %d, j %d, "
-                             "k %d, l %d, m %d, n %d, o %d, p %d, "
-                             "q %d, r %d, s %d, t %d, u %d, v %d, "
-                             "w %d, x %d, y %d, z %d",
-                             ui->key_events[key_event_a],
-                             ui->key_events[key_event_b],
-                             ui->key_events[key_event_c],
-                             ui->key_events[key_event_d],
-                             ui->key_events[key_event_e],
-                             ui->key_events[key_event_f],
-                             ui->key_events[key_event_g],
-                             ui->key_events[key_event_h],
-                             ui->key_events[key_event_i],
-                             ui->key_events[key_event_j],
-                             ui->key_events[key_event_k],
-                             ui->key_events[key_event_l],
-                             ui->key_events[key_event_m],
-                             ui->key_events[key_event_n],
-                             ui->key_events[key_event_o],
-                             ui->key_events[key_event_p],
-                             ui->key_events[key_event_q],
-                             ui->key_events[key_event_r],
-                             ui->key_events[key_event_s],
-                             ui->key_events[key_event_t],
-                             ui->key_events[key_event_u],
-                             ui->key_events[key_event_v],
-                             ui->key_events[key_event_w],
-                             ui->key_events[key_event_x],
-                             ui->key_events[key_event_y],
-                             ui->key_events[key_event_z]);
-
       ui_do_formatted_string("Panel float: %.16f",  panel_float);
       ui_do_formatted_string("Slider float: %.16f", slider_float);
       ui_do_slider_f32(string_literal_init_type("slider", utf8), &slider_float, 0.0f, 1.0f);
@@ -1678,7 +1646,6 @@ WinMain(HINSTANCE instance,
         }
       }
 
-      zero_memory_block(ui->key_events, sizeof(ui->key_events));
       {
         u64 cur_pts = platform_get_processor_time_stamp();
         u64 cur_hpt = platform_get_high_precision_timer();

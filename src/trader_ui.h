@@ -294,6 +294,11 @@ union UI_Event_Value
     V2_f32 mouse;
     u32    extra_data;
   };
+  struct
+  {
+    u8     utf8_data[4]; 
+    u32    utf8_length;
+  };
 };
 
 struct UI_Interaction
@@ -363,9 +368,12 @@ struct UI_Context
   Persistent_Widget_Data  persistent_data[4];
 
   Mod_Keys                mod_keys;
-  b8                      key_events[key_event_count];
+  // b8                      key_events[key_event_count];
+
   b8                      keep_hot_key;
   b8                      keep_active_key;
+
+  Ring_Buffer             event_queue;
 };
 
 enum
@@ -411,7 +419,9 @@ global_const u32                default_panel_count      = 64;
 global_const String_Const_utf8  default_panel_string     = string_literal_init_type("default panel string", utf8);
 global_const f32                smallest_panel_size      = 0.025f;
 
+global       u8                 __event_queue_buffer[128];
 global Persistent_Widget_Data default_persistent_data = {};
+
 global_const RGBA_f32 default_background_color[4] =
 {
   rgba(0.0f, 0.0f, 0.0f, 1.0),

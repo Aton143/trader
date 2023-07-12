@@ -316,10 +316,13 @@ internal inline void ui_add_key_event(Key_Event event, b32 is_down)
     ui->mod_keys.super = (b8) is_down;
   }
 
-  ui->key_events[event] = (b8) is_down;
+  if (is_down)
+  {
+    ring_buffer_append(&ui->event_queue, &event, sizeof(u32));
+  }
 }
 
-internal inline i64 ui_key_event_to_utf8(Key_Event event, utf8 *put, u64 put_pos, u64 put_length)
+internal inline i64 ui_key_event_to_utf8(Key_Event event, utf8 *put, u64 put_length)
 {
   i64 result = -1;
   u32 to_encode = max_u32;
@@ -466,7 +469,7 @@ internal inline i64 ui_key_event_to_utf8(Key_Event event, utf8 *put, u64 put_pos
 
   if (to_encode != max_u32)
   {
-    result = unicode_utf8_encode(&to_encode, 1, put, put_pos, put_length);
+    result = unicode_utf8_encode(&to_encode, 1, put, 0, put_length);
   }
 
   return(result);
@@ -504,6 +507,9 @@ internal void ui_initialize(UI_Context *ui)
   ui->panels_start      = panel_memory;
   ui->panel_memory_size = default_panel_count * sizeof(*ui->panels_start);
   ui->panel_count       = 0;
+
+  ui->event_queue.start = ui->event_queue.read = ui->event_queue.write = (u8 *) __event_queue_buffer;
+  ui->event_queue.size  = array_count(__event_queue_buffer);
 };
 
 internal void ui_initialize_frame(void)
@@ -758,7 +764,6 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
                  0,
                  &sprinted_text);
 
-
   Widget *text_edit_widget = ui->current_panel_parent->current_parent->last_child;
   for (u32 interaction_index = 0;
        interaction_index < array_count(ui->interactions);
@@ -766,15 +771,11 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
   {
     if (ui->interactions[interaction_index].key == text_edit_widget->key)
     {
-      i32 key_event = ui->interactions[interaction_index].value.extra_data;
-      if (is_between_inclusive(key_event_a, key_event, key_event_z))
-      {
-        u32 key_event_to_ascii = (key_event - key_event_a) + 'a';
-        u8 ascii = (char) key_event_to_ascii;
-        String_utf8 to_insert = {&ascii, 1, 1};
+      utf8 *char_data   = ui->interactions[interaction_index].value.utf8_data;
+      u32   utf8_length = ui->interactions[interaction_index].value.utf8_length;
 
-        text_edit_insert_string(teb, to_insert);
-      }
+      String_utf8 to_insert = {char_data, utf8_length, utf8_length};
+      text_edit_insert_string(teb, to_insert);
 
       break;
     }
@@ -1481,13 +1482,17 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
 
       if (cur_widget->widget_flags & widget_flag_get_user_input)
       {
-        for (u32 key_event_index = 0;
-             key_event_index < key_event_count;
-             ++key_event_index)
+        if (ui->event_queue.read != ui->event_queue.write)
         {
-          if (ui->key_events[key_event_index])
+          Key_Event first_key_event;
+          ring_buffer_pop_and_put(&ui->event_queue, &first_key_event, sizeof(first_key_event));
+
+          i64 encode_result =
+            ui_key_event_to_utf8(first_key_event, (utf8 *) event_value.utf8_data, sizeof(event_value.utf8_data));
+
+          if (encode_result > 0) 
           {
-            event_value.extra_data = key_event_index;
+            event_value.utf8_length = (u32) encode_result;
             ui_add_interaction(cur_widget, 1, 0, &event_value);
           }
         }

@@ -319,6 +319,159 @@ internal inline void ui_add_key_event(Key_Event event, b32 is_down)
   ui->key_events[event] = (b8) is_down;
 }
 
+internal inline i64 ui_key_event_to_utf8(Key_Event event, utf8 *put, u64 put_pos, u64 put_length)
+{
+  i64 result = -1;
+  u32 to_encode = max_u32;
+
+  switch (event)
+  {
+    case key_event_tab:
+    {
+      to_encode = '\t';
+    } break;
+    case key_event_space:
+    {
+      to_encode = ' ';
+    } break;
+    case key_event_enter:
+    {
+      to_encode = '\n';
+    } break;
+    case key_event_apostrophe:
+    {
+      to_encode = '\'';
+    } break;
+    case key_event_comma:
+    {
+      to_encode = ',';
+    } break;
+    case key_event_minus:
+    {
+      to_encode = '-';
+    } break;
+    case key_event_period:
+    {
+      to_encode = '.';
+    } break;
+    case key_event_slash:
+    {
+      to_encode = '/';
+    } break;
+    case key_event_semicolon:
+    {
+      to_encode = ';';
+    } break;
+    case key_event_equal:
+    {
+      to_encode = '=';
+    } break;
+    case key_event_left_bracket:
+    {
+      to_encode = '[';
+    } break;
+    case key_event_backslash:
+    {
+      to_encode = '\\';
+    } break;
+    case key_event_right_bracket:
+    {
+      to_encode = ']';
+    } break;
+    case key_event_grave_accent:
+    {
+      to_encode = '`';
+    } break;
+    case key_event_keypad_0:
+    case key_event_keypad_1:
+    case key_event_keypad_2:
+    case key_event_keypad_3:
+    case key_event_keypad_4:
+    case key_event_keypad_5:
+    case key_event_keypad_6:
+    case key_event_keypad_7:
+    case key_event_keypad_8:
+    case key_event_keypad_9:
+    {
+      to_encode = (event - key_event_keypad_0) + '0';
+    } break;
+    case key_event_keypad_decimal:
+    {
+      to_encode = '.';
+    } break;
+    case key_event_keypad_divide:
+    {
+      to_encode = '/';
+    } break;
+    case key_event_keypad_multiply:
+    {
+      to_encode = '*';
+    } break;
+    case key_event_keypad_subtract:
+    {
+      to_encode = '-';
+    } break;
+    case key_event_keypad_add:
+    {
+      to_encode = '+';
+    } break;
+    case key_event_keypad_enter:
+    {
+      to_encode = '\n';
+    } break;
+    case key_event_0:
+    case key_event_1:
+    case key_event_2:
+    case key_event_3:
+    case key_event_4:
+    case key_event_5:
+    case key_event_6:
+    case key_event_7:
+    case key_event_8:
+    case key_event_9:
+    {
+      to_encode = (event - key_event_0) + '0';
+    } break;
+    case key_event_a:
+    case key_event_b:
+    case key_event_c:
+    case key_event_d:
+    case key_event_e:
+    case key_event_f:
+    case key_event_g:
+    case key_event_h:
+    case key_event_i:
+    case key_event_j:
+    case key_event_k:
+    case key_event_l:
+    case key_event_m:
+    case key_event_n:
+    case key_event_o:
+    case key_event_p:
+    case key_event_q:
+    case key_event_r:
+    case key_event_s:
+    case key_event_t:
+    case key_event_u:
+    case key_event_v:
+    case key_event_w:
+    case key_event_x:
+    case key_event_y:
+    case key_event_z:
+    {
+      to_encode = (event - key_event_a) + 'a';
+      break;
+    }
+  }
+
+  if (to_encode != max_u32)
+  {
+    result = unicode_utf8_encode(&to_encode, 1, put, put_pos, put_length);
+  }
+
+  return(result);
+}
+
 internal void ui_initialize(UI_Context *ui)
 {
   Arena *global_arena = platform_get_global_arena();

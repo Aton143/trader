@@ -425,6 +425,7 @@ internal inline UI_Context *ui_get_context(void);
 internal inline void ui_add_interaction(Widget *cur_widget, i32 frames_left, u32 event, UI_Event_Value *event_value);
 
 internal inline void ui_add_key_event(Key_Event event, b32 is_down);
+internal inline i64 ui_key_event_to_utf8(Key_Event event, utf8 *put, u64 put_length);
 
 internal void ui_initialize(UI_Context *ui);
 internal void ui_initialize_frame(void);

@@ -7,13 +7,13 @@ internal inline i64 unicode_utf8_get_prev_start_char_pos(utf8 *encoding_start, u
 internal inline i64 unicode_utf8_get_next_char_pos(utf8 *encoding_start, u64 encoding_pos, u64 encoding_size_in_bytes);
 internal inline i64 unicode_utf8_get_prev_char_pos(utf8 *encoding_start, u64 encoding_pos, u64 encoding_size_in_bytes);
 
-internal inline i64 unicode_utf8_encode(u32 *code_points, u64 code_point_length, utf8 *put, u64 put_length);
+internal inline i64 unicode_utf8_encode(u32 *code_points, u64 code_point_length, utf8 *put, u64 put_pos, u64 put_length);
 
 // NOTE(antonio): implementation
-internal inline i64 unicode_utf8_encode(u32 *code_points, u64 code_point_length, utf8 *put, u64 put_length)
+internal inline i64 unicode_utf8_encode(u32 *code_points, u64 code_point_length, utf8 *put, u64 put_pos, u64 put_length)
 {
   expect(code_points != NULL);
-  expect(put        != NULL);
+  expect(put         != NULL);
 
   i64 res         = 0;
   u8  temp_put[4] = {};
@@ -71,10 +71,10 @@ internal inline i64 unicode_utf8_encode(u32 *code_points, u64 code_point_length,
       cur_length = 4;
     }
 
-    if ((put_index + cur_length) < put_length)
+    if ((put_pos + put_index + cur_length) < put_length)
     {
+      copy_memory_block(&put[put_pos + put_index], temp_put, sizeof(temp_put[0]) * cur_length);
       put_index += cur_length;
-      copy_memory_block(&put[put_index], temp_put, sizeof(temp_put[0]) * cur_length);
       res++;
     }
     else

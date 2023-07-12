@@ -183,7 +183,8 @@ internal inline i64 move_memory_block(void *dest, void *source, i64 byte_count)
   if ((from == to) || (byte_count == 0))
   {
   }
-  else if ((to > from) && ((to - from) < (i32) byte_count))
+
+  if ((to > from) && ((to - from) < (i32) byte_count))
   {
     /* to overlaps with from */
     /*  <from......>         */
@@ -196,8 +197,10 @@ internal inline i64 move_memory_block(void *dest, void *source, i64 byte_count)
     {
       to[i] = from[i];
     }
+    return(byte_count);
   }
-  else if ((from > to) && ((from - to) < (i32) byte_count))
+
+  if ((from > to) && ((from - to) < (i32) byte_count))
   {
     /* to overlaps with from */
     /*        <from......>   */
@@ -210,6 +213,7 @@ internal inline i64 move_memory_block(void *dest, void *source, i64 byte_count)
     {
       to[i] = from[i];
     }
+    return(byte_count);
   }
 
   copy_memory_block(dest, source, byte_count);

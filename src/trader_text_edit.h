@@ -18,8 +18,14 @@ internal void text_edit_insert_string(Text_Edit_Buffer *teb, String_utf8 string)
       ((teb->buf.used + one_past_string_last_char_pos) <= teb->buf.size))
   {
     u8 *next_char_pos = teb->buf.data + teb->next_char_index;
-    move_memory_block(next_char_pos + one_past_string_last_char_pos, next_char_pos, one_past_string_last_char_pos);
-    copy_memory_block(next_char_pos, string.str, one_past_string_last_char_pos);
+    u64 bytes_to_move = teb->buf.used - teb->next_char_index; 
+
+    move_memory_block(next_char_pos + one_past_string_last_char_pos,
+                      next_char_pos,
+                      bytes_to_move);
+    copy_memory_block(next_char_pos,
+                      string.str,
+                      one_past_string_last_char_pos);
     teb->buf.used += one_past_string_last_char_pos;
   }
 }

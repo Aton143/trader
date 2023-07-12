@@ -419,6 +419,7 @@ internal LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM
       {
         global_running = false;
       }
+      result = DefWindowProc(window_handle, message, wparam, lparam);
     } break;
 
     case WM_SIZE:

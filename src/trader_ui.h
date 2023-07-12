@@ -265,7 +265,6 @@ struct Widget
 
   f32               font_height;
 
-
   // NOTE(antonio): computed every frame
   union {
     struct {

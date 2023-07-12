@@ -6,11 +6,13 @@ struct Text_Edit_Buffer
   String_Encoding encoding;
 };
 
-internal void text_edit_insert_string(Text_Edit_Buffer *teb, String_utf8 string);
+internal i64 text_edit_insert_string(Text_Edit_Buffer *teb, String_utf8 string);
+internal i64 text_edit_insert_string_and_advance(Text_Edit_Buffer *teb, String_utf8 string);
 
 // implementation
-internal void text_edit_insert_string(Text_Edit_Buffer *teb, String_utf8 string)
+internal i64 text_edit_insert_string(Text_Edit_Buffer *teb, String_utf8 string)
 {
+  i64 chars_placed = -1;
   expect(teb->encoding == string_encoding_utf8);
 
   u64 one_past_string_last_char_pos = get_last_char_pos(string) + 1;
@@ -27,7 +29,23 @@ internal void text_edit_insert_string(Text_Edit_Buffer *teb, String_utf8 string)
                       string.str,
                       one_past_string_last_char_pos);
     teb->buf.used += one_past_string_last_char_pos;
+
+    chars_placed = one_past_string_last_char_pos;
   }
+
+  return(chars_placed);
+}
+
+internal i64 text_edit_insert_string_and_advance(Text_Edit_Buffer *teb, String_utf8 string)
+{
+  i64 to_advance = text_edit_insert_string(teb, string);
+
+  if (to_advance >= 0)
+  {
+    teb->next_char_index += to_advance;
+  }
+
+  return(to_advance);
 }
 
 #define TRADER_TEXT_EDIT_H

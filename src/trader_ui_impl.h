@@ -327,6 +327,9 @@ internal inline i64 ui_key_event_to_utf8(Key_Event event, utf8 *put, u64 put_len
   i64 result = -1;
   u32 to_encode = max_u32;
 
+  UI_Context *ui    = ui_get_context();
+  b8          shift = ui->mod_keys.shift;
+
   switch (event)
   {
     case key_event_tab:
@@ -343,47 +346,47 @@ internal inline i64 ui_key_event_to_utf8(Key_Event event, utf8 *put, u64 put_len
     } break;
     case key_event_apostrophe:
     {
-      to_encode = '\'';
+      to_encode = shift ? '"' : '\'';
     } break;
     case key_event_comma:
     {
-      to_encode = ',';
+      to_encode = shift ? '<' : ',';
     } break;
     case key_event_minus:
     {
-      to_encode = '-';
+      to_encode = shift ? '_' : '-';
     } break;
     case key_event_period:
     {
-      to_encode = '.';
+      to_encode = shift ? '>' : '.';
     } break;
     case key_event_slash:
     {
-      to_encode = '/';
+      to_encode = shift ? '?' : '/';
     } break;
     case key_event_semicolon:
     {
-      to_encode = ';';
+      to_encode = shift ? ':' : ';';
     } break;
     case key_event_equal:
     {
-      to_encode = '=';
+      to_encode = shift ? '+' : '=';
     } break;
     case key_event_left_bracket:
     {
-      to_encode = '[';
+      to_encode = shift ? '{' : '[';
     } break;
     case key_event_backslash:
     {
-      to_encode = '\\';
+      to_encode = shift ? '|' : '\\';
     } break;
     case key_event_right_bracket:
     {
-      to_encode = ']';
+      to_encode = shift ? '}' : ']';
     } break;
     case key_event_grave_accent:
     {
-      to_encode = '`';
+      to_encode = shift ? '~' : '`';
     } break;
     case key_event_keypad_0:
     case key_event_keypad_1:
@@ -398,42 +401,49 @@ internal inline i64 ui_key_event_to_utf8(Key_Event event, utf8 *put, u64 put_len
     {
       to_encode = (event - key_event_keypad_0) + '0';
     } break;
-    case key_event_keypad_decimal:
-    {
-      to_encode = '.';
-    } break;
-    case key_event_keypad_divide:
-    {
-      to_encode = '/';
-    } break;
-    case key_event_keypad_multiply:
-    {
-      to_encode = '*';
-    } break;
-    case key_event_keypad_subtract:
-    {
-      to_encode = '-';
-    } break;
-    case key_event_keypad_add:
-    {
-      to_encode = '+';
-    } break;
     case key_event_keypad_enter:
     {
       to_encode = '\n';
     } break;
     case key_event_0:
+    {
+      to_encode = shift ? ')' : '0';
+    } break;
     case key_event_1:
+    {
+      to_encode = shift ? '!' : '1';
+    } break;
     case key_event_2:
+    {
+      to_encode = shift ? '@' : '2';
+    } break;
     case key_event_3:
+    {
+      to_encode = shift ? '#' : '3';
+    } break;
     case key_event_4:
+    {
+      to_encode = shift ? '$' : '4';
+    } break;
     case key_event_5:
+    {
+      to_encode = shift ? '%' : '5';
+    } break;
     case key_event_6:
+    {
+      to_encode = shift ? '^' : '6';
+    } break;
     case key_event_7:
+    {
+      to_encode = shift ? '&' : '7';
+    } break;
     case key_event_8:
+    {
+      to_encode = shift ? '*' : '8';
+    } break;
     case key_event_9:
     {
-      to_encode = (event - key_event_0) + '0';
+      to_encode = shift ? '(' : '9';
     } break;
     case key_event_a:
     case key_event_b:
@@ -462,7 +472,7 @@ internal inline i64 ui_key_event_to_utf8(Key_Event event, utf8 *put, u64 put_len
     case key_event_y:
     case key_event_z:
     {
-      to_encode = (event - key_event_a) + 'a';
+      to_encode = (event - key_event_a) + (shift ? 'A' : 'a');
       break;
     }
   }
@@ -775,7 +785,7 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
       u32   utf8_length = ui->interactions[interaction_index].value.utf8_length;
 
       String_utf8 to_insert = {char_data, utf8_length, utf8_length};
-      text_edit_insert_string(teb, to_insert);
+      text_edit_insert_string_and_advance(teb, to_insert);
 
       break;
     }

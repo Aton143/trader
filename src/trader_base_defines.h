@@ -909,6 +909,12 @@ typedef Buffer File_Buffer;
 
 #define buffer_from_string_literal_type(s) {(u8 *) (s), sizeof(s), sizeof(s)}
 
+internal inline b32 is_in_buffer(Buffer *buf, i64 pos)
+{
+  b32 is_in = (0 <= pos) && (pos <= ((i64) buf->used));
+  return(is_in);
+}
+
 #if OS_WINDOWS
 #include "trader_meta.h"
 #include "trader_memory.h"
@@ -916,7 +922,7 @@ typedef Buffer File_Buffer;
 
 #define string_literal_init(s) {(s), sizeof(s) - sizeof(*s)}
 #define string_literal_init_type(s, t) concat(String_Const_, t) {(t *) (s), sizeof(s) - 1}
-#define string_from_c_string(type, s, capacity) {(type *) s, concat(get_length_c_string_, type)((type *) s), (capacity)}
+#define string_from_c_string(type, s, capacity) {(type *) s, get_length_c_string((type *) s), (capacity)}
 #define string_from_fixed_size(type, buffer) {(type *) (buffer), 0, sizeof(buffer) - sizeof(type)}
 
 // helpful functions

@@ -108,7 +108,7 @@ internal inline i64 unicode_utf8_get_next_char_pos(utf8 *encoding_start, u64 enc
     next_char_pos++;
   }
 
-  if ((encoding_pos + next_char_pos) >= encoding_size_in_bytes)
+  if ((encoding_pos + next_char_pos) > encoding_size_in_bytes)
   {
     return(-1);
   }
@@ -120,11 +120,12 @@ internal inline i64 unicode_utf8_get_prev_char_pos(utf8 *encoding_start, u64 enc
 {
   i64 prev_char_pos = 0;
 
-  if (encoding_pos >= encoding_size_in_bytes)
+  if (encoding_pos > encoding_size_in_bytes)
   {
     return (-1);
   }
 
+  prev_char_pos++;
   while (((encoding_pos - prev_char_pos) >= 0) &&
          !unicode_utf8_is_start(encoding_start[encoding_pos - prev_char_pos]))
   {
@@ -143,7 +144,7 @@ internal inline i64 unicode_utf8_get_next_start_char_pos(utf8 *encoding_start, u
 {
   i64 next_start_char_pos = -1;
 
-  if (encoding_pos < encoding_size_in_bytes)
+  if (encoding_pos <= encoding_size_in_bytes)
   {
     if (unicode_utf8_is_start(encoding_start[encoding_pos]))
     {
@@ -162,7 +163,7 @@ internal inline i64 unicode_utf8_get_prev_start_char_pos(utf8 *encoding_start, u
 {
   i64 prev_start_char_pos = -1;
 
-  if (encoding_pos < encoding_size_in_bytes)
+  if (encoding_pos <= encoding_size_in_bytes)
   {
     if (unicode_utf8_is_start(encoding_start[encoding_pos]))
     {

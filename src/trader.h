@@ -18,6 +18,10 @@ struct Render_Context;
 
 static f32 global_slider_float;
 
+#if !SHIP_MODE
+global u8 __debug_memory[1 << 20];
+#endif
+
 #if OS_WINDOWS
 #  include <intrin.h>
 # if ARCH_X64

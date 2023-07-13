@@ -501,6 +501,7 @@ WinMain(HINSTANCE instance,
   unused(command_line);
   unused(show_command);
 
+  /*
   Text_Edit_Buffer debug_teb; 
 
   debug_teb.buf = {__debug_memory, array_count(__debug_memory), 0};
@@ -509,7 +510,9 @@ WinMain(HINSTANCE instance,
 
   String_utf8 first_string = su8((utf8 *) "hello");
   text_edit_insert_string_and_advance(&debug_teb, first_string);
-  text_edit_delete(&debug_teb, 5);
+  text_edit_move_cursor(&debug_teb, -2);
+  text_edit_delete(&debug_teb, 2);
+  */
 
   for (u32 thread_context_index = 0;
        thread_context_index < thread_count;

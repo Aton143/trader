@@ -286,6 +286,14 @@ struct Widget
   f32               time_alive;
 };
 
+typedef u32 UI_Event;
+enum
+{
+  ui_event_none,
+  ui_event_mouse,
+  ui_event_keyboard,
+};
+
 union UI_Event_Value
 {
   struct 
@@ -297,6 +305,7 @@ union UI_Event_Value
   {
     u8     utf8_data[4]; 
     u32    utf8_length;
+    u32    key_event;
   };
 };
 
@@ -304,7 +313,7 @@ struct UI_Interaction
 {
   UI_Key         key;
   i32            frames_left;
-  u32            event;
+  UI_Event       event;
   UI_Event_Value value;
 
 #if !SHIP_MODE
@@ -431,7 +440,7 @@ global_const RGBA_f32 default_background_color[4] =
 
 internal inline UI_Context *ui_get_context(void);
 
-internal inline void ui_add_interaction(Widget *cur_widget, i32 frames_left, u32 event, UI_Event_Value *event_value);
+internal inline void ui_add_interaction(Widget *cur_widget, i32 frames_left, UI_Event event, UI_Event_Value *event_value);
 
 internal inline void ui_add_key_event(Key_Event event, b32 is_down);
 internal inline i64 ui_key_event_to_utf8(Key_Event event, utf8 *put, u64 put_length);

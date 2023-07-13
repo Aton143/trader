@@ -781,11 +781,33 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
   {
     if (ui->interactions[interaction_index].key == text_edit_widget->key)
     {
-      utf8 *char_data   = ui->interactions[interaction_index].value.utf8_data;
-      u32   utf8_length = ui->interactions[interaction_index].value.utf8_length;
+      UI_Event_Value *value = &ui->interactions[interaction_index].value;
+      utf8 *char_data   = value->utf8_data;
+      u32   utf8_length = value->utf8_length;
 
-      String_utf8 to_insert = {char_data, utf8_length, utf8_length};
-      text_edit_insert_string_and_advance(teb, to_insert);
+      if (utf8_length > 0)
+      {
+        String_utf8 to_insert = {char_data, utf8_length, utf8_length};
+        text_edit_insert_string_and_advance(teb, to_insert);
+      }
+      else
+      {
+        switch (value->key_event)
+        {
+          case key_event_backspace:
+          {
+            text_edit_delete(teb, 1);
+          } break;
+          case key_event_left_arrow:
+          {
+            text_edit_move_cursor(teb, -1);
+          } break;
+          case key_event_right_arrow:
+          {
+            text_edit_move_cursor(teb, 1);
+          } break;
+        }
+      }
 
       break;
     }
@@ -1385,7 +1407,7 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
           {
             if (ui_is_key_equal(ui->hot_key, cur_widget->key))
             {
-              ui_add_interaction(cur_widget, 1, 0, &event_value);
+              ui_add_interaction(cur_widget, 1, ui_event_mouse, &event_value);
             }
             ui->active_key = nil_key;
           }
@@ -1484,9 +1506,9 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
           V2_f32   rect_dimensions = rect_get_dimensions(&rect_to_use);
 
           event_value.mouse      = V2((ui->mouse_pos.x - rect_to_use.x0) / rect_dimensions.x,
-                                      (ui->mouse_pos.y - rect_to_use.y0) / rect_dimensions.y);
+                                        (ui->mouse_pos.y - rect_to_use.y0) / rect_dimensions.y);
           event_value.extra_data = rect_get_closest_side_to_point(ui->mouse_pos, cur_widget->rectangle, rectangle_side_none);
-          ui_add_interaction(cur_widget, 1, 0, &event_value);
+          ui_add_interaction(cur_widget, 1, ui_event_mouse, &event_value);
         }
       }
 
@@ -1503,8 +1525,14 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
           if (encode_result > 0) 
           {
             event_value.utf8_length = (u32) encode_result;
-            ui_add_interaction(cur_widget, 1, 0, &event_value);
           }
+          else
+          {
+            event_value.utf8_length = 0;
+          }
+
+          event_value.key_event = first_key_event;
+          ui_add_interaction(cur_widget, 1, ui_event_keyboard, &event_value);
         }
       }
 

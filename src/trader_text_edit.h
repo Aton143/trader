@@ -6,7 +6,7 @@ struct Text_Edit_Buffer
   String_Encoding encoding;
 };
 
-internal b32 text_edit_move_cursor(Text_Edit_Buffer *teb, i64 chars_to_advance);
+internal void text_edit_move_cursor(Text_Edit_Buffer *teb, i64 chars_to_advance);
 
 internal i64 text_edit_insert_string(Text_Edit_Buffer *teb, String_utf8 string);
 internal i64 text_edit_insert_string_and_advance(Text_Edit_Buffer *teb, String_utf8 string);
@@ -15,38 +15,32 @@ internal i64 text_edit_delete(Text_Edit_Buffer *teb, i64 chars_to_delete);
 internal i64 text_edit_delete_and_advance(Text_Edit_Buffer *teb, i64 chars_to_delete);
 
 // implementation
-internal b32 text_edit_move_cursor(Text_Edit_Buffer *teb, i64 chars_to_advance)
+internal void text_edit_move_cursor(Text_Edit_Buffer *teb, i64 chars_to_advance)
 {
-  if (chars_to_advance == 0) return(true);
-  /*
-  if ((teb->next_char_index + chars_to_advance) < 0)
+  if ((chars_to_advance == 0) || 
+      ((chars_to_advance > 0) && (teb->next_char_index == teb->buf.used)))
   {
-    teb->next_char_index = 0;
-    return(true);
+    return;
   }
-  else if ((teb->next_char_index + chars_to_advance) < teb->buf.used)
-  {
-    teb->next_char_index = teb->buf.used;
-  }
-  */
-
-  b32 moved_cursor = true;
 
   i64 sign = (chars_to_advance < 0) ? -1 : 1;
   chars_to_advance = abs(chars_to_advance);
 
-  i64 next_pos = teb->next_char_index + sign;
-  while (is_in_buffer(&teb->buf, next_pos) && (chars_to_advance > 0))
+  i64 next_pos = teb->next_char_index;
+  while (chars_to_advance > 0)
   {
     while (is_in_buffer(&teb->buf, next_pos) && !unicode_utf8_is_start(teb->buf.data[next_pos]))
     {
       next_pos += sign;
     }
 
+    if (!is_in_buffer(&teb->buf, next_pos + sign)) break;
+
+    next_pos += sign;
     chars_to_advance--;
   }
 
-  return(moved_cursor);
+  teb->next_char_index = next_pos;
 }
 
 internal i64 text_edit_insert_string(Text_Edit_Buffer *teb, String_utf8 string)
@@ -101,7 +95,7 @@ internal i64 text_edit_delete(Text_Edit_Buffer *teb, i64 chars_to_delete)
     i64 prev_pos = unicode_utf8_get_prev_char_pos(teb->buf.data, final_pos, teb->buf.used);
     if (prev_pos < 0)
     {
-      final_pos = -1;
+      final_pos = 0;
       break;
     }
     else
@@ -133,16 +127,9 @@ internal i64 text_edit_delete_and_advance(Text_Edit_Buffer *teb, i64 chars_to_de
 {
   i64 to_advance = text_edit_delete(teb, chars_to_delete);
 
-  if (to_advance >= 0)
+  if (to_advance > 0)
   {
-    if (teb->next_char_index == teb->buf.used)
-    {
-      return(to_advance);
-    }
-    else
-    {
-      teb->next_char_index -= to_advance;
-    }
+    text_edit_move_cursor(teb, -to_advance);
   }
 
   return(to_advance);

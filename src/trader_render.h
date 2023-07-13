@@ -105,6 +105,7 @@ internal void render_data_to_lines(V2_f32 *points, u64 point_count);
 internal i64 render_get_font_height_index(f32 font_height);
 internal i64 render_get_packed_char_start(f32 font_height);
 
+internal void render_get_text_dimensions(f32 *x, f32 *y, Rect_f32 bounds, String_Const_utf8 string, u64 up_to);
 internal void render_draw_text(f32 *x, f32 *y, RGBA_f32 color, Rect_f32 bounds, utf8 *format, ...);
 
 internal b32 render_atlas_initialize(Arena         *arena,
@@ -370,6 +371,49 @@ internal void render_data_to_lines(V2_f32 *points, u64 point_count)
       };
     }
   }
+}
+
+internal void render_get_text_dimensions(f32 *x, f32 *y, Rect_f32 bounds, String_Const_utf8 string, u64 up_to)
+{
+  expect(x != NULL);
+  expect(y != NULL);
+
+  expect(bounds.x0 <= bounds.x1);
+  expect(bounds.y0 <= bounds.y1);
+
+  expect(is_between_inclusive(0, up_to, string.size));
+
+  Common_Render_Context   *render_context  = render_get_common_context();
+  Texture_Atlas           *atlas           = render_context->atlas;
+
+  V2_f32 cur_pos = V2(*x, *y);
+  f32 font_scale = stbtt_ScaleForPixelHeight(&atlas->font_info, atlas->heights[0]);
+
+  for (u64 text_index = 0;
+       (text_index < string.size) && (text_index <= up_to);
+       ++text_index)
+  {
+    // TODO(antonio): deal with new lines more gracefully
+    if (is_newline(string.str[text_index]))
+    {
+      continue;
+    }
+    else
+    {
+      stbtt_packedchar *cur_packed_char = atlas->char_data + (string.str[text_index] - starting_code_point);
+
+      f32 kern_advance = 0.0f;
+      kern_advance = font_scale *
+        stbtt_GetCodepointKernAdvance(&atlas->font_info,
+                                      string.str[text_index],
+                                      string.str[text_index + 1]);
+
+      cur_pos.x += kern_advance + cur_packed_char->xadvance;
+    }
+  }
+
+  *x = cur_pos.x;
+  *y = cur_pos.y;
 }
 
 internal void render_draw_text(f32 *baseline_x, f32 *baseline_y, RGBA_f32 color, Rect_f32 bounds, utf8 *format, ...)

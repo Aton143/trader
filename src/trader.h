@@ -38,6 +38,8 @@ global u8 __debug_memory[1 << 20];
 #include "trader_string_utilities.h"
 #include "trader_text_edit.h"
 
+global Text_Edit_Buffer debug_teb = {{__debug_memory, array_count(__debug_memory), 0}, 0, string_encoding_utf8};
+
 #include "trader_render.h"
 #include "trader_font.h"
 #include "trader_ui.h"

@@ -1627,6 +1627,33 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
 
         set_temp_arena_wait(1);
         render_draw_text(&x, &baseline, cur_widget->text_color, rect, cur_widget->string.str);
+
+        if (cur_widget->widget_flags & widget_flag_get_user_input)
+        {
+          f32 cursor_x        = cur_widget->rectangle.x0 + ((f32) ui->text_gutter_dim.x);
+          f32 cursor_baseline = cur_widget->rectangle.y0 + ui->text_height - ((f32) ui->text_gutter_dim.y);
+
+          String_Const_utf8 teb_string = {debug_teb.buf.data, debug_teb.buf.used};
+          render_get_text_dimensions(&cursor_x, &cursor_baseline, rect, teb_string, debug_teb.next_char_index);
+
+          {
+            Instance_Buffer_Element *draw_call = push_struct(&render->render_data, Instance_Buffer_Element);
+            zero_struct(draw_call);
+
+            draw_call->size = 
+            {
+              0.0f, 0.0f,
+              10.0f, ui->text_height
+            };
+
+            draw_call->color[0] = rgba_red;
+            draw_call->color[1] = rgba_red;
+            draw_call->color[2] = rgba_red;
+            draw_call->color[3] = rgba_red;
+
+            draw_call->pos = V3(cursor_x, cur_widget->rectangle.y0, 1.0f);
+          }
+        }
       }
 
       // TODO(antonio): is this right
@@ -1647,7 +1674,7 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
         first_child = cur_widget->first_child;
       }
 
-      ui->keep_hot_key    = ui->keep_hot_key    || keep_hot_key;
+      ui->keep_hot_key = ui->keep_hot_key || keep_hot_key;
     }
   }
 

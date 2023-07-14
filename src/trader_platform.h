@@ -20,7 +20,7 @@ enum
 
 extern Cursor_Handle cursors[];
 
-typedef u32 Key_Event;
+typedef u16 Key_Event;
 
 typedef u32 (THREAD_CALL_CONVENTION *Thread_Routine)(void *arg);
 struct Thread_Handle;

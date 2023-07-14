@@ -795,7 +795,13 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
         {
           case key_event_backspace:
           {
-            text_edit_delete_and_advance(teb, 1);
+            if (value->mod_keys.control)
+            {
+            }
+            else
+            {
+              text_edit_delete_and_advance(teb, 1);
+            }
           } break;
           case key_event_left_arrow:
           {
@@ -1532,6 +1538,7 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
             event_value.utf8_length = 0;
           }
 
+          event_value.mod_keys  = ui->mod_keys;
           event_value.key_event = first_key_event;
           ui_add_interaction(cur_widget, 1, ui_event_keyboard, &event_value);
         }

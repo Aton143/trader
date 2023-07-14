@@ -920,6 +920,7 @@ internal inline b32 is_in_buffer(Buffer *buf, i64 pos)
 #include "trader_memory.h"
 #include "trader_string_utilities.h"
 
+#define str_from_lit(s, t) concat(String_, t) {(t *) (s), (sizeof(s) - sizeof(*s)), (sizeof(s) - sizeof(*s))}
 #define string_literal_init(s) {(s), sizeof(s) - sizeof(*s)}
 #define string_literal_init_type(s, t) concat(String_Const_, t) {(t *) (s), sizeof(s) - 1}
 #define string_from_c_string(type, s, capacity) {(type *) s, get_length_c_string((type *) s), (capacity)}

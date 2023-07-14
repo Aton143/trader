@@ -96,7 +96,6 @@ enum
   // TODO(antonio): other types?
 };
 
-typedef u32 Key_Event;
 enum
 {
   key_event_none = 0,
@@ -303,9 +302,10 @@ union UI_Event_Value
   };
   struct
   {
-    u8     utf8_data[4]; 
-    u32    utf8_length;
-    u32    key_event;
+    u8        utf8_data[4]; 
+    u32       utf8_length;
+    Mod_Keys  mod_keys;
+    Key_Event key_event;
   };
 };
 

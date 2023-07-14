@@ -1,30 +1,46 @@
 #if !defined(TRADER_UNICODE_H)
+
+global_const String_utf8 word_separators = str_from_lit("`~!@#$%^&*()-=+[{]}\\|;:'\",.<>/?", utf8);
+
+// TODO(antonio): may be worth using the same length idea for all of these
+// TODO(antonio): error-checking
 internal inline b32 unicode_utf8_is_start(utf8 encoding_char);
 
-internal inline i64 unicode_utf8_get_next_start_char_pos(utf8 *encoding_start, u64 encoding_pos, u64 encoding_size_in_bytes);
-internal inline i64 unicode_utf8_get_prev_start_char_pos(utf8 *encoding_start, u64 encoding_pos, u64 encoding_size_in_bytes);
+// NOTE(antonio): can stay in the same pos
+internal inline i64 unicode_utf8_get_next_start_char_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes);
+internal inline i64 unicode_utf8_get_prev_start_char_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes);
 
-internal inline i64 unicode_utf8_get_next_char_pos(utf8 *encoding_start, u64 encoding_pos, u64 encoding_size_in_bytes);
-internal inline i64 unicode_utf8_get_prev_char_pos(utf8 *encoding_start, u64 encoding_pos, u64 encoding_size_in_bytes);
+// NOTE(antonio): will move forward (if in bounds)
+internal inline i64 unicode_utf8_advance_char_pos(utf8 *start, i64 start_pos, i64 encoding_size_in_bytes, i32 dir);
 
-internal inline i64 unicode_utf8_encode(u32 *code_points, u64 code_point_length, utf8 *put, u64 put_pos, u64 put_length);
+internal inline i64 unicode_utf8_get_next_char_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes);
+internal inline i64 unicode_utf8_get_prev_char_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes);
+
+internal inline i64 unicode_utf8_advance_to_word(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes, i32 dir);
+internal inline i64 unicode_utf8_get_next_word_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes);
+internal inline i64 unicode_utf8_get_prev_word_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes);
+
+internal inline i64 unicode_utf8_encoding_length(utf8 *encoding);
+internal inline i64 unicode_utf8_encode(u32 *code_points, i64 code_point_length, utf8 *put, i64 put_pos, i64 put_length);
+
+internal inline i64 unicode_utf8_is_char_in_string(utf8 *encoding, i32 encoding_length, String_utf8 string);
 
 // NOTE(antonio): implementation
-internal inline i64 unicode_utf8_encode(u32 *code_points, u64 code_point_length, utf8 *put, u64 put_pos, u64 put_length)
+internal inline i64 unicode_utf8_encode(u32 *code_points, i64 code_point_length, utf8 *put, i64 put_pos, i64 put_length)
 {
   expect(code_points != NULL);
   expect(put         != NULL);
 
   i64 res         = 0;
   u8  temp_put[4] = {};
-  u64 put_index   = 0;
+  i64 put_index   = 0;
 
-  for (u64 code_point_index = 0;
+  for (i64 code_point_index = 0;
        code_point_index < code_point_length;
        ++code_point_index)
   {
     u32 cur_code_point = code_points[code_point_index];
-    u32 cur_length = 0;
+    i32 cur_length = 0;
 
     zero_array(temp_put, u8, 4);
     if (cur_code_point <= 0x7f)
@@ -98,49 +114,19 @@ internal inline b32 unicode_utf8_is_start(utf8 encoding_char)
   return(is_start);
 }
 
-internal inline i64 unicode_utf8_get_next_char_pos(utf8 *encoding_start, u64 encoding_pos, u64 encoding_size_in_bytes)
+internal inline i64 unicode_utf8_get_next_char_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes)
 {
-  i64 next_char_pos = 0;
-
-  while (((encoding_pos + next_char_pos) < encoding_size_in_bytes) &&
-         !unicode_utf8_is_start(encoding_start[encoding_pos + next_char_pos]))
-  {
-    next_char_pos++;
-  }
-
-  if ((encoding_pos + next_char_pos) > encoding_size_in_bytes)
-  {
-    return(-1);
-  }
-
-  return(encoding_pos + next_char_pos);
+  i64 next_char_pos = unicode_utf8_advance_char_pos(encoding_start, encoding_pos, encoding_size_in_bytes, 1);
+  return(next_char_pos);
 }
 
-internal inline i64 unicode_utf8_get_prev_char_pos(utf8 *encoding_start, u64 encoding_pos, u64 encoding_size_in_bytes)
+internal inline i64 unicode_utf8_get_prev_char_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes)
 {
-  i64 prev_char_pos = 0;
-
-  if (encoding_pos > encoding_size_in_bytes)
-  {
-    return (-1);
-  }
-
-  prev_char_pos++;
-  while (((encoding_pos - prev_char_pos) >= 0) &&
-         !unicode_utf8_is_start(encoding_start[encoding_pos - prev_char_pos]))
-  {
-    prev_char_pos++;
-  }
-
-  if ((encoding_pos + prev_char_pos) < 0)
-  {
-    return(-1);
-  }
-
-  return(encoding_pos - prev_char_pos);
+  i64 prev_char_pos = unicode_utf8_advance_char_pos(encoding_start, encoding_pos, encoding_size_in_bytes, 1);
+  return(prev_char_pos);
 }
 
-internal inline i64 unicode_utf8_get_next_start_char_pos(utf8 *encoding_start, u64 encoding_pos, u64 encoding_size_in_bytes)
+internal inline i64 unicode_utf8_get_next_start_char_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes)
 {
   i64 next_start_char_pos = -1;
 
@@ -159,7 +145,7 @@ internal inline i64 unicode_utf8_get_next_start_char_pos(utf8 *encoding_start, u
   return(next_start_char_pos);
 }
 
-internal inline i64 unicode_utf8_get_prev_start_char_pos(utf8 *encoding_start, u64 encoding_pos, u64 encoding_size_in_bytes)
+internal inline i64 unicode_utf8_get_prev_start_char_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes)
 {
   i64 prev_start_char_pos = -1;
 
@@ -176,6 +162,66 @@ internal inline i64 unicode_utf8_get_prev_start_char_pos(utf8 *encoding_start, u
   }
 
   return(prev_start_char_pos);
+}
+
+internal inline i64 unicode_utf8_advance_char_pos(utf8 *encoding_start,
+                                                  i64   encoding_pos,
+                                                  i64   encoding_size_in_bytes,
+                                                  i32   dir)
+{
+  i64 new_char_pos = encoding_pos + dir;
+
+  while ((0 <= new_char_pos) && (new_char_pos < encoding_size_in_bytes) && 
+         !unicode_utf8_is_start(encoding_start[new_char_pos]))
+  {
+    new_char_pos += dir;
+  }
+
+  new_char_pos = clamp(0, new_char_pos, encoding_size_in_bytes);
+  return(new_char_pos);
+}
+
+internal inline i64 unicode_utf8_advance_to_word(utf8 *encoding_start,
+                                                 i64   encoding_pos,
+                                                 i64   encoding_size_in_bytes,
+                                                 i32   dir)
+{
+  i64 new_word_pos = encoding_pos;
+
+  do
+  {
+    new_word_pos = unicode_utf8_advance_char_pos(encoding_start, new_word_pos, encoding_size_in_bytes, dir);
+  } while (!unicode_utf8_is_char_in_string(&encoding_start[new_word_pos],
+                                           (i32) unicode_utf8_encoding_length(&encoding_start[new_word_pos]),
+                                           word_separators));
+
+  return(new_word_pos);
+}
+
+internal inline i64 unicode_utf8_is_char_in_string(utf8 *encoding, i32 encoding_length, String_utf8 string)
+{
+  expect(string.str != NULL);
+
+  i64 result = -1;
+
+  for (i64 string_index = 0;
+       string_index < ((i64) string.size) - encoding_length; 
+       ++string_index)
+  {
+    if (compare_memory_block(encoding, string.str, encoding_length))
+    {
+      result = (i64) string_index;
+      break;
+    }
+  }
+
+  return(result);
+}
+
+internal inline i64 unicode_utf8_encoding_length(utf8 *encoding)
+{
+  i64 res = unicode_utf8_get_next_char_pos(encoding, 0, 5);
+  return(res);
 }
 
 #define TRADER_UNICODE_H

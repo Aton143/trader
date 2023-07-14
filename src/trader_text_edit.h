@@ -92,7 +92,7 @@ internal i64 text_edit_delete(Text_Edit_Buffer *teb, i64 chars_to_delete)
   i64 final_pos = teb->next_char_index;
   while (chars_to_delete > 0)
   {
-    i64 prev_pos = unicode_utf8_get_prev_char_pos(teb->buf.data, final_pos, teb->buf.used);
+    i64 prev_pos = unicode_utf8_get_prev_char_pos(teb->buf.data, (i64) final_pos, (i64) teb->buf.used);
     if (prev_pos < 0)
     {
       final_pos = 0;

@@ -115,7 +115,6 @@ internal i64 text_edit_delete(Text_Edit_Buffer *teb, i64 chars_to_delete)
                       teb->buf.used - teb->next_char_index);
 
     teb->buf.used -= zero_memory_block((teb->buf.data + teb->buf.used) - bytes_to_delete, bytes_to_delete);
-    teb->next_char_index = min(teb->next_char_index, teb->buf.used);
 
     bytes_deleted = bytes_to_delete;
   }
@@ -131,6 +130,8 @@ internal i64 text_edit_delete_and_advance(Text_Edit_Buffer *teb, i64 chars_to_de
   {
     text_edit_move_cursor(teb, -to_advance);
   }
+
+  teb->next_char_index = clamp(0, teb->next_char_index, teb->buf.used);
 
   return(to_advance);
 }

@@ -478,7 +478,7 @@ internal void render_draw_text(f32 *baseline_x, f32 *baseline_y, RGBA_f32 color,
         {
           cur_pos.x + cur_packed_char->xoff,
           cur_pos.y + cur_packed_char->yoff,
-          1.0f
+          0.9f
         };
 
         cur_element->size = 

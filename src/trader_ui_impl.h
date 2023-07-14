@@ -746,11 +746,11 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
   expect(teb != NULL);
   UI_Context *ui = ui_get_context();
 
+  String_Const_utf8 copy_string = copy_str(ui->string_pool, teb->buf);
+
   va_list args;
   va_start(args, format);
 
-  // NOTE(antonio): string pool gets cleared out every frame
-  // NOTE(antonio): speculative "sprintf'ing"
   String_Const_utf8 sprinted_text;
 
   char *string_start = (char *) (ui->string_pool->start + ui->string_pool->used);
@@ -761,8 +761,7 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
 
   va_end(args);
 
-  String_Const_utf8 copy_string = copy_str(ui->string_pool, teb->buf);
-  ui_make_widget(widget_flag_draw_text | widget_flag_get_user_input,
+  ui_make_widget(widget_flag_draw_text  | widget_flag_get_user_input,
                  size_flag_text_content | size_flag_advancer_y,
                  copy_string,
                  V2(1.0f, 1.0f),
@@ -774,12 +773,12 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
                  0,
                  &sprinted_text);
 
-  Widget *text_edit_widget = ui->current_panel_parent->current_parent->last_child;
+  UI_Key widget_key = ui_make_key(sprinted_text);
   for (u32 interaction_index = 0;
        interaction_index < array_count(ui->interactions);
        ++interaction_index) 
   {
-    if (ui->interactions[interaction_index].key == text_edit_widget->key)
+    if (ui->interactions[interaction_index].key == widget_key)
     {
       UI_Event_Value *value = &ui->interactions[interaction_index].value;
       utf8 *char_data   = value->utf8_data;
@@ -796,7 +795,7 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
         {
           case key_event_backspace:
           {
-            text_edit_delete(teb, 1);
+            text_edit_delete_and_advance(teb, 1);
           } break;
           case key_event_left_arrow:
           {
@@ -1519,6 +1518,8 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
           Key_Event first_key_event;
           ring_buffer_pop_and_put(&ui->event_queue, &first_key_event, sizeof(first_key_event));
 
+          zero_struct(&event_value);
+
           i64 encode_result =
             ui_key_event_to_utf8(first_key_event, (utf8 *) event_value.utf8_data, sizeof(event_value.utf8_data));
 
@@ -1643,15 +1644,15 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
             draw_call->size = 
             {
               0.0f, 0.0f,
-              10.0f, ui->text_height
+              12.0f, ui->text_height
             };
 
-            draw_call->color[0] = rgba_red;
-            draw_call->color[1] = rgba_red;
-            draw_call->color[2] = rgba_red;
-            draw_call->color[3] = rgba_red;
+            draw_call->color[0] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+            draw_call->color[1] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+            draw_call->color[2] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+            draw_call->color[3] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
 
-            draw_call->pos = V3(cursor_x, cur_widget->rectangle.y0, 1.0f);
+            draw_call->pos = V3(cursor_x, cursor_baseline, 1.0f);
           }
         }
       }

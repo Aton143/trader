@@ -809,7 +809,18 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
             i32 dir = value->key_event == key_event_left_arrow ? -1 : 1;
             if (value->mod_keys.control)
             {
-              teb->next_char_index = unicode_utf8_advance_by_delim(teb->buf.data, teb->next_char_index, teb->buf.size, dir);
+              utf8 *cur_encoding =
+                &teb->buf.data[teb->next_char_index];
+              i64 encoding_length =
+                unicode_utf8_encoding_length(cur_encoding);
+              i32 delims_to_cross =
+                (unicode_utf8_is_char_in_string(cur_encoding, (i32) encoding_length, word_separators) < 0);
+
+              teb->next_char_index = unicode_utf8_advance_by_delim_spans(teb->buf.data,
+                                                                         teb->next_char_index,
+                                                                         teb->buf.size,
+                                                                         dir,
+                                                                         delims_to_cross);
             }
             else
             {

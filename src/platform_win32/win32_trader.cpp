@@ -1238,7 +1238,11 @@ WinMain(HINSTANCE instance,
       win32_global_state.frame_count++;
 
       ui_do_text_edit(&debug_teb, "text editor");
-      ui_do_formatted_string("Cursor: %d", debug_teb.next_char_index);
+      ui_do_formatted_string("don't care");
+      ui_do_formatted_string("Cursor: %d - %c %c",
+                             debug_teb.next_char_index,
+                             debug_teb.buf.data[debug_teb.next_char_index],
+                             debug_teb.next_char_index > 0 ? debug_teb.buf.data[debug_teb.next_char_index - 1] : '?');
 
       ui_do_formatted_string("Last frame time: %.6fs", last_frame_time);
       ui_do_formatted_string("Last frame time in cycles: %lld", last_frame_time_in_cycles);

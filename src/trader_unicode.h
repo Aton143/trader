@@ -16,11 +16,12 @@ internal inline i64 unicode_utf8_advance_char_pos(utf8 *start, i64 start_pos, i6
 internal inline i64 unicode_utf8_get_next_char_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes);
 internal inline i64 unicode_utf8_get_prev_char_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes);
 
-internal inline i64 unicode_utf8_advance_by_delim(utf8 *encoding_start,
-                                                  i64   encoding_pos,
-                                                  i64   encoding_size_in_bytes,
-                                                  i32   dir,
-                                                  i32   delims_to_cross_count = 1);
+internal inline i64 unicode_utf8_advance_by_delim_spans(utf8        *encoding_start,
+                                                        i64          encoding_pos,
+                                                        i64          encoding_size_in_bytes,
+                                                        i32          dir,
+                                                        i32          delims_to_cross_count = 1,
+                                                        String_utf8  delims = word_separators);
 
 internal inline i64 unicode_utf8_get_next_word_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes);
 internal inline i64 unicode_utf8_get_prev_word_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes);
@@ -195,11 +196,12 @@ internal inline i64 unicode_utf8_advance_char_pos(utf8 *encoding_start,
   return(new_char_pos);
 }
 
-internal inline i64 unicode_utf8_advance_by_delim(utf8 *encoding_start,
-                                                  i64   encoding_pos,
-                                                  i64   encoding_size_in_bytes,
-                                                  i32   dir,
-                                                  i32   delims_to_cross_count)
+internal inline i64 unicode_utf8_advance_by_delim_spans(utf8        *encoding_start,
+                                                        i64          encoding_pos,
+                                                        i64          encoding_size_in_bytes,
+                                                        i32          dir,
+                                                        i32          delims_to_cross_count,
+                                                        String_utf8  delims)
 {
   if (dir == 0)
   {
@@ -220,6 +222,9 @@ internal inline i64 unicode_utf8_advance_by_delim(utf8 *encoding_start,
   b32 new_word_pos_in_bounds;
   b32 is_cur_a_word_separator;
 
+  utf8 *cur_encoding;
+  i32   cur_encoding_length;
+
   do
   {
     prev_word_pos = new_word_pos;
@@ -231,25 +236,48 @@ internal inline i64 unicode_utf8_advance_by_delim(utf8 *encoding_start,
     is_cur_a_word_separator = false;
     if (new_word_pos_in_bounds)
     {
-      utf8 *cur_encoding        = &encoding_start[new_word_pos];
-      i32   cur_encoding_length = (i32) unicode_utf8_encoding_length(&encoding_start[new_word_pos]);
-      is_cur_a_word_separator   = (unicode_utf8_is_char_in_string(cur_encoding, cur_encoding_length, word_separators) >= 0);
+      cur_encoding            = &encoding_start[new_word_pos];
+      cur_encoding_length     = (i32) unicode_utf8_encoding_length(&encoding_start[new_word_pos]);
+      is_cur_a_word_separator = (unicode_utf8_is_char_in_string(cur_encoding, cur_encoding_length, delims) >= 0);
+    }
+    else
+    {
+      return(new_word_pos);
     }
 
     if (is_cur_a_word_separator)
     {
       if (delims_to_cross_count > 0)
       {
+
+        do
+        {
+          new_word_pos = unicode_utf8_advance_char_pos(encoding_start, new_word_pos, encoding_size_in_bytes, dir);
+
+          new_word_pos_in_bounds =
+            is_between_exclusive(0, new_word_pos, encoding_size_in_bytes);
+          if (new_word_pos_in_bounds)
+          {
+            cur_encoding            = &encoding_start[new_word_pos];
+            cur_encoding_length     = (i32) unicode_utf8_encoding_length(&encoding_start[new_word_pos]);
+            is_cur_a_word_separator = (unicode_utf8_is_char_in_string(cur_encoding, cur_encoding_length, delims) >= 0);
+          }
+          else
+          {
+            return(new_word_pos);
+          }
+        }
+        while (is_cur_a_word_separator);
+
         --delims_to_cross_count;
       }
       else
       {
-        new_word_pos = prev_word_pos;
-        break;
+        return(prev_word_pos);
       }
     }
   }
-  while (new_word_pos_in_bounds && !is_cur_a_word_separator);
+  while (!is_cur_a_word_separator);
 
   return(new_word_pos);
 }

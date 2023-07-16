@@ -59,7 +59,6 @@ internal void text_edit_move_cursor(Text_Edit_Buffer *teb, i64 chars_to_advance,
   i64 sign = (chars_to_advance < 0) ? -1 : 1;
   chars_to_advance = abs(chars_to_advance);
 
-  i64  advancer = -1;
   i64 *where_to_put_advancer = NULL;
 
   if (keep_selection)
@@ -67,26 +66,22 @@ internal void text_edit_move_cursor(Text_Edit_Buffer *teb, i64 chars_to_advance,
     if (sign > 0)
     {
       where_to_put_advancer =  (teb->moving_end != NULL) ? teb->moving_end : &teb->range.inclusive_end_index;
-      advancer              =  *where_to_put_advancer;
     }
     else
     {
       where_to_put_advancer =  (teb->moving_end != NULL) ? teb->moving_end : &teb->range.start_index;
-      advancer              =  *where_to_put_advancer;
     }
   }
   else
   {
-    advancer              =  teb->range.start_index;
-    where_to_put_advancer = &teb->range.start_index;
+    where_to_put_advancer = (teb->moving_end != NULL) ? teb->moving_end : &teb->range.start_index;;
   }
 
-  i64 original_advancer = advancer;
-
+  expect(where_to_put_advancer != NULL);
   expect(teb->range.start_index <= teb->range.inclusive_end_index);
 
-  expect(advancer != -1);
-  expect(where_to_put_advancer != NULL);
+  i64 advancer          = *where_to_put_advancer;
+  i64 original_advancer = advancer;
 
   while (chars_to_advance > 0)
   {

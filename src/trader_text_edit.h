@@ -101,6 +101,7 @@ internal void text_edit_move_selection(Text_Edit_Buffer *teb, i64 dir, b32 keep_
         text_edit_move_selection_step(teb, dir, keep_selection);
       }
 
+      // TODO(antonio): needs to be the same one as last time
       while (unicode_utf8_is_char_in_string(text_edit_move_selection_step(teb, dir, keep_selection),
                                             1, word_separators));
 
@@ -117,10 +118,10 @@ internal void text_edit_move_selection(Text_Edit_Buffer *teb, i64 dir, b32 keep_
     advancer_ptr         = text_edit_get_advancer_ptr(teb, dir, keep_selection);
     possible_delim_index = unicode_utf8_advance_char_pos(teb->buf.data, *advancer_ptr, teb->buf.used, (i32) dir);
 
-    while (unicode_utf8_is_char_in_string(teb->buf.data + possible_delim_index, 1, word_separators))
+    while (!unicode_utf8_is_char_in_string(teb->buf.data + possible_delim_index, 1, word_separators))
     {
       utf8 *advanced_encoding    = text_edit_move_selection_step(teb, dir, keep_selection);
-      i64 advance_encoding_index = (i64) (teb->buf.data - advanced_encoding);
+      i64 advance_encoding_index = (i64) (advanced_encoding - teb->buf.data );
 
       possible_delim_index = unicode_utf8_advance_char_pos(teb->buf.data,
                                                            (i64) advance_encoding_index,
@@ -133,11 +134,8 @@ internal void text_edit_move_selection(Text_Edit_Buffer *teb, i64 dir, b32 keep_
     text_edit_move_selection_step(teb, dir, keep_selection);
   }
 
-  // NOTE(antonio): now at the "start" of a word
-  if (control)
+  if (control && (dir > 0))
   {
-    expect(dir < 0);
-
     advancer_ptr         = text_edit_get_advancer_ptr(teb, dir, keep_selection);
     possible_delim_index = unicode_utf8_advance_char_pos(teb->buf.data, *advancer_ptr, teb->buf.used, (i32) dir);
 

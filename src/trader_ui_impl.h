@@ -804,12 +804,17 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
             }
           } break;
           case key_event_left_arrow:
-          {
-            text_edit_move_cursor(teb, -1);
-          } break;
           case key_event_right_arrow:
           {
-            text_edit_move_cursor(teb, 1);
+            i32 dir = value->key_event == key_event_left_arrow ? -1 : 1;
+            if (value->mod_keys.control)
+            {
+              teb->next_char_index = unicode_utf8_advance_by_delim(teb->buf.data, teb->next_char_index, teb->buf.size, dir);
+            }
+            else
+            {
+              text_edit_move_cursor(teb, dir);
+            }
           } break;
         }
       }

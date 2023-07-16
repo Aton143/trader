@@ -2,7 +2,7 @@
 struct Text_Edit_Buffer
 {
   Buffer          buf;
-  u64             next_char_index;
+  i64             next_char_index;
   String_Encoding encoding;
 };
 
@@ -18,7 +18,7 @@ internal i64 text_edit_delete_and_advance(Text_Edit_Buffer *teb, i64 chars_to_de
 internal void text_edit_move_cursor(Text_Edit_Buffer *teb, i64 chars_to_advance)
 {
   if ((chars_to_advance == 0) || 
-      ((chars_to_advance > 0) && (teb->next_char_index == teb->buf.used)))
+      ((chars_to_advance > 0) && (teb->next_char_index == (i64) teb->buf.used)))
   {
     return;
   }
@@ -49,7 +49,7 @@ internal i64 text_edit_insert_string(Text_Edit_Buffer *teb, String_utf8 string)
   expect(teb->encoding == string_encoding_utf8);
 
   u64 one_past_string_last_char_pos = get_last_char_pos(string) + 1;
-  if ((teb->next_char_index <= teb->buf.used) &&
+  if ((teb->next_char_index <= (i64) teb->buf.used) &&
       ((teb->buf.used + one_past_string_last_char_pos) <= teb->buf.size))
   {
     u8 *next_char_pos = teb->buf.data + teb->next_char_index;
@@ -131,7 +131,7 @@ internal i64 text_edit_delete_and_advance(Text_Edit_Buffer *teb, i64 chars_to_de
     text_edit_move_cursor(teb, -to_advance);
   }
 
-  teb->next_char_index = clamp(0, teb->next_char_index, teb->buf.used);
+  teb->next_char_index = clamp(0, teb->next_char_index, (i64) teb->buf.used);
 
   return(to_advance);
 }

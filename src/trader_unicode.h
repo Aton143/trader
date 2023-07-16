@@ -1,6 +1,6 @@
 #if !defined(TRADER_UNICODE_H)
 
-global_const String_utf8 word_separators = str_from_lit("`~!@#$%^&*()-=+[{]}\\|;:'\",.<>/?", utf8);
+global_const String_utf8 word_separators = str_from_lit(" \n\t`~!@#$%^&*()-=+[{]}\\|;:'\",.<>/?", utf8);
 
 // TODO(antonio): may be worth using the same length idea for all of these
 // TODO(antonio): error-checking
@@ -16,7 +16,12 @@ internal inline i64 unicode_utf8_advance_char_pos(utf8 *start, i64 start_pos, i6
 internal inline i64 unicode_utf8_get_next_char_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes);
 internal inline i64 unicode_utf8_get_prev_char_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes);
 
-internal inline i64 unicode_utf8_advance_to_word(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes, i32 dir);
+internal inline i64 unicode_utf8_advance_by_delim(utf8 *encoding_start,
+                                                  i64   encoding_pos,
+                                                  i64   encoding_size_in_bytes,
+                                                  i32   dir,
+                                                  i32   delims_to_cross_count = 1);
+
 internal inline i64 unicode_utf8_get_next_word_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes);
 internal inline i64 unicode_utf8_get_prev_word_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes);
 
@@ -169,31 +174,82 @@ internal inline i64 unicode_utf8_advance_char_pos(utf8 *encoding_start,
                                                   i64   encoding_size_in_bytes,
                                                   i32   dir)
 {
-  i64 new_char_pos = encoding_pos + dir;
+  if ((encoding_pos == encoding_size_in_bytes) && (dir > 0))
+  {
+    return(encoding_pos);
+  }
+  if ((encoding_pos == 0) && (dir < 0))
+  {
+    return(encoding_pos);
+  }
 
-  while ((0 <= new_char_pos) && (new_char_pos < encoding_size_in_bytes) && 
-         !unicode_utf8_is_start(encoding_start[new_char_pos]))
+  i64 new_char_pos = encoding_pos;
+
+  do
   {
     new_char_pos += dir;
-  }
+  } while (is_between_exclusive(0, new_char_pos, encoding_size_in_bytes) &&
+           !unicode_utf8_is_start(encoding_start[new_char_pos]));
 
   new_char_pos = clamp(0, new_char_pos, encoding_size_in_bytes);
   return(new_char_pos);
 }
 
-internal inline i64 unicode_utf8_advance_to_word(utf8 *encoding_start,
-                                                 i64   encoding_pos,
-                                                 i64   encoding_size_in_bytes,
-                                                 i32   dir)
+internal inline i64 unicode_utf8_advance_by_delim(utf8 *encoding_start,
+                                                  i64   encoding_pos,
+                                                  i64   encoding_size_in_bytes,
+                                                  i32   dir,
+                                                  i32   delims_to_cross_count)
 {
+  if (dir == 0)
+  {
+    return(encoding_pos);
+  }
+  else if ((encoding_start[encoding_pos] == '\0') && (dir > 0))
+  {
+    return(encoding_pos);
+  }
+  else if ((encoding_pos == 0) && (dir < 0))
+  {
+    return(encoding_pos);
+  }
+
+  i64 prev_word_pos;
   i64 new_word_pos = encoding_pos;
+
+  b32 new_word_pos_in_bounds;
+  b32 is_cur_a_word_separator;
 
   do
   {
-    new_word_pos = unicode_utf8_advance_char_pos(encoding_start, new_word_pos, encoding_size_in_bytes, dir);
-  } while (!unicode_utf8_is_char_in_string(&encoding_start[new_word_pos],
-                                           (i32) unicode_utf8_encoding_length(&encoding_start[new_word_pos]),
-                                           word_separators));
+    prev_word_pos = new_word_pos;
+    new_word_pos  = unicode_utf8_advance_char_pos(encoding_start, new_word_pos, encoding_size_in_bytes, dir);
+
+    new_word_pos_in_bounds =
+      is_between_exclusive(0, new_word_pos, encoding_size_in_bytes);
+
+    is_cur_a_word_separator = false;
+    if (new_word_pos_in_bounds)
+    {
+      utf8 *cur_encoding        = &encoding_start[new_word_pos];
+      i32   cur_encoding_length = (i32) unicode_utf8_encoding_length(&encoding_start[new_word_pos]);
+      is_cur_a_word_separator   = (unicode_utf8_is_char_in_string(cur_encoding, cur_encoding_length, word_separators) >= 0);
+    }
+
+    if (is_cur_a_word_separator)
+    {
+      if (delims_to_cross_count > 0)
+      {
+        --delims_to_cross_count;
+      }
+      else
+      {
+        new_word_pos = prev_word_pos;
+        break;
+      }
+    }
+  }
+  while (new_word_pos_in_bounds && !is_cur_a_word_separator);
 
   return(new_word_pos);
 }
@@ -208,7 +264,7 @@ internal inline i64 unicode_utf8_is_char_in_string(utf8 *encoding, i32 encoding_
        string_index < ((i64) string.size) - encoding_length; 
        ++string_index)
   {
-    if (compare_memory_block(encoding, string.str, encoding_length))
+    if (compare_memory_block(encoding, string.str, encoding_length) == 0)
     {
       result = (i64) string_index;
       break;

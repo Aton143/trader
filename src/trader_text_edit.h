@@ -118,10 +118,13 @@ internal void text_edit_move_selection(Text_Edit_Buffer *teb, i64 dir, b32 keep_
     advancer_ptr         = text_edit_get_advancer_ptr(teb, dir, keep_selection);
     possible_delim_index = unicode_utf8_advance_char_pos(teb->buf.data, *advancer_ptr, teb->buf.used, (i32) dir);
 
-    while (!unicode_utf8_is_char_in_string(teb->buf.data + possible_delim_index, 1, word_separators))
+    i64 advance_encoding_index = *advancer_ptr;
+
+    while (is_between_exclusive(0, advance_encoding_index, (i64) teb->buf.used) &&
+           !unicode_utf8_is_char_in_string(teb->buf.data + possible_delim_index, 1, word_separators))
     {
-      utf8 *advanced_encoding    = text_edit_move_selection_step(teb, dir, keep_selection);
-      i64 advance_encoding_index = (i64) (advanced_encoding - teb->buf.data );
+      utf8 *advanced_encoding = text_edit_move_selection_step(teb, dir, keep_selection);
+      advance_encoding_index  = (i64) (advanced_encoding - teb->buf.data );
 
       possible_delim_index = unicode_utf8_advance_char_pos(teb->buf.data,
                                                            (i64) advance_encoding_index,

@@ -1,6 +1,6 @@
 #if !defined(TRADER_TEXT_EDIT_H)
 
-struct Text_Range_utf8
+struct Text_Range
 {
   i64 start_index;
   i64 inclusive_end_index;
@@ -12,10 +12,15 @@ struct Text_Edit_Buffer
   union
   {
     i64             next_char_index;
-    Text_Range_utf8 range;
+    Text_Range      range;
   };
+  i64              *moving_end;
   String_Encoding   encoding;
 };
+
+internal Text_Edit_Buffer make_text_edit_buffer(Buffer          buf,
+                                                Text_Range      range    = {0, 0},
+                                                String_Encoding encoding = string_encoding_utf8);
 
 internal void text_edit_move_selection_forward(Text_Edit_Buffer *teb, i64 chars_to_advance, b32 keep_selection = false);
 internal void text_edit_move_cursor(Text_Edit_Buffer *teb, i64 chars_to_advance, b32 keep_selection = false);
@@ -27,6 +32,20 @@ internal i64 text_edit_delete(Text_Edit_Buffer *teb, i64 chars_to_delete);
 internal i64 text_edit_delete_and_advance(Text_Edit_Buffer *teb, i64 chars_to_delete);
 
 // implementation
+internal Text_Edit_Buffer make_text_edit_buffer(Buffer buf, Text_Range range, String_Encoding encoding)
+{
+  Text_Edit_Buffer teb = {};
+
+  teb.buf        = buf;
+  teb.range      = range;
+  teb.moving_end = NULL;
+  teb.encoding   = encoding;
+
+  expect(teb.encoding == string_encoding_utf8);
+
+  return(teb);
+}
+
 internal void text_edit_move_cursor(Text_Edit_Buffer *teb, i64 chars_to_advance, b32 keep_selection)
 {
   expect(teb != NULL);
@@ -47,13 +66,13 @@ internal void text_edit_move_cursor(Text_Edit_Buffer *teb, i64 chars_to_advance,
   {
     if (sign > 0)
     {
-      advancer              =  teb->range.inclusive_end_index;
-      where_to_put_advancer = &teb->range.inclusive_end_index;
+      where_to_put_advancer =  (teb->moving_end != NULL) ? teb->moving_end : &teb->range.inclusive_end_index;
+      advancer              =  *where_to_put_advancer;
     }
     else
     {
-      advancer              =  teb->range.start_index;
-      where_to_put_advancer = &teb->range.start_index;
+      where_to_put_advancer =  (teb->moving_end != NULL) ? teb->moving_end : &teb->range.start_index;
+      advancer              =  *where_to_put_advancer;
     }
   }
   else
@@ -61,6 +80,8 @@ internal void text_edit_move_cursor(Text_Edit_Buffer *teb, i64 chars_to_advance,
     advancer              =  teb->range.start_index;
     where_to_put_advancer = &teb->range.start_index;
   }
+
+  i64 original_advancer = advancer;
 
   expect(teb->range.start_index <= teb->range.inclusive_end_index);
 
@@ -81,9 +102,30 @@ internal void text_edit_move_cursor(Text_Edit_Buffer *teb, i64 chars_to_advance,
   }
 
   *where_to_put_advancer = advancer;
+
+  if (keep_selection)
+  {
+    if ((teb->moving_end == NULL) && (original_advancer != advancer))
+    {
+      teb->moving_end = (sign > 0) ? &teb->range.inclusive_end_index : &teb->range.start_index;
+    }
+
+    if (teb->range.start_index == teb->range.inclusive_end_index)
+    {
+      teb->moving_end = NULL;
+    }
+  }
+  else
+  {
+    teb->range.start_index         = advancer;
+    teb->range.inclusive_end_index = advancer;
+    teb->moving_end                = NULL;
+  }
+
   expect(teb->range.start_index <= teb->range.inclusive_end_index);
 }
 
+// TODO(antonio): deletion must occur if range difference > 0 
 internal i64 text_edit_insert_string(Text_Edit_Buffer *teb, String_utf8 string)
 {
   i64 chars_placed = -1;
@@ -116,7 +158,8 @@ internal i64 text_edit_insert_string_and_advance(Text_Edit_Buffer *teb, String_u
 
   if (to_advance >= 0)
   {
-    teb->next_char_index += to_advance;
+    teb->range.start_index         += to_advance;
+    teb->range.inclusive_end_index  = teb->range.start_index;
   }
 
   return(to_advance);

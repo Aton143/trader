@@ -1112,7 +1112,7 @@ WinMain(HINSTANCE instance,
 
     Buffer           teb_buf = stack_alloc_buffer(128);
     zero_memory_block(teb_buf.data, teb_buf.size);
-    Text_Edit_Buffer teb     = {teb_buf, 0, string_encoding_utf8};
+    Text_Edit_Buffer teb = {teb_buf, string_encoding_utf8};
 
     // NOTE(antonio): experimental change
     win32_global_state.main_fiber_address = ConvertThreadToFiber(NULL);
@@ -1239,11 +1239,10 @@ WinMain(HINSTANCE instance,
       win32_global_state.frame_count++;
 
       ui_do_text_edit(&debug_teb, "text editor");
-      ui_do_formatted_string("don't care");
-      ui_do_formatted_string("Cursor: %d - %c %c",
-                             debug_teb.next_char_index,
-                             debug_teb.buf.data[debug_teb.next_char_index],
-                             debug_teb.next_char_index > 0 ? debug_teb.buf.data[debug_teb.next_char_index - 1] : '?');
+      ui_do_formatted_string("Using as spacer");
+      ui_do_formatted_string("Cursor - start: %d - end: %d",
+                             debug_teb.range.start_index,
+                             debug_teb.range.inclusive_end_index);
 
       ui_do_formatted_string("Last frame time: %.6fs", last_frame_time);
       ui_do_formatted_string("Last frame time in cycles: %lld", last_frame_time_in_cycles);

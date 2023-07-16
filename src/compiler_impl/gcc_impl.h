@@ -1,5 +1,7 @@
 #ifndef GCC_IMPL_H
 
+#define align_data(bytes) __attribute__((aligned(bytes)))
+
 inline internal u16 byte_swap_16(u16 val)
 {
   u16 swapped = __builtin_bswap16(val);

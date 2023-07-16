@@ -1,6 +1,8 @@
 #ifndef CL_IMPL_H
 #include <stdlib.h>
 
+#define align_data(bytes) __declspec(align(bytes))
+
 inline internal u16 byte_swap_16(u16 val)
 {
   u16 swapped = _byteswap_ushort(val);

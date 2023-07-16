@@ -1,12 +1,24 @@
 #if !defined(TRADER_TEXT_EDIT_H)
-struct Text_Edit_Buffer
+
+struct Text_Range_utf8
 {
-  Buffer          buf;
-  i64             next_char_index;
-  String_Encoding encoding;
+  i64 start_index;
+  i64 inclusive_end_index;
 };
 
-internal void text_edit_move_cursor(Text_Edit_Buffer *teb, i64 chars_to_advance);
+struct Text_Edit_Buffer
+{
+  Buffer            buf;
+  union
+  {
+    i64             next_char_index;
+    Text_Range_utf8 range;
+  };
+  String_Encoding   encoding;
+};
+
+internal void text_edit_move_selection_forward(Text_Edit_Buffer *teb, i64 chars_to_advance, b32 keep_selection = false);
+internal void text_edit_move_cursor(Text_Edit_Buffer *teb, i64 chars_to_advance, b32 keep_selection = false);
 
 internal i64 text_edit_insert_string(Text_Edit_Buffer *teb, String_utf8 string);
 internal i64 text_edit_insert_string_and_advance(Text_Edit_Buffer *teb, String_utf8 string);
@@ -15,10 +27,12 @@ internal i64 text_edit_delete(Text_Edit_Buffer *teb, i64 chars_to_delete);
 internal i64 text_edit_delete_and_advance(Text_Edit_Buffer *teb, i64 chars_to_delete);
 
 // implementation
-internal void text_edit_move_cursor(Text_Edit_Buffer *teb, i64 chars_to_advance)
+internal void text_edit_move_cursor(Text_Edit_Buffer *teb, i64 chars_to_advance, b32 keep_selection)
 {
+  expect(teb != NULL);
+
   if ((chars_to_advance == 0) || 
-      ((chars_to_advance > 0) && (teb->next_char_index == (i64) teb->buf.used)))
+      ((chars_to_advance > 0) && (teb->range.start_index == (i64) teb->buf.used)))
   {
     return;
   }
@@ -26,21 +40,48 @@ internal void text_edit_move_cursor(Text_Edit_Buffer *teb, i64 chars_to_advance)
   i64 sign = (chars_to_advance < 0) ? -1 : 1;
   chars_to_advance = abs(chars_to_advance);
 
-  i64 next_pos = teb->next_char_index;
+  i64  advancer = -1;
+  i64 *where_to_put_advancer = NULL;
+
+  if (keep_selection)
+  {
+    if (sign > 0)
+    {
+      advancer              =  teb->range.inclusive_end_index;
+      where_to_put_advancer = &teb->range.inclusive_end_index;
+    }
+    else
+    {
+      advancer              =  teb->range.start_index;
+      where_to_put_advancer = &teb->range.start_index;
+    }
+  }
+  else
+  {
+    advancer              =  teb->range.start_index;
+    where_to_put_advancer = &teb->range.start_index;
+  }
+
+  expect(teb->range.start_index <= teb->range.inclusive_end_index);
+
+  expect(advancer != -1);
+  expect(where_to_put_advancer != NULL);
+
   while (chars_to_advance > 0)
   {
-    while (is_in_buffer(&teb->buf, next_pos) && !unicode_utf8_is_start(teb->buf.data[next_pos]))
+    while (is_in_buffer(&teb->buf, advancer) && !unicode_utf8_is_start(teb->buf.data[advancer]))
     {
-      next_pos += sign;
+      advancer += sign;
     }
 
-    if (!is_in_buffer(&teb->buf, next_pos + sign)) break;
+    if (!is_in_buffer(&teb->buf, advancer + sign)) break;
 
-    next_pos += sign;
+    advancer += sign;
     chars_to_advance--;
   }
 
-  teb->next_char_index = next_pos;
+  *where_to_put_advancer = advancer;
+  expect(teb->range.start_index <= teb->range.inclusive_end_index);
 }
 
 internal i64 text_edit_insert_string(Text_Edit_Buffer *teb, String_utf8 string)

@@ -10,7 +10,7 @@ internal inline b32 unicode_utf8_is_start(utf8 encoding_char);
 internal inline i64 unicode_utf8_get_next_start_char_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes);
 internal inline i64 unicode_utf8_get_prev_start_char_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes);
 
-// NOTE(antonio): will move forward (if in bounds)
+// NOTE(antonio): will "advance" (if in bounds)
 internal inline i64 unicode_utf8_advance_char_pos(utf8 *start, i64 start_pos, i64 encoding_size_in_bytes, i32 dir);
 
 internal inline i64 unicode_utf8_get_next_char_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes);
@@ -27,9 +27,14 @@ internal inline i64 unicode_utf8_get_next_word_pos(utf8 *encoding_start, i64 enc
 internal inline i64 unicode_utf8_get_prev_word_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes);
 
 internal inline i64 unicode_utf8_encoding_length(utf8 *encoding);
+internal inline i64 unicode_utf8_encoding_length(utf8 *encoding, i64 char_count);
+
+unimplemented inline i64 unicode_utf8_verify(utf8 *encoding, i64 encoding_length);
+
 internal inline i64 unicode_utf8_encode(u32 *code_points, i64 code_point_length, utf8 *put, i64 put_pos, i64 put_length);
 
-internal inline i64 unicode_utf8_is_char_in_string(utf8 *encoding, i32 encoding_length, String_utf8 string);
+internal inline i64 unicode_utf8_get_char_pos_in_string(utf8 *encoding, i64 char_count, String_utf8 string);
+internal inline b32 unicode_utf8_is_char_in_string(utf8 *encoding, i64 char_count, String_utf8 string);
 
 // NOTE(antonio): implementation
 internal inline i64 unicode_utf8_encode(u32 *code_points, i64 code_point_length, utf8 *put, i64 put_pos, i64 put_length)
@@ -238,7 +243,7 @@ internal inline i64 unicode_utf8_advance_by_delim_spans(utf8        *encoding_st
     {
       cur_encoding            = &encoding_start[new_word_pos];
       cur_encoding_length     = (i32) unicode_utf8_encoding_length(&encoding_start[new_word_pos]);
-      is_cur_a_word_separator = (unicode_utf8_is_char_in_string(cur_encoding, cur_encoding_length, delims) >= 0);
+      is_cur_a_word_separator = (unicode_utf8_get_char_pos_in_string(cur_encoding, cur_encoding_length, delims) >= 0);
     }
     else
     {
@@ -249,7 +254,7 @@ internal inline i64 unicode_utf8_advance_by_delim_spans(utf8        *encoding_st
     {
       if (delims_to_cross_count > 0)
       {
-
+        // NOTE(antonio): need to cross a span
         do
         {
           new_word_pos = unicode_utf8_advance_char_pos(encoding_start, new_word_pos, encoding_size_in_bytes, dir);
@@ -260,7 +265,7 @@ internal inline i64 unicode_utf8_advance_by_delim_spans(utf8        *encoding_st
           {
             cur_encoding            = &encoding_start[new_word_pos];
             cur_encoding_length     = (i32) unicode_utf8_encoding_length(&encoding_start[new_word_pos]);
-            is_cur_a_word_separator = (unicode_utf8_is_char_in_string(cur_encoding, cur_encoding_length, delims) >= 0);
+            is_cur_a_word_separator = (unicode_utf8_get_char_pos_in_string(cur_encoding, cur_encoding_length, delims) >= 0);
           }
           else
           {
@@ -282,30 +287,57 @@ internal inline i64 unicode_utf8_advance_by_delim_spans(utf8        *encoding_st
   return(new_word_pos);
 }
 
-internal inline i64 unicode_utf8_is_char_in_string(utf8 *encoding, i32 encoding_length, String_utf8 string)
+internal inline i64 unicode_utf8_get_char_pos_in_string(utf8 *encoding, i64 char_count, String_utf8 string)
 {
   expect(string.str != NULL);
 
   i64 result = -1;
+  i64 encoding_length = unicode_utf8_encoding_length(encoding, char_count);
 
-  for (i64 string_index = 0;
-       string_index < ((i64) string.size) - encoding_length; 
-       ++string_index)
+  if (encoding_length >= 0)
   {
-    if (compare_memory_block(encoding, string.str, encoding_length) == 0)
+    for (i64 string_index = 0;
+         string_index < ((i64) string.size) - encoding_length; 
+         ++string_index)
     {
-      result = (i64) string_index;
-      break;
+      if (compare_memory_block(encoding, string.str, encoding_length) == 0)
+      {
+        result = (i64) string_index;
+        break;
+      }
     }
+  }
+  else
+  {
+    result = 0;
   }
 
   return(result);
+}
+
+internal inline b32 unicode_utf8_is_char_in_string(utf8 *encoding, i64 char_count, String_utf8 string)
+{
+  b32 is_char_in_string = (unicode_utf8_get_char_pos_in_string(encoding, char_count, string) >= 0);
+  return(is_char_in_string);
 }
 
 internal inline i64 unicode_utf8_encoding_length(utf8 *encoding)
 {
   i64 res = unicode_utf8_get_next_char_pos(encoding, 0, 5);
   return(res);
+}
+
+internal inline i64 unicode_utf8_encoding_length(utf8 *encoding, i64 char_count)
+{
+  i64 encoding_length = 0;
+
+  while (char_count > 0)
+  {
+    encoding_length += unicode_utf8_encoding_length(encoding + encoding_length);
+    char_count--;
+  }
+
+  return(encoding_length);
 }
 
 #define TRADER_UNICODE_H

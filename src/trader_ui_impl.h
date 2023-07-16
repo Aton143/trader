@@ -806,15 +806,24 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
           case key_event_left_arrow:
           case key_event_right_arrow:
           {
-            i32 dir = value->key_event == key_event_left_arrow ? -1 : 1;
+            i32 dir            = (value->key_event == key_event_left_arrow) ? -1 : 1;
+            b32 keep_selection = value->mod_keys.shift;
+
             if (value->mod_keys.control)
             {
               utf8 *cur_encoding =
                 &teb->buf.data[teb->next_char_index];
-              i64 encoding_length =
-                unicode_utf8_encoding_length(cur_encoding);
-              i32 delims_to_cross =
-                (unicode_utf8_is_char_in_string(cur_encoding, (i32) encoding_length, word_separators) < 0);
+
+              i32 delims_to_cross      = (i32) unicode_utf8_get_char_pos_in_string(cur_encoding, 1, word_separators);
+              i64 advance_dir_char_pos = unicode_utf8_advance_char_pos(teb->buf.data,
+                                                                       teb->next_char_index,
+                                                                       teb->buf.size,
+                                                                       dir);
+
+              if (unicode_utf8_get_char_pos_in_string(&cur_encoding[advance_dir_char_pos], (i32) 1, word_separators) < 0)
+              {
+                delims_to_cross = 0;
+              }
 
               teb->next_char_index = unicode_utf8_advance_by_delim_spans(teb->buf.data,
                                                                          teb->next_char_index,
@@ -824,7 +833,7 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
             }
             else
             {
-              text_edit_move_cursor(teb, dir);
+              text_edit_move_cursor(teb, dir, keep_selection);
             }
           } break;
         }

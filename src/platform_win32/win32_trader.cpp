@@ -1121,6 +1121,7 @@ WinMain(HINSTANCE instance,
     void *win32_message_fiber_handle = CreateFiber(0, &win32_message_fiber, NULL);
     expect_message(win32_global_state.main_fiber_address != NULL, "could not create a fiber for messages");
 
+    text_edit_insert_string_and_advance(&debug_teb, str_from_lit("I don't know", utf8));
 
     while (global_running)
     {

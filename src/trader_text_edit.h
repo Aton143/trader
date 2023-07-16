@@ -22,8 +22,10 @@ internal Text_Edit_Buffer make_text_edit_buffer(Buffer          buf,
                                                 Text_Range      range    = {0, 0},
                                                 String_Encoding encoding = string_encoding_utf8);
 
-internal void text_edit_move_selection_forward(Text_Edit_Buffer *teb, i64 chars_to_advance, b32 keep_selection = false);
-internal void text_edit_move_cursor(Text_Edit_Buffer *teb, i64 chars_to_advance, b32 keep_selection = false);
+// internal void text_edit_move_selection_forward(Text_Edit_Buffer *teb, i64 chars_to_advance, b32 keep_selection = false);
+internal inline i64 *text_edit_get_advancer_ptr(Text_Edit_Buffer *teb, i64 dir, b32 keep_selection);
+internal utf8 *text_edit_move_selection_step(Text_Edit_Buffer *teb, i64 dir, b32 keep_selection);
+internal void  text_edit_move_selection(Text_Edit_Buffer *teb, i64 dir, b32 keep_selection = false, b32 control = false);
 
 internal i64 text_edit_insert_string(Text_Edit_Buffer *teb, String_utf8 string);
 internal i64 text_edit_insert_string_and_advance(Text_Edit_Buffer *teb, String_utf8 string);
@@ -46,24 +48,13 @@ internal Text_Edit_Buffer make_text_edit_buffer(Buffer buf, Text_Range range, St
   return(teb);
 }
 
-internal void text_edit_move_cursor(Text_Edit_Buffer *teb, i64 chars_to_advance, b32 keep_selection)
+internal inline i64 *text_edit_get_advancer_ptr(Text_Edit_Buffer *teb, i64 dir, b32 keep_selection)
 {
-  expect(teb != NULL);
-
-  if ((chars_to_advance == 0) || 
-      ((chars_to_advance > 0) && (teb->range.start_index == (i64) teb->buf.used)))
-  {
-    return;
-  }
-
-  i64 sign = (chars_to_advance < 0) ? -1 : 1;
-  chars_to_advance = abs(chars_to_advance);
-
   i64 *where_to_put_advancer = NULL;
 
   if (keep_selection)
   {
-    if (sign > 0)
+    if (dir > 0)
     {
       where_to_put_advancer =  (teb->moving_end != NULL) ? teb->moving_end : &teb->range.inclusive_end_index;
     }
@@ -77,32 +68,130 @@ internal void text_edit_move_cursor(Text_Edit_Buffer *teb, i64 chars_to_advance,
     where_to_put_advancer = (teb->moving_end != NULL) ? teb->moving_end : &teb->range.start_index;;
   }
 
-  expect(where_to_put_advancer != NULL);
-  expect(teb->range.start_index <= teb->range.inclusive_end_index);
+  return(where_to_put_advancer);
+}
 
-  i64 advancer          = *where_to_put_advancer;
-  i64 original_advancer = advancer;
-
-  while (chars_to_advance > 0)
+internal void text_edit_move_selection(Text_Edit_Buffer *teb, i64 dir, b32 keep_selection, b32 control)
+{
+  if (dir == 0)
   {
-    while (is_in_buffer(&teb->buf, advancer) && !unicode_utf8_is_start(teb->buf.data[advancer]))
-    {
-      advancer += sign;
-    }
-
-    if (!is_in_buffer(&teb->buf, advancer + sign)) break;
-
-    advancer += sign;
-    chars_to_advance--;
+    return;
   }
 
-  *where_to_put_advancer = advancer;
+  i64 *advancer_ptr;
+  i64  possible_delim_index;
+
+  if (control)
+  {
+    advancer_ptr         = text_edit_get_advancer_ptr(teb, dir, keep_selection);
+    possible_delim_index = unicode_utf8_advance_char_pos(teb->buf.data, *advancer_ptr, teb->buf.used, (i32) dir);
+
+    if (possible_delim_index == *advancer_ptr)
+    {
+      return;
+    }
+
+    b32 advancer_at_delim = unicode_utf8_is_char_in_string(&teb->buf.data[*advancer_ptr], 1, word_separators);
+    b32 possible_at_delim = unicode_utf8_is_char_in_string(&teb->buf.data[possible_delim_index], 1, word_separators);
+
+    if (advancer_at_delim || possible_at_delim)
+    {
+      if (advancer_at_delim)
+      {
+        text_edit_move_selection_step(teb, dir, keep_selection);
+      }
+
+      while (unicode_utf8_is_char_in_string(text_edit_move_selection_step(teb, dir, keep_selection),
+                                            1, word_separators));
+
+      if (dir > 0)
+      {
+        return;
+      }
+    }
+  }
+
+  // NOTE(antonio): now at the "middle" of a "word"
+  if (control)
+  {
+    advancer_ptr         = text_edit_get_advancer_ptr(teb, dir, keep_selection);
+    possible_delim_index = unicode_utf8_advance_char_pos(teb->buf.data, *advancer_ptr, teb->buf.used, (i32) dir);
+
+    while (unicode_utf8_is_char_in_string(teb->buf.data + possible_delim_index, 1, word_separators))
+    {
+      utf8 *advanced_encoding    = text_edit_move_selection_step(teb, dir, keep_selection);
+      i64 advance_encoding_index = (i64) (teb->buf.data - advanced_encoding);
+
+      possible_delim_index = unicode_utf8_advance_char_pos(teb->buf.data,
+                                                           (i64) advance_encoding_index,
+                                                           teb->buf.used,
+                                                           (i32) dir);
+    }
+  }
+  else
+  {
+    text_edit_move_selection_step(teb, dir, keep_selection);
+  }
+
+  // NOTE(antonio): now at the "start" of a word
+  if (control)
+  {
+    expect(dir < 0);
+
+    advancer_ptr         = text_edit_get_advancer_ptr(teb, dir, keep_selection);
+    possible_delim_index = unicode_utf8_advance_char_pos(teb->buf.data, *advancer_ptr, teb->buf.used, (i32) dir);
+
+    if (possible_delim_index == *advancer_ptr)
+    {
+      return;
+    }
+
+    b32 advancer_at_delim = unicode_utf8_is_char_in_string(&teb->buf.data[*advancer_ptr], 1, word_separators);
+    b32 possible_at_delim = unicode_utf8_is_char_in_string(&teb->buf.data[possible_delim_index], 1, word_separators);
+
+    if (advancer_at_delim || possible_at_delim)
+    {
+      if (advancer_at_delim)
+      {
+        text_edit_move_selection_step(teb, dir, keep_selection);
+      }
+
+      while (unicode_utf8_is_char_in_string(text_edit_move_selection_step(teb, dir, keep_selection),
+                                            1, word_separators));
+    }
+  }
+}
+
+internal utf8 *text_edit_move_selection_step(Text_Edit_Buffer *teb, i64 dir, b32 keep_selection)
+{
+  expect(teb != NULL);
+
+  i64 *advancer_ptr = text_edit_get_advancer_ptr(teb, dir, keep_selection);
+
+  expect(advancer_ptr != NULL);
+  expect(teb->range.start_index <= teb->range.inclusive_end_index);
+
+  i64 advancer          = *advancer_ptr;
+  i64 original_advancer = advancer;
+
+  // TODO(antonio): replace with get advance char pos
+  while (is_in_buffer(&teb->buf, advancer) && !unicode_utf8_is_start(teb->buf.data[advancer]))
+  {
+    advancer += dir;
+  }
+
+  if (is_in_buffer(&teb->buf, advancer + dir))
+  {
+    advancer += dir;
+  }
+
+  *advancer_ptr = advancer;
 
   if (keep_selection)
   {
     if ((teb->moving_end == NULL) && (original_advancer != advancer))
     {
-      teb->moving_end = (sign > 0) ? &teb->range.inclusive_end_index : &teb->range.start_index;
+      teb->moving_end = (dir > 0) ? &teb->range.inclusive_end_index : &teb->range.start_index;
     }
 
     if (teb->range.start_index == teb->range.inclusive_end_index)
@@ -118,6 +207,9 @@ internal void text_edit_move_cursor(Text_Edit_Buffer *teb, i64 chars_to_advance,
   }
 
   expect(teb->range.start_index <= teb->range.inclusive_end_index);
+
+  utf8 *encoding_at_advancer = teb->buf.data + advancer;
+  return(encoding_at_advancer);
 }
 
 // TODO(antonio): deletion must occur if range difference > 0 
@@ -207,7 +299,7 @@ internal i64 text_edit_delete_and_advance(Text_Edit_Buffer *teb, i64 chars_to_de
 
   if (to_advance > 0)
   {
-    text_edit_move_cursor(teb, -to_advance);
+    text_edit_move_selection(teb, -to_advance);
   }
 
   teb->next_char_index = clamp(0, teb->next_char_index, (i64) teb->buf.used);

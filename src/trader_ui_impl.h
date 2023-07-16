@@ -808,33 +808,9 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
           {
             i32 dir            = (value->key_event == key_event_left_arrow) ? -1 : 1;
             b32 keep_selection = value->mod_keys.shift;
+            b32 control        = value->mod_keys.control;
 
-            if (value->mod_keys.control)
-            {
-              utf8 *cur_encoding =
-                &teb->buf.data[teb->next_char_index];
-
-              i32 delims_to_cross      = (i32) unicode_utf8_get_char_pos_in_string(cur_encoding, 1, word_separators);
-              i64 advance_dir_char_pos = unicode_utf8_advance_char_pos(teb->buf.data,
-                                                                       teb->next_char_index,
-                                                                       teb->buf.size,
-                                                                       dir);
-
-              if (unicode_utf8_get_char_pos_in_string(&cur_encoding[advance_dir_char_pos], (i32) 1, word_separators) < 0)
-              {
-                delims_to_cross = 0;
-              }
-
-              teb->next_char_index = unicode_utf8_advance_by_delim_spans(teb->buf.data,
-                                                                         teb->next_char_index,
-                                                                         teb->buf.size,
-                                                                         dir,
-                                                                         delims_to_cross);
-            }
-            else
-            {
-              text_edit_move_cursor(teb, dir, keep_selection);
-            }
+            text_edit_move_selection(teb, (i64) dir, keep_selection, control);
           } break;
         }
       }

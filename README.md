@@ -8,6 +8,8 @@ This project is still in its early stages, so to say. Right now, it supports HTT
 - WebSockets implementation from soup to nuts
 - Immediate Mode GUI
     - Real-time data chart creation and manipulation
+    - Text Editing
+    - Paneling
 
 ## Planned features
 - [ ] Linux! Oh, no...

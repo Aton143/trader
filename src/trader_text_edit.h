@@ -306,12 +306,12 @@ internal i64 text_edit_delete(Text_Edit_Buffer *teb)
 
   if (start_ptr != teb_end_ptr)
   {
-    // utf8 *adjusted_end = end_ptr + ((end_ptr != teb_end_ptr) ? unicode_utf8_encoding_length(end_ptr) : 0);
     move_memory_block(start_ptr, end_ptr, teb->buf.used - teb->range.start_index);
   }
 
   teb->buf.used -= zero_memory_block((teb->buf.data + teb->buf.used) - bytes_to_delete, bytes_to_delete);
-  bytes_deleted = bytes_to_delete;
+  // TODO(antonio): one char?
+  bytes_deleted = bytes_to_delete - ((end_ptr == teb_end_ptr) && (bytes_to_delete > 1)) ? 1 : 0;
 
   return(bytes_deleted);
 }

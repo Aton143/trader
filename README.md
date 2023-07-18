@@ -3,8 +3,6 @@ A multiplatform, performant trading client and GUI with very few dependencies.
 
 ## What trader can do
 This project is still in its early stages, so to say. Right now, it supports HTTPS using a blocking- and sockets-based architecture sockets on Windows and has a Direct3D 11 rendering backend. It has the infrastructure to do hot-reloads using efficient methods (a.k.a. [I/O Completion Ports](https://learn.microsoft.com/en-us/windows/win32/fileio/i-o-completion-ports)), instrumented profiling, logging asserts, frame buffer captures, and visual debugging.  
-The Immediate Mode GUI library can draw text under different alignments, animate widgets, capture mouse state, and so much more!
-
 
 ## Currently working on 
 - WebSockets implementation from soup to nuts
@@ -12,6 +10,7 @@ The Immediate Mode GUI library can draw text under different alignments, animate
     - Real-time data chart creation and manipulation
 
 ## Planned features
+- [ ] Linux! Oh, no...
 - [ ] OpenGL backend for Linux
 - [ ] Linux-based networking backend
 - [ ] WebSockets and socket-based connections to APIs
@@ -22,9 +21,6 @@ The Immediate Mode GUI library can draw text under different alignments, animate
 ## To-Do
 - [ ] User-created UI "workspace"
 - [ ] JSON and HTTP response parsing
-- [ ] Move towards "memory-usage-announcing functions"
-- [ ] Complete a WebSocket handshake and read data
-- [ ] Visualize the tick data
 
 ## Special Thanks
 - [Casey Muratori](https://mollyrocket.com)

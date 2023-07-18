@@ -1240,13 +1240,23 @@ WinMain(HINSTANCE instance,
 
       ui_do_text_edit(&debug_teb, "text editor");
       ui_do_formatted_string("Using as spacer");
-      ui_do_formatted_string("Cursor - start: %d - end: %d - %s",
+      ui_do_formatted_string("Cursor - start: %d - end: %d",
                              debug_teb.range.start_index,
-                             debug_teb.range.inclusive_end_index,
-                             &debug_teb.buf.data[debug_teb.range.start_index]);
-      ui_do_formatted_string("Selected: %.*s",
-                             (debug_teb.range.inclusive_end_index - debug_teb.range.start_index) + 1,
-                             &debug_teb.buf.data[debug_teb.range.start_index]);
+                             debug_teb.range.inclusive_end_index);
+
+      if (range_get_length(&debug_teb.range) >= 1)
+      {
+        ui_do_formatted_string("Selected: %.*s",
+                               (debug_teb.range.inclusive_end_index - debug_teb.range.start_index),
+                               &debug_teb.buf.data[debug_teb.range.start_index]);
+      }
+      else
+      {
+        i64 start = debug_teb.range.start_index;
+        ui_do_formatted_string("Before cursor: %c", 
+                               (start == 0) ? ' ' : debug_teb.buf.data[start - 1]);
+      }
+
       ui_do_formatted_string("TEB Length: %d\n", debug_teb.buf.used);
 
       ui_do_formatted_string("Last frame time: %.6fs", last_frame_time);

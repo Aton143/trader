@@ -43,7 +43,7 @@ internal i64 text_edit_delete_and_advance(Text_Edit_Buffer *teb, i64 chars_to_de
 internal inline i64 range_get_length(Text_Range *range)
 {
   expect(range->start_index <= range->inclusive_end_index);
-  i64 length = (range->inclusive_end_index - range->start_index) + 1;
+  i64 length = (range->inclusive_end_index - range->start_index);
   return(length);
 }
 
@@ -281,7 +281,7 @@ internal i64 text_edit_insert_string_and_advance(Text_Edit_Buffer *teb, String_u
   return(to_advance);
 }
 
-// TODO(antonio): weirdness at the buffer end
+// TODO(antonio): all types of weirdness
 internal i64 text_edit_delete(Text_Edit_Buffer *teb)
 {
   if ((teb->buf.used == 0) ||
@@ -291,15 +291,24 @@ internal i64 text_edit_delete(Text_Edit_Buffer *teb)
     return(0);
   }
 
-  utf8 *start_ptr   =
-    (teb->range.start_index == 0) ?
-    text_edit_get_start_ptr(teb) :
-    teb->buf.data + unicode_utf8_get_prev_char_pos(teb->buf.data, teb->range.start_index, teb->buf.used);
+  i64 range_length = range_get_length(&teb->range);
+  b32 selection    = (range_length >= 1);
+
+  utf8 *start_ptr = NULL;
+  if (range_length == 0)
+  {
+    start_ptr = teb->buf.data + unicode_utf8_get_prev_char_pos(teb->buf.data, teb->range.start_index, teb->buf.used);
+    range_length = 1;
+  }
+  else
+  {
+    start_ptr = text_edit_get_start_ptr(teb);
+  }
 
   utf8 *end_ptr     = text_edit_get_end_ptr(teb);
   utf8 *teb_end_ptr = teb->buf.data + teb->buf.used;
 
-  i64 bytes_to_delete = unicode_utf8_encoding_length(start_ptr, range_get_length(&teb->range));
+  i64 bytes_to_delete = unicode_utf8_encoding_length(start_ptr, range_length);
   i64 bytes_deleted   = -1;
 
   expect(teb->encoding == string_encoding_utf8);
@@ -311,7 +320,14 @@ internal i64 text_edit_delete(Text_Edit_Buffer *teb)
 
   teb->buf.used -= zero_memory_block((teb->buf.data + teb->buf.used) - bytes_to_delete, bytes_to_delete);
   // TODO(antonio): one char?
-  bytes_deleted = bytes_to_delete - ((end_ptr == teb_end_ptr) && (bytes_to_delete > 1)) ? 1 : 0;
+  if (selection)
+  {
+    bytes_deleted = 0;
+  }
+  else
+  {
+    bytes_deleted = bytes_to_delete;
+  }
 
   return(bytes_deleted);
 }
@@ -319,15 +335,8 @@ internal i64 text_edit_delete(Text_Edit_Buffer *teb)
 internal i64 text_edit_delete_and_advance(Text_Edit_Buffer *teb)
 {
   i64 to_advance = text_edit_delete(teb);
-
-  while (to_advance > 0)
-  {
-    text_edit_move_selection_step(teb, -1);
-    to_advance--;
-  }
-
-  teb->next_char_index = clamp(0, teb->next_char_index, (i64) teb->buf.used);
-
+  teb->range.inclusive_end_index =
+    (teb->range.start_index = clamp(0, teb->range.start_index - to_advance, (i64) teb->buf.used));
   return(to_advance);
 }
 

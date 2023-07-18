@@ -1121,7 +1121,7 @@ WinMain(HINSTANCE instance,
     void *win32_message_fiber_handle = CreateFiber(0, &win32_message_fiber, NULL);
     expect_message(win32_global_state.main_fiber_address != NULL, "could not create a fiber for messages");
 
-    text_edit_insert_string_and_advance(&debug_teb, str_from_lit("iiiiiI don't    know", utf8));
+    text_edit_insert_string_and_advance(&debug_teb, str_from_lit("abcdefI don't    know", utf8));
 
     while (global_running)
     {
@@ -1244,6 +1244,10 @@ WinMain(HINSTANCE instance,
                              debug_teb.range.start_index,
                              debug_teb.range.inclusive_end_index,
                              &debug_teb.buf.data[debug_teb.range.start_index]);
+      ui_do_formatted_string("Selected: %.*s",
+                             (debug_teb.range.inclusive_end_index - debug_teb.range.start_index) + 1,
+                             &debug_teb.buf.data[debug_teb.range.start_index]);
+      ui_do_formatted_string("TEB Length: %d\n", debug_teb.buf.used);
 
       ui_do_formatted_string("Last frame time: %.6fs", last_frame_time);
       ui_do_formatted_string("Last frame time in cycles: %lld", last_frame_time_in_cycles);

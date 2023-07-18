@@ -800,7 +800,8 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
             }
             else
             {
-              text_edit_delete_and_advance(teb, 1);
+              // text_edit_delete(teb);
+              text_edit_delete_and_advance(teb);
             }
           } break;
           case key_event_left_arrow:

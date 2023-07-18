@@ -1,10 +1,14 @@
 #if !defined(TRADER_TEXT_EDIT_H)
 
+// NOTE(antonio): it may be better to make these data pointers and 
+//                use characters in the API
 struct Text_Range
 {
   i64 start_index;
   i64 inclusive_end_index;
 };
+
+internal inline i64 range_get_length(Text_Range *range);
 
 struct Text_Edit_Buffer
 {
@@ -18,13 +22,15 @@ struct Text_Edit_Buffer
   String_Encoding   encoding;
 };
 
-internal Text_Edit_Buffer make_text_edit_buffer(Buffer          buf,
-                                                Text_Range      range    = {0, 0},
-                                                String_Encoding encoding = string_encoding_utf8);
+internal inline Text_Edit_Buffer make_text_edit_buffer(Buffer          buf,
+                                                       Text_Range      range    = {0, 0},
+                                                       String_Encoding encoding = string_encoding_utf8);
 
-// internal void text_edit_move_selection_forward(Text_Edit_Buffer *teb, i64 chars_to_advance, b32 keep_selection = false);
+internal inline utf8 *text_edit_get_start_ptr(Text_Edit_Buffer *teb);
+internal inline utf8 *text_edit_get_end_ptr(Text_Edit_Buffer *teb);
+
 internal inline i64 *text_edit_get_advancer_ptr(Text_Edit_Buffer *teb, i64 dir, b32 keep_selection);
-internal utf8 *text_edit_move_selection_step(Text_Edit_Buffer *teb, i64 dir, b32 keep_selection);
+internal utf8 *text_edit_move_selection_step(Text_Edit_Buffer *teb, i64 dir, b32 keep_selection = false);
 internal void  text_edit_move_selection(Text_Edit_Buffer *teb, i64 dir, b32 keep_selection = false, b32 control = false);
 
 internal i64 text_edit_insert_string(Text_Edit_Buffer *teb, String_utf8 string);
@@ -34,7 +40,14 @@ internal i64 text_edit_delete(Text_Edit_Buffer *teb, i64 chars_to_delete);
 internal i64 text_edit_delete_and_advance(Text_Edit_Buffer *teb, i64 chars_to_delete);
 
 // implementation
-internal Text_Edit_Buffer make_text_edit_buffer(Buffer buf, Text_Range range, String_Encoding encoding)
+internal inline i64 range_get_length(Text_Range *range)
+{
+  expect(range->start_index <= range->inclusive_end_index);
+  i64 length = (range->inclusive_end_index - range->start_index) + 1;
+  return(length);
+}
+
+internal inline Text_Edit_Buffer make_text_edit_buffer(Buffer buf, Text_Range range, String_Encoding encoding)
 {
   Text_Edit_Buffer teb = {};
 
@@ -48,29 +61,43 @@ internal Text_Edit_Buffer make_text_edit_buffer(Buffer buf, Text_Range range, St
   return(teb);
 }
 
+internal inline utf8 *text_edit_get_start_ptr(Text_Edit_Buffer *teb)
+{
+  expect(teb->range.start_index >= 0);
+  utf8 *start_ptr = &teb->buf.data[teb->range.start_index];
+  return(start_ptr);
+}
+
+internal inline utf8 *text_edit_get_end_ptr(Text_Edit_Buffer *teb)
+{
+  utf8 *end_ptr = &teb->buf.data[teb->range.inclusive_end_index];
+  return(end_ptr);
+}
+
 internal inline i64 *text_edit_get_advancer_ptr(Text_Edit_Buffer *teb, i64 dir, b32 keep_selection)
 {
-  i64 *where_to_put_advancer = NULL;
+  i64 *advancer_ptr = NULL;
 
   if (keep_selection)
   {
     if (dir > 0)
     {
-      where_to_put_advancer =  (teb->moving_end != NULL) ? teb->moving_end : &teb->range.inclusive_end_index;
+      advancer_ptr =  (teb->moving_end != NULL) ? teb->moving_end : &teb->range.inclusive_end_index;
     }
     else
     {
-      where_to_put_advancer =  (teb->moving_end != NULL) ? teb->moving_end : &teb->range.start_index;
+      advancer_ptr =  (teb->moving_end != NULL) ? teb->moving_end : &teb->range.start_index;
     }
   }
   else
   {
-    where_to_put_advancer = (teb->moving_end != NULL) ? teb->moving_end : &teb->range.start_index;;
+    advancer_ptr = (teb->moving_end != NULL) ? teb->moving_end : &teb->range.start_index;;
   }
 
-  return(where_to_put_advancer);
+  return(advancer_ptr);
 }
 
+// TODO(antonio): could be better to do motion and then swap the start and end indices
 internal void text_edit_move_selection(Text_Edit_Buffer *teb, i64 dir, b32 keep_selection, b32 control)
 {
   if (dir == 0)
@@ -254,54 +281,49 @@ internal i64 text_edit_insert_string_and_advance(Text_Edit_Buffer *teb, String_u
   return(to_advance);
 }
 
-internal i64 text_edit_delete(Text_Edit_Buffer *teb, i64 chars_to_delete)
+// TODO(antonio): weirdness at the buffer end
+internal i64 text_edit_delete(Text_Edit_Buffer *teb)
 {
-  if ((teb->buf.used == 0) || (teb->next_char_index == 0)) return(0);
+  if ((teb->buf.used == 0) ||
+      ((teb->range.start_index == teb->range.inclusive_end_index) && 
+       (teb->range.start_index == 0)))
+  {
+    return(0);
+  }
 
-  i64 bytes_deleted = -1;
+  utf8 *start_ptr   =
+    (teb->range.start_index == 0) ?
+    text_edit_get_start_ptr(teb) :
+    teb->buf.data + unicode_utf8_get_prev_char_pos(teb->buf.data, teb->range.start_index, teb->buf.used);
+
+  utf8 *end_ptr     = text_edit_get_end_ptr(teb);
+  utf8 *teb_end_ptr = teb->buf.data + teb->buf.used;
+
+  i64 bytes_to_delete = unicode_utf8_encoding_length(start_ptr, range_get_length(&teb->range));
+  i64 bytes_deleted   = -1;
 
   expect(teb->encoding == string_encoding_utf8);
 
-  i64 final_pos = teb->next_char_index;
-  while (chars_to_delete > 0)
+  if (start_ptr != teb_end_ptr)
   {
-    i64 prev_pos = unicode_utf8_get_prev_char_pos(teb->buf.data, (i64) final_pos, (i64) teb->buf.used);
-    if (prev_pos < 0)
-    {
-      final_pos = 0;
-      break;
-    }
-    else
-    {
-      final_pos = prev_pos;
-      chars_to_delete--;
-    }
+    // utf8 *adjusted_end = end_ptr + ((end_ptr != teb_end_ptr) ? unicode_utf8_encoding_length(end_ptr) : 0);
+    move_memory_block(start_ptr, end_ptr, teb->buf.used - teb->range.start_index);
   }
 
-  if (final_pos >= 0)
-  {
-    expect((i64) teb->next_char_index >= final_pos);
-    i64 bytes_to_delete = teb->next_char_index - final_pos;
-
-    move_memory_block(teb->buf.data + final_pos,
-                      teb->buf.data + teb->next_char_index,
-                      teb->buf.used - teb->next_char_index);
-
-    teb->buf.used -= zero_memory_block((teb->buf.data + teb->buf.used) - bytes_to_delete, bytes_to_delete);
-
-    bytes_deleted = bytes_to_delete;
-  }
+  teb->buf.used -= zero_memory_block((teb->buf.data + teb->buf.used) - bytes_to_delete, bytes_to_delete);
+  bytes_deleted = bytes_to_delete;
 
   return(bytes_deleted);
 }
 
-internal i64 text_edit_delete_and_advance(Text_Edit_Buffer *teb, i64 chars_to_delete)
+internal i64 text_edit_delete_and_advance(Text_Edit_Buffer *teb)
 {
-  i64 to_advance = text_edit_delete(teb, chars_to_delete);
+  i64 to_advance = text_edit_delete(teb);
 
-  if (to_advance > 0)
+  while (to_advance > 0)
   {
-    text_edit_move_selection(teb, -to_advance);
+    text_edit_move_selection_step(teb, -1);
+    to_advance--;
   }
 
   teb->next_char_index = clamp(0, teb->next_char_index, (i64) teb->buf.used);

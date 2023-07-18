@@ -133,7 +133,7 @@ internal inline i64 unicode_utf8_get_next_char_pos(utf8 *encoding_start, i64 enc
 
 internal inline i64 unicode_utf8_get_prev_char_pos(utf8 *encoding_start, i64 encoding_pos, i64 encoding_size_in_bytes)
 {
-  i64 prev_char_pos = unicode_utf8_advance_char_pos(encoding_start, encoding_pos, encoding_size_in_bytes, 1);
+  i64 prev_char_pos = unicode_utf8_advance_char_pos(encoding_start, encoding_pos, encoding_size_in_bytes, -1);
   return(prev_char_pos);
 }
 

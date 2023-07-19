@@ -22,6 +22,15 @@ struct Text_Edit_Buffer
   String_Encoding   encoding;
 };
 
+typedef u32 Text_Edit_Movement;
+enum
+{
+  text_edit_movement_none,
+  text_edit_movement_single,
+  text_edit_movement_word,
+  text_edit_movement_end,
+};
+
 internal inline Text_Edit_Buffer make_text_edit_buffer(Buffer          buf,
                                                        Text_Range      range    = {0, 0},
                                                        String_Encoding encoding = string_encoding_utf8);
@@ -31,13 +40,15 @@ internal inline utf8 *text_edit_get_end_ptr(Text_Edit_Buffer *teb);
 
 internal inline i64 *text_edit_get_advancer_ptr(Text_Edit_Buffer *teb, i64 dir, b32 keep_selection);
 internal utf8 *text_edit_move_selection_step(Text_Edit_Buffer *teb, i64 dir, b32 keep_selection = false);
-internal void  text_edit_move_selection(Text_Edit_Buffer *teb, i64 dir, b32 keep_selection = false, b32 control = false);
+internal void  text_edit_move_selection(Text_Edit_Buffer   *teb,
+                                        i64                 dir,
+                                        b32                 keep_selection = false,
+                                        Text_Edit_Movement  movement_type  = text_edit_movement_none);
 
 internal i64 text_edit_insert_string(Text_Edit_Buffer *teb, String_utf8 string);
 internal i64 text_edit_insert_string_and_advance(Text_Edit_Buffer *teb, String_utf8 string);
 
 internal i64 text_edit_delete(Text_Edit_Buffer *teb, i64 chars_to_delete);
-internal i64 text_edit_delete_and_advance(Text_Edit_Buffer *teb, i64 chars_to_delete);
 
 // implementation
 internal inline i64 range_get_length(Text_Range *range)
@@ -98,7 +109,10 @@ internal inline i64 *text_edit_get_advancer_ptr(Text_Edit_Buffer *teb, i64 dir, 
 }
 
 // TODO(antonio): could be better to do motion and then swap the start and end indices
-internal void text_edit_move_selection(Text_Edit_Buffer *teb, i64 dir, b32 keep_selection, b32 control)
+internal void text_edit_move_selection(Text_Edit_Buffer   *teb,
+                                       i64                 dir,
+                                       b32                 keep_selection,
+                                       Text_Edit_Movement  movement_type)
 {
   if (dir == 0)
   {
@@ -108,7 +122,7 @@ internal void text_edit_move_selection(Text_Edit_Buffer *teb, i64 dir, b32 keep_
   i64 *advancer_ptr;
   i64  possible_delim_index;
 
-  if (control)
+  if (movement_type == text_edit_movement_word)
   {
     advancer_ptr         = text_edit_get_advancer_ptr(teb, dir, keep_selection);
     possible_delim_index = unicode_utf8_advance_char_pos(teb->buf.data, *advancer_ptr, teb->buf.used, (i32) dir);
@@ -140,7 +154,7 @@ internal void text_edit_move_selection(Text_Edit_Buffer *teb, i64 dir, b32 keep_
   }
 
   // NOTE(antonio): now at the "middle" of a "word"
-  if (control)
+  if (movement_type == text_edit_movement_word)
   {
     advancer_ptr         = text_edit_get_advancer_ptr(teb, dir, keep_selection);
     possible_delim_index = unicode_utf8_advance_char_pos(teb->buf.data, *advancer_ptr, teb->buf.used, (i32) dir);
@@ -165,7 +179,7 @@ internal void text_edit_move_selection(Text_Edit_Buffer *teb, i64 dir, b32 keep_
     text_edit_move_selection_step(teb, dir, keep_selection);
   }
 
-  if (control && (dir > 0))
+  if ((movement_type == text_edit_movement_word) && (dir > 0))
   {
     advancer_ptr         = text_edit_get_advancer_ptr(teb, dir, keep_selection);
     possible_delim_index = unicode_utf8_advance_char_pos(teb->buf.data, *advancer_ptr, teb->buf.used, (i32) dir);
@@ -329,15 +343,10 @@ internal i64 text_edit_delete(Text_Edit_Buffer *teb)
     bytes_deleted = bytes_to_delete;
   }
 
-  return(bytes_deleted);
-}
-
-internal i64 text_edit_delete_and_advance(Text_Edit_Buffer *teb)
-{
-  i64 to_advance = text_edit_delete(teb);
   teb->range.inclusive_end_index =
-    (teb->range.start_index = clamp(0, teb->range.start_index - to_advance, (i64) teb->buf.used));
-  return(to_advance);
+    (teb->range.start_index = clamp(0, teb->range.start_index - bytes_deleted, (i64) teb->buf.used));
+
+  return(bytes_deleted);
 }
 
 #define TRADER_TEXT_EDIT_H

@@ -780,38 +780,48 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
   {
     if (ui->interactions[interaction_index].key == widget_key)
     {
-      UI_Event_Value *value = &ui->interactions[interaction_index].value;
-      utf8 *char_data   = value->utf8_data;
-      u32   utf8_length = value->utf8_length;
+      UI_Event_Value *value       = &ui->interactions[interaction_index].value;
+      utf8           *char_data   = value->utf8_data;
+      u32             utf8_length = value->utf8_length;
 
       if (utf8_length > 0)
       {
+        if (range_get_length(&teb->range) > 0)
+        {
+          text_edit_delete(teb);
+        }
+
         String_utf8 to_insert = {char_data, utf8_length, utf8_length};
         text_edit_insert_string_and_advance(teb, to_insert);
       }
       else
       {
+        b32 control = value->mod_keys.control;
         switch (value->key_event)
         {
           case key_event_backspace:
           {
-            if (value->mod_keys.control)
+            if (control)
             {
+              text_edit_move_selection(teb, -1, true, text_edit_movement_word);
             }
-            else
-            {
-              // text_edit_delete(teb);
-              text_edit_delete_and_advance(teb);
-            }
+
+            text_edit_delete(teb);
           } break;
           case key_event_left_arrow:
           case key_event_right_arrow:
           {
             i32 dir            = (value->key_event == key_event_left_arrow) ? -1 : 1;
             b32 keep_selection = value->mod_keys.shift;
-            b32 control        = value->mod_keys.control;
 
-            text_edit_move_selection(teb, (i64) dir, keep_selection, control);
+            Text_Edit_Movement movement = control ? text_edit_movement_word : text_edit_movement_single;
+            text_edit_move_selection(teb, (i64) dir, keep_selection, movement);
+          } break;
+
+          case key_event_home:
+          case key_event_end:
+          {
+
           } break;
         }
       }

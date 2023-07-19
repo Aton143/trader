@@ -93,11 +93,11 @@ internal inline i64 *text_edit_get_advancer_ptr(Text_Edit_Buffer *teb, i64 dir, 
   {
     if (dir > 0)
     {
-      advancer_ptr =  (teb->moving_end != NULL) ? teb->moving_end : &teb->range.inclusive_end_index;
+      advancer_ptr = (teb->moving_end != NULL) ? teb->moving_end : &teb->range.inclusive_end_index;
     }
     else
     {
-      advancer_ptr =  (teb->moving_end != NULL) ? teb->moving_end : &teb->range.start_index;
+      advancer_ptr = (teb->moving_end != NULL) ? teb->moving_end : &teb->range.start_index;
     }
   }
   else
@@ -109,6 +109,7 @@ internal inline i64 *text_edit_get_advancer_ptr(Text_Edit_Buffer *teb, i64 dir, 
 }
 
 // TODO(antonio): could be better to do motion and then swap the start and end indices
+#if 0
 internal void text_edit_move_selection(Text_Edit_Buffer   *teb,
                                        i64                 dir,
                                        b32                 keep_selection,
@@ -253,6 +254,111 @@ internal utf8 *text_edit_move_selection_step(Text_Edit_Buffer *teb, i64 dir, b32
 
   utf8 *encoding_at_advancer = teb->buf.data + advancer;
   return(encoding_at_advancer);
+}
+#endif
+
+internal void  text_edit_move_selection(Text_Edit_Buffer   *teb,
+                                        i64                 dir,
+                                        b32                 keep_selection,
+                                        Text_Edit_Movement  movement_type)
+{
+  expect(teb != NULL);
+
+  i64 *advancer_ptr = text_edit_get_advancer_ptr(teb, dir, keep_selection);
+
+  expect(dir != 0);
+  expect(advancer_ptr != NULL);
+  expect(teb->range.start_index <= teb->range.inclusive_end_index);
+
+  i64 new_advancer_index = 0;
+  i64 original_advancer  = *advancer_ptr;
+
+  if (movement_type == text_edit_movement_single)
+  {
+    new_advancer_index = unicode_utf8_advance_char_pos(teb->buf.data, *advancer_ptr, teb->buf.used, (i32) dir);
+  }
+  else if (movement_type == text_edit_movement_word)
+  {
+    b32 advancer_at_delim = unicode_utf8_is_char_in_string(teb->buf.data + *advancer_ptr,     1, word_separators);
+    b32 advanced_at_delim = unicode_utf8_is_char_in_string(teb->buf.data + advancer_at_delim, 1, word_separators);
+
+    i64 cur_index = *advancer_ptr;
+
+    if ((dir < 0) && (advancer_at_delim || advanced_at_delim))
+    {
+      if (advancer_at_delim)
+      {
+        cur_index = unicode_utf8_advance_char_pos(teb->buf.data, cur_index, teb->buf.used, (i32) dir);
+      }
+
+      while (unicode_utf8_is_char_in_string(teb->buf.data + cur_index, 1, word_separators))
+      {
+        cur_index = unicode_utf8_advance_char_pos(teb->buf.data, cur_index, teb->buf.used, (i32) dir);
+      }
+    }
+
+    while (!unicode_utf8_is_char_in_string(teb->buf.data + cur_index, 1, word_separators))
+    {
+      cur_index = unicode_utf8_advance_char_pos(teb->buf.data, cur_index, teb->buf.used, (i32) dir);
+    }
+
+    if ((dir > 0) && (advancer_at_delim || advanced_at_delim))
+    {
+      if (advancer_at_delim)
+      {
+        cur_index = unicode_utf8_advance_char_pos(teb->buf.data, cur_index, teb->buf.used, (i32) dir);
+      }
+
+      while (unicode_utf8_is_char_in_string(teb->buf.data + cur_index, 1, word_separators))
+      {
+        cur_index = unicode_utf8_advance_char_pos(teb->buf.data, cur_index, teb->buf.used, (i32) dir);
+      }
+    }
+
+    new_advancer_index = cur_index;
+  }
+  else if (movement_type == text_edit_movement_end)
+  {
+    if (dir > 0)
+    {
+      new_advancer_index = teb->buf.used;
+    }
+    else
+    {
+      new_advancer_index = 0;
+    }
+  }
+  else
+  {
+    expect_message(false, "Should not get here");
+    return;
+  }
+
+  *advancer_ptr = new_advancer_index;
+
+  if (teb->range.start_index > teb->range.inclusive_end_index)
+  {
+    swap(i64, teb->range.start_index, teb->range.inclusive_end_index);
+  }
+
+  if (keep_selection)
+  {
+    if ((teb->moving_end == NULL) && (original_advancer != new_advancer_index))
+    {
+      teb->moving_end = (dir > 0) ? &teb->range.inclusive_end_index : &teb->range.start_index;
+    }
+
+    if (teb->range.start_index == teb->range.inclusive_end_index)
+    {
+      teb->moving_end = NULL;
+    }
+  }
+  else
+  {
+    teb->range.start_index         = new_advancer_index;
+    teb->range.inclusive_end_index = new_advancer_index;
+    teb->moving_end                = NULL;
+  }
 }
 
 // TODO(antonio): deletion must occur if range difference > 0 

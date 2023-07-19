@@ -279,14 +279,16 @@ internal void  text_edit_move_selection(Text_Edit_Buffer   *teb,
   }
   else if (movement_type == text_edit_movement_word)
   {
-    b32 advancer_at_delim = unicode_utf8_is_char_in_string(teb->buf.data + *advancer_ptr,     1, word_separators);
-    b32 advanced_at_delim = unicode_utf8_is_char_in_string(teb->buf.data + advancer_at_delim, 1, word_separators);
+    i64 cur_index      = unicode_utf8_advance_char_pos(teb->buf.data, *advancer_ptr, teb->buf.used, (i32) dir);
+    i64 next_cur_index = unicode_utf8_advance_char_pos(teb->buf.data, cur_index, teb->buf.used, (i32) dir);
 
-    i64 cur_index = *advancer_ptr;
+    b32 cur_at_delim = unicode_utf8_is_char_in_string(teb->buf.data + *advancer_ptr,     1, word_separators);
 
-    if ((dir > 0) && (advancer_at_delim || advanced_at_delim))
+    b32 advanced_at_delim = unicode_utf8_is_char_in_string(teb->buf.data + next_cur_index, 1, word_separators);
+
+    if ((dir < 0) && (cur_at_delim || advanced_at_delim))
     {
-      if (advancer_at_delim)
+      if (cur_at_delim)
       {
         cur_index = unicode_utf8_advance_char_pos(teb->buf.data, cur_index, teb->buf.used, (i32) dir);
       }
@@ -298,15 +300,20 @@ internal void  text_edit_move_selection(Text_Edit_Buffer   *teb,
       }
     }
 
-      while (is_between_exclusive(0, cur_index, (i64) teb->buf.used) &&
+    while (is_between_exclusive(0, cur_index, (i64) teb->buf.used) &&
            !unicode_utf8_is_char_in_string(teb->buf.data + cur_index, 1, word_separators))
     {
       cur_index = unicode_utf8_advance_char_pos(teb->buf.data, cur_index, teb->buf.used, (i32) dir);
     }
 
-    if ((dir < 0) && (advancer_at_delim || advanced_at_delim))
+    cur_at_delim = unicode_utf8_is_char_in_string(teb->buf.data + *advancer_ptr,     1, word_separators);
+
+    next_cur_index    = unicode_utf8_advance_char_pos(teb->buf.data, cur_index, teb->buf.used, (i32) dir);
+    advanced_at_delim = unicode_utf8_is_char_in_string(teb->buf.data + next_cur_index, 1, word_separators);
+
+    if ((dir > 0) && (cur_at_delim || advanced_at_delim))
     {
-      if (advancer_at_delim)
+      if (cur_at_delim)
       {
         cur_index = unicode_utf8_advance_char_pos(teb->buf.data, cur_index, teb->buf.used, (i32) dir);
       }

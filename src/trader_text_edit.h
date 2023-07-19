@@ -284,24 +284,6 @@ internal void  text_edit_move_selection(Text_Edit_Buffer   *teb,
 
     i64 cur_index = *advancer_ptr;
 
-    if ((dir < 0) && (advancer_at_delim || advanced_at_delim))
-    {
-      if (advancer_at_delim)
-      {
-        cur_index = unicode_utf8_advance_char_pos(teb->buf.data, cur_index, teb->buf.used, (i32) dir);
-      }
-
-      while (unicode_utf8_is_char_in_string(teb->buf.data + cur_index, 1, word_separators))
-      {
-        cur_index = unicode_utf8_advance_char_pos(teb->buf.data, cur_index, teb->buf.used, (i32) dir);
-      }
-    }
-
-    while (!unicode_utf8_is_char_in_string(teb->buf.data + cur_index, 1, word_separators))
-    {
-      cur_index = unicode_utf8_advance_char_pos(teb->buf.data, cur_index, teb->buf.used, (i32) dir);
-    }
-
     if ((dir > 0) && (advancer_at_delim || advanced_at_delim))
     {
       if (advancer_at_delim)
@@ -309,7 +291,28 @@ internal void  text_edit_move_selection(Text_Edit_Buffer   *teb,
         cur_index = unicode_utf8_advance_char_pos(teb->buf.data, cur_index, teb->buf.used, (i32) dir);
       }
 
-      while (unicode_utf8_is_char_in_string(teb->buf.data + cur_index, 1, word_separators))
+      while (is_between_exclusive(0, cur_index, (i64) teb->buf.used) &&
+             unicode_utf8_is_char_in_string(teb->buf.data + cur_index, 1, word_separators))
+      {
+        cur_index = unicode_utf8_advance_char_pos(teb->buf.data, cur_index, teb->buf.used, (i32) dir);
+      }
+    }
+
+      while (is_between_exclusive(0, cur_index, (i64) teb->buf.used) &&
+           !unicode_utf8_is_char_in_string(teb->buf.data + cur_index, 1, word_separators))
+    {
+      cur_index = unicode_utf8_advance_char_pos(teb->buf.data, cur_index, teb->buf.used, (i32) dir);
+    }
+
+    if ((dir < 0) && (advancer_at_delim || advanced_at_delim))
+    {
+      if (advancer_at_delim)
+      {
+        cur_index = unicode_utf8_advance_char_pos(teb->buf.data, cur_index, teb->buf.used, (i32) dir);
+      }
+
+      while (is_between_exclusive(0, cur_index, (i64) teb->buf.used) &&
+             unicode_utf8_is_char_in_string(teb->buf.data + cur_index, 1, word_separators))
       {
         cur_index = unicode_utf8_advance_char_pos(teb->buf.data, cur_index, teb->buf.used, (i32) dir);
       }

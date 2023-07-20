@@ -788,7 +788,7 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
       {
         if (range_get_length(&teb->range) > 0)
         {
-          text_edit_delete(teb);
+          text_edit_delete(teb, -1);
         }
 
         String_utf8 to_insert = {char_data, utf8_length, utf8_length};
@@ -797,22 +797,26 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
       else
       {
         b32 control = value->mod_keys.control;
+        b32 keep_selection = value->mod_keys.shift;
+
         switch (value->key_event)
         {
+          case key_event_delete:
           case key_event_backspace:
           {
+            i32 dir = (value->key_event == key_event_delete) ? 1 : -1;
+
             if (control)
             {
-              text_edit_move_selection(teb, -1, true, text_edit_movement_word);
+              text_edit_move_selection(teb, dir, true, text_edit_movement_word);
             }
 
-            text_edit_delete(teb);
+            text_edit_delete(teb, dir);
           } break;
           case key_event_left_arrow:
           case key_event_right_arrow:
           {
-            i32 dir            = (value->key_event == key_event_left_arrow) ? -1 : 1;
-            b32 keep_selection = value->mod_keys.shift;
+            i32 dir = (value->key_event == key_event_left_arrow) ? -1 : 1;
 
             Text_Edit_Movement movement = control ? text_edit_movement_word : text_edit_movement_single;
             text_edit_move_selection(teb, (i64) dir, keep_selection, movement);
@@ -821,7 +825,8 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
           case key_event_home:
           case key_event_end:
           {
-
+            i32 dir = (value->key_event == key_event_home) ? -1 : 1;
+            text_edit_move_selection(teb, dir, keep_selection, text_edit_movement_end);
           } break;
         }
       }

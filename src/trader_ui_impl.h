@@ -761,7 +761,7 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
 
   va_end(args);
 
-  ui_make_widget(widget_flag_draw_text  | widget_flag_get_user_input,
+  ui_make_widget(widget_flag_draw_text  | widget_flag_get_user_input | widget_flag_clickable,
                  size_flag_text_content | size_flag_advancer_y,
                  copy_string,
                  V2(1.0f, 1.0f),
@@ -778,60 +778,104 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
        interaction_index < array_count(ui->interactions);
        ++interaction_index) 
   {
-    if (ui->interactions[interaction_index].key == widget_key)
+    UI_Interaction *cur_int = &ui->interactions[interaction_index];
+    if (cur_int->key == widget_key)
     {
-      UI_Event_Value *value       = &ui->interactions[interaction_index].value;
-      utf8           *char_data   = value->utf8_data;
-      u32             utf8_length = value->utf8_length;
-
-      if (utf8_length > 0)
+      UI_Event_Value *value = &ui->interactions[interaction_index].value;
+      if (cur_int->event == ui_event_mouse)
       {
-        if (range_get_length(&teb->range) > 0)
+        Common_Render_Context *render            = render_get_common_context();
+        stbtt_packedchar      *packed_char_start = render->atlas->char_data + render_get_packed_char_start(ui->text_height);
+
+        Widget *text_edit_widget = ui->current_panel_parent->current_parent->last_child;
+
+        V2_f32 scaled_mouse    = hadamard_product(text_edit_widget->computed_size_in_pixels, value->mouse);
+        f32    cur_rel_x       = ui->text_gutter_dim.x;
+        i64    next_cursor_pos = -1;
+
+        for (u64 string_index = 0;
+             (teb->buf.data[string_index] != '\0') && (string_index < teb->buf.used);
+             ++string_index)
         {
-          text_edit_delete(teb, -1);
+          // TODO(antonio): deal with new lines more gracefully
+          if (is_newline(teb->buf.data[string_index])) 
+          {
+            continue;
+          }
+          else
+          {
+            stbtt_packedchar *cur_packed_char = packed_char_start + (teb->buf.data[string_index] - starting_code_point);
+            f32 next_cur_rel_x = cur_rel_x + cur_packed_char->xadvance;
+
+            if (is_between_inclusive(cur_rel_x, scaled_mouse.x, next_cur_rel_x))
+            {
+              next_cursor_pos = string_index;
+              break;
+            }
+
+            cur_rel_x = next_cur_rel_x;
+          }
         }
 
-        String_utf8 to_insert = {char_data, utf8_length, utf8_length};
-        text_edit_insert_string_and_advance(teb, to_insert);
+        if (next_cursor_pos == -1)
+        {
+          next_cursor_pos = teb->buf.used;
+        }
+
+        teb->range = {next_cursor_pos, next_cursor_pos};
       }
       else
       {
-        b32 control = value->mod_keys.control;
-        b32 keep_selection = value->mod_keys.shift;
+        utf8           *char_data   = value->utf8_data;
+        u32             utf8_length = value->utf8_length;
 
-        switch (value->key_event)
+        if (utf8_length > 0)
         {
+          if (range_get_length(&teb->range) > 0)
+          {
+            text_edit_delete(teb, -1);
+          }
+
+          String_utf8 to_insert = {char_data, utf8_length, utf8_length};
+          text_edit_insert_string_and_advance(teb, to_insert);
+        }
+        else
+        {
+          b32 control        = value->mod_keys.control;
+          b32 keep_selection = value->mod_keys.shift;
+
+          switch (value->key_event)
+          {
           case key_event_delete:
           case key_event_backspace:
-          {
-            i32 dir = (value->key_event == key_event_delete) ? 1 : -1;
-
-            if (control)
             {
-              text_edit_move_selection(teb, dir, true, text_edit_movement_word);
-            }
+              i32 dir = (value->key_event == key_event_delete) ? 1 : -1;
 
-            text_edit_delete(teb, dir);
-          } break;
+              if (control)
+              {
+                text_edit_move_selection(teb, dir, true, text_edit_movement_word);
+              }
+
+              text_edit_delete(teb, dir);
+            } break;
           case key_event_left_arrow:
           case key_event_right_arrow:
-          {
-            i32 dir = (value->key_event == key_event_left_arrow) ? -1 : 1;
+            {
+              i32 dir = (value->key_event == key_event_left_arrow) ? -1 : 1;
 
-            Text_Edit_Movement movement = control ? text_edit_movement_word : text_edit_movement_single;
-            text_edit_move_selection(teb, (i64) dir, keep_selection, movement);
-          } break;
+              Text_Edit_Movement movement = control ? text_edit_movement_word : text_edit_movement_single;
+              text_edit_move_selection(teb, (i64) dir, keep_selection, movement);
+            } break;
 
           case key_event_home:
           case key_event_end:
-          {
-            i32 dir = (value->key_event == key_event_home) ? -1 : 1;
-            text_edit_move_selection(teb, dir, keep_selection, text_edit_movement_end);
-          } break;
+            {
+              i32 dir = (value->key_event == key_event_home) ? -1 : 1;
+              text_edit_move_selection(teb, dir, keep_selection, text_edit_movement_end);
+            } break;
+          }
         }
       }
-
-      break;
     }
   }
 }
@@ -1429,6 +1473,11 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
           {
             if (ui_is_key_equal(ui->hot_key, cur_widget->key))
             {
+              Rect_f32 rect_to_use     = cur_widget->rectangle;
+              V2_f32   rect_dimensions = rect_get_dimensions(&rect_to_use);
+
+              event_value.mouse = V2((ui->mouse_pos.x - rect_to_use.x0) / rect_dimensions.x,
+                                     (ui->mouse_pos.y - rect_to_use.y0) / rect_dimensions.y);
               ui_add_interaction(cur_widget, 1, ui_event_mouse, &event_value);
             }
             ui->active_key = nil_key;
@@ -1528,7 +1577,7 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
           V2_f32   rect_dimensions = rect_get_dimensions(&rect_to_use);
 
           event_value.mouse      = V2((ui->mouse_pos.x - rect_to_use.x0) / rect_dimensions.x,
-                                        (ui->mouse_pos.y - rect_to_use.y0) / rect_dimensions.y);
+                                      (ui->mouse_pos.y - rect_to_use.y0) / rect_dimensions.y);
           event_value.extra_data = rect_get_closest_side_to_point(ui->mouse_pos, cur_widget->rectangle, rectangle_side_none);
           ui_add_interaction(cur_widget, 1, ui_event_mouse, &event_value);
         }

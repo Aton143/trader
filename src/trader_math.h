@@ -37,6 +37,8 @@ internal inline V2_f32 operator -(V2_f32 a, V2_f32 b);
 internal inline V2_f32 scale(f32 scale, V2_f32 v);
 internal inline V2_f32 operator *(f32 scale, V2_f32 v);
 
+internal inline V2_f32 hadamard_product(V2_f32 v, V2_f32 w);
+
 internal inline f32 dot(V2_f32 u, V2_f32 v);
 internal inline f32 squared_length(V2_f32 v);
 
@@ -200,6 +202,12 @@ internal inline V2_f32 subtract(V2_f32 a, V2_f32 b)
 internal inline V2_f32 scale(f32 scale, V2_f32 v)
 {
   V2_f32 res = {scale * v.x, scale * v.y};
+  return(res);
+}
+
+internal inline V2_f32 hadamard_product(V2_f32 v, V2_f32 w)
+{
+  V2_f32 res = {w.x * v.x, w.y * v.y};
   return(res);
 }
 

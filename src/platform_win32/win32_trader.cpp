@@ -1337,8 +1337,10 @@ WinMain(HINSTANCE instance,
         data_for_lines[data_index] = V2(acc_time, 0.5f * (sinf(acc_time * tau_f32) + 1.0f) + up_down);
         data_index = (data_index + 1) % array_count(data_for_lines);
 
+        /*
         u64 lines_to_render = (u64) ceilf(slider_float * data_index);
         render_data_to_lines(data_for_lines, lines_to_render);
+        */
       }
 
       ui_push_text_color(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1491,12 +1493,17 @@ WinMain(HINSTANCE instance,
         device_context->DrawInstanced(4, draw_call_count, 0, 0);
       }
 
+      Rect_f32 client_rect = render_get_client_rect();
       // NOTE(antonio): triangles
       D3D11_VIEWPORT viewport =
       {
+        0.0f, 0.0f, 
+        client_rect.x1, client_rect.y1,
+        /*
         ui->canvas_viewport.x0, ui->canvas_viewport.y0,
         rect_get_width(&ui->canvas_viewport),
         rect_get_height(&ui->canvas_viewport),
+        */
         0.0f, 1.0f
       };
 

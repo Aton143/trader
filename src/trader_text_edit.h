@@ -151,6 +151,10 @@ internal void  text_edit_move_selection(Text_Edit_Buffer   *teb,
       {
         cur_index = next_cur_index;
       }
+      else
+      {
+        cur_index = next_cur_index;
+      }
 
       while (is_between_exclusive(0, cur_index, (i64) teb->buf.used) &&
              unicode_utf8_is_char_in_string(teb->buf.data + cur_index, 1, word_separators))

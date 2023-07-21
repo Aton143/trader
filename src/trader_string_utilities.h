@@ -275,7 +275,7 @@ internal inline String_utf8 su8(String_Const_utf8 string)
   String_utf8 res;
 
   res.string = string;
-  res.cap    = string.size;
+  res.cap    = res.size = string.size;
 
   return(res);
 }

@@ -64,7 +64,6 @@ internal inline i64 unicode_utf8_encode(u32  *code_points,
 {
   expect(code_points         != NULL);
   expect(put                 != NULL);
-  expect(out_length_in_bytes != NULL);
 
   i64 res         = 0;
   u8  temp_put[4] = {};
@@ -384,7 +383,7 @@ internal inline u32 unicode_utf16_get_code_point(utf16 *encoding_start, i64 *enc
       code_point = encoding_start[*encoding_pos];
 
       // TODO(antonio): error-checking
-      *encoding_pos++;
+      *encoding_pos += 1;
     }
     else if (*encoding_pos <= (encoding_size - 2))
     {
@@ -438,9 +437,6 @@ internal inline utf8 *unicode_utf8_from_utf16(Arena *arena,
   // this could also be very wrong
   arena->used -= align(maybe_length, arena->alignment);
   arena->used += align(converted_length, arena->alignment);
-
-  arena->start -= align(maybe_length, arena->alignment);
-  arena->start += align(converted_length, arena->alignment);
 
   if (out_length != NULL)
   {

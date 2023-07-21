@@ -883,7 +883,7 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
                   text_edit_delete(teb, -1);
                 }
 
-                String_utf8 clipboard_data = su8(platform_read_clipboard_contents());
+                String_utf8 clipboard_data = su8(platform_read_clipboard_contents(ui->string_pool));
                 text_edit_insert_string_and_advance(teb, clipboard_data);
               }
             } break;

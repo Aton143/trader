@@ -1302,7 +1302,7 @@ internal void  platform_set_cursor(Cursor_Kind cursor)
   SetCursor(cursors[cursor]._handle);
 }
 
-internal String_Const_utf8 platform_read_clipboard_contents()
+internal String_Const_utf8 platform_read_clipboard_contents(Arena *arena)
 {
   String_Const_utf8 result = {};
   if (OpenClipboard(win32_global_state.window_handle))
@@ -1318,7 +1318,7 @@ internal String_Const_utf8 platform_read_clipboard_contents()
         {
           String_Const_utf16 clip_utf16 = string_const_utf16(clip_data_utf16);
 
-          expect_message(false, "unimplemented");
+          result.str = unicode_utf8_from_utf16(arena, clip_utf16.str, clip_utf16.size, (i64 *) &result.size);
 
           got_result = true;
         }
@@ -1347,7 +1347,8 @@ internal String_Const_utf8 platform_read_clipboard_contents()
         GlobalUnlock(clip_data);
       }
     }
-    else
+
+    if (result.str == NULL)
     {
       platform_debug_print_system_error();
     }

@@ -30,7 +30,12 @@ internal inline i64 unicode_utf8_encoding_length(utf8 *encoding);
 internal inline i64 unicode_utf8_encoding_length(utf8 *encoding, i64 char_count);
 
 unimplemented inline i64 unicode_utf8_verify(utf8 *encoding, i64 encoding_length);
-internal inline i64 unicode_utf8_encode(u32 *code_points, i64 code_point_length, utf8 *put, i64 put_pos, i64 put_length);
+internal      inline i64 unicode_utf8_encode(u32  *code_points,
+                                             i64   code_point_length,
+                                             utf8 *put,
+                                             i64   put_pos,
+                                             i64   put_length,
+                                             i64  *out_length_in_bytes = NULL);
 
 unimplemented inline i64 unicode_utf16_verify(utf16 *encoding, i64 encoding_length);
 unimplemented inline i64 unicode_utf16_encode(u32 *code_points,
@@ -39,18 +44,27 @@ unimplemented inline i64 unicode_utf16_encode(u32 *code_points,
 internal inline i64 unicode_utf8_get_char_pos_in_string(utf8 *encoding, i64 char_count, String_utf8 string);
 internal inline b32 unicode_utf8_is_char_in_string(utf8 *encoding, i64 char_count, String_utf8 string);
 
-internal inline u32 unicode_utf16_get_code_point(utf16 *encoding, i64 encoding_pos, i64 encoding_size);
-internal inline i64 unicode_utf8_from_utf16(Arena *arena,
-                                            utf16 *from,
-                                            i64    from_length_in_bytes,
-                                            utf8  *to,
-                                            i64    to_length_in_bytes);
+internal inline u32 unicode_utf16_get_code_point(utf16 *encoding_start, i64 *encoding_pos, i64 encoding_size);
+internal inline utf8 *unicode_utf8_from_utf16(Arena *arena,
+                                              utf16 *from,
+                                              i64    from_length_in_bytes,
+                                              i64   *out_length);
+
+global_const u16 utf16_high_surrogate_factor = 0xd800;
+global_const u16 utf16_low_surrogate_factor  = 0xdc00;
+global_const u16 utf16_surrogate_supplement  = 0xdc00;
 
 // NOTE(antonio): implementation
-internal inline i64 unicode_utf8_encode(u32 *code_points, i64 code_point_length, utf8 *put, i64 put_pos, i64 put_length)
+internal inline i64 unicode_utf8_encode(u32  *code_points,
+                                        i64   code_point_length,
+                                        utf8 *put,
+                                        i64   put_pos,
+                                        i64   put_length,
+                                        i64  *out_length_in_bytes)
 {
-  expect(code_points != NULL);
-  expect(put         != NULL);
+  expect(code_points         != NULL);
+  expect(put                 != NULL);
+  expect(out_length_in_bytes != NULL);
 
   i64 res         = 0;
   u8  temp_put[4] = {};
@@ -110,7 +124,7 @@ internal inline i64 unicode_utf8_encode(u32 *code_points, i64 code_point_length,
 
     if ((put_pos + put_index + cur_length) < put_length)
     {
-      copy_memory_block(&put[put_pos + put_index], temp_put, sizeof(temp_put[0]) * cur_length);
+      copy_memory_block(put + put_pos + put_index, temp_put, sizeof(temp_put[0]) * cur_length);
       put_index += cur_length;
       res++;
     }
@@ -119,6 +133,11 @@ internal inline i64 unicode_utf8_encode(u32 *code_points, i64 code_point_length,
       res = -res - 1;
       break;
     }
+  }
+
+  if (out_length_in_bytes != NULL)
+  {
+    *out_length_in_bytes += put_index;
   }
 
   return(res);
@@ -350,33 +369,86 @@ internal inline i64 unicode_utf8_encoding_length(utf8 *encoding, i64 char_count)
   return(encoding_length);
 }
 
-internal inline u32 unicode_utf16_get_code_point(utf16 *encoding, i64 encoding_pos, i64 encoding_size)
+internal inline u32 unicode_utf16_get_code_point(utf16 *encoding_start, i64 *encoding_pos, i64 encoding_size)
 {
+  expect(encoding_start != NULL);
+  expect(encoding_pos   != NULL);
 
-}
+  u32 code_point = 0;
 
-/*
-internal inline i64 unicode_utf8_from_utf16(Thread_Context *context,
-                                            Arena          *arena,
-                                            utf16          *from,
-                                            i64             from_length_in_bytes,
-                                            utf8           *to,
-                                            i64             to_length_in_bytes)
-{
-  expect(arena != NULL);
-  Arena *temp_arena = get_temp_arena(context);
-
-  u32 *encoding = push_array_zero(temp_arena, u32, from_length_in_bytes);
-  i64  encoding_length = 0;
-
-  for (i64 from_index = 0; from_index < from_length_in_bytes; ++from_index)
+  if (is_between_inclusive(0, *encoding_pos, encoding_size - 1))
   {
+    if (is_between_inclusive(0,      encoding_start[*encoding_pos], 0xd7ff) || 
+        is_between_inclusive(0xe000, encoding_start[*encoding_pos], 0xffff))
+    {
+      code_point = encoding_start[*encoding_pos];
 
+      // TODO(antonio): error-checking
+      *encoding_pos++;
+    }
+    else if (*encoding_pos <= (encoding_size - 2))
+    {
+      u16 high_surrogate = encoding_start[*encoding_pos] - utf16_high_surrogate_factor;
+      u16 low_surrogate  = encoding_start[(*encoding_pos) + 1]   - utf16_low_surrogate_factor;
+
+      // TODO(antonio): error-checking
+      code_point = (high_surrogate + low_surrogate) + utf16_surrogate_supplement;
+      *encoding_pos += 2;
+    }
   }
 
-  return(0);
+  return(code_point);
 }
-*/
+
+internal inline utf8 *unicode_utf8_from_utf16(Arena *arena,
+                                              utf16 *from,
+                                              i64    from_length_in_bytes,
+                                              i64   *out_length)
+{
+  expect(arena != NULL);
+  
+  i64   maybe_length     = (2 * from_length_in_bytes);
+
+  utf8 *converted        = push_array_zero(arena, utf8, maybe_length);
+  i64   converted_length = 0;
+
+  i64 from_index = 0;
+  while (from_index < from_length_in_bytes)
+  {
+    u32 code_point = unicode_utf16_get_code_point(from, &from_index, from_length_in_bytes);
+
+    if (code_point > 0)
+    {
+      utf8 bytes[4]   = {};
+      i64  cur_length = 0;
+
+      i64 encoding_res = unicode_utf8_encode(&code_point, 1, bytes, 0, sizeof(bytes), &cur_length);
+      if (encoding_res > 0)
+      {
+        converted_length += copy_memory_block(converted + converted_length, bytes, cur_length);
+      }
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  // TODO(antonio) need to make sure that memory was allocated
+  // this could also be very wrong
+  arena->used -= align(maybe_length, arena->alignment);
+  arena->used += align(converted_length, arena->alignment);
+
+  arena->start -= align(maybe_length, arena->alignment);
+  arena->start += align(converted_length, arena->alignment);
+
+  if (out_length != NULL)
+  {
+    *out_length = converted_length;
+  }
+
+  return(converted);
+}
 
 #define TRADER_UNICODE_H
 #endif

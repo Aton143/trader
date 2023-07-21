@@ -30,6 +30,7 @@ internal Arena *platform_get_global_arena(void);
 
 internal void platform_debug_print(char *text);
 internal void platform_debug_printf(char *format, ...);
+internal void platform_debug_print_system_error();
 
 internal void platform_initialize(void);
 
@@ -62,9 +63,11 @@ internal File_Buffer       platform_open_and_read_entire_file_from_system_prompt
 
 internal void  platform_set_cursor(Cursor_Kind cursor);
 
+internal String_Const_utf8 platform_read_clipboard_contents();
+internal b32               plaform_write_clipboard_contents();
+
 // NOTE(antonio): threads
 internal Thread_Handle platform_create_thread(Thread_Routine routine, void *routine_arg);
-
 
 // implementation
 internal void platform_debug_printf(char *format, ...)

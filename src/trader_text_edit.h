@@ -244,6 +244,11 @@ internal i64 text_edit_insert_string(Text_Edit_Buffer *teb, String_utf8 string)
   i64 chars_placed = -1;
   expect(teb->encoding == string_encoding_utf8);
 
+  if (string.size == 0)
+  {
+    return(0);
+  }
+
   u64 one_past_string_last_char_pos = get_last_char_pos(string) + 1;
   if ((teb->next_char_index <= (i64) teb->buf.used) &&
       ((teb->buf.used + one_past_string_last_char_pos) <= teb->buf.size))

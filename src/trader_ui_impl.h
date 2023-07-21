@@ -826,10 +826,11 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
       }
       else
       {
-        utf8           *char_data   = value->utf8_data;
-        u32             utf8_length = value->utf8_length;
+        utf8 *char_data   = value->utf8_data;
+        u32   utf8_length = value->utf8_length;
+        b32   control     = value->mod_keys.control;
 
-        if (utf8_length > 0)
+        if ((utf8_length > 0) && !control)
         {
           if (range_get_length(&teb->range) > 0)
           {
@@ -841,7 +842,6 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
         }
         else
         {
-          b32 control        = value->mod_keys.control;
           b32 keep_selection = value->mod_keys.shift;
 
           switch (value->key_event)
@@ -872,6 +872,20 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
             {
               i32 dir = (value->key_event == key_event_home) ? -1 : 1;
               text_edit_move_selection(teb, dir, keep_selection, text_edit_movement_end);
+            } break;
+
+          case key_event_v:
+            {
+              if (control)
+              {
+                if (range_get_length(&teb->range) > 0)
+                {
+                  text_edit_delete(teb, -1);
+                }
+
+                String_utf8 clipboard_data = su8(platform_read_clipboard_contents());
+                text_edit_insert_string_and_advance(teb, clipboard_data);
+              }
             } break;
           }
         }

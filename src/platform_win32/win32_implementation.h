@@ -890,6 +890,27 @@ internal void platform_debug_print(char *text)
   OutputDebugStringA(text);
 }
 
+internal void platform_debug_print_system_error()
+{
+  DWORD error = GetLastError();
+
+  utf16 *return_buffer = NULL;
+  DWORD  return_buffer_length =
+    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+                  NULL,
+                  error,
+                  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                  (LPTSTR) return_buffer,
+                  0,
+                  NULL);
+
+  if (return_buffer_length > 0)
+  {
+    OutputDebugStringW(return_buffer);
+    LocalFree(return_buffer);
+  }
+}
+
 internal Arena arena_alloc(u64 size, u64 alignment, void *start)
 {
   Arena arena = {};
@@ -1279,6 +1300,62 @@ internal void  platform_set_cursor(Cursor_Kind cursor)
   expect(cursor < cursor_kind_count);
   expect(cursors[cursor]._handle != NULL);
   SetCursor(cursors[cursor]._handle);
+}
+
+internal String_Const_utf8 platform_read_clipboard_contents()
+{
+  String_Const_utf8 result = {};
+  if (OpenClipboard(win32_global_state.window_handle))
+  {
+    b32 got_result = false;
+
+    {
+      HANDLE clip_data = GetClipboardData(CF_UNICODETEXT);
+      if (clip_data != NULL)
+      {
+        utf16 *clip_data_utf16 = (utf16 *) GlobalLock(clip_data);
+        if (clip_data_utf16 != NULL)
+        {
+          String_Const_utf16 clip_utf16 = string_const_utf16(clip_data_utf16);
+
+          expect_message(false, "unimplemented");
+
+          got_result = true;
+        }
+        GlobalUnlock(clip_data);
+      }
+      else
+      {
+        platform_debug_print_system_error();
+      }
+    }
+
+    if (!got_result)
+    {
+      HANDLE clip_data = GetClipboardData(CF_TEXT);
+      if (clip_data != 0)
+      {
+        char *clip_data_char = (char *) GlobalLock(clip_data);
+        if (clip_data_char != 0)
+        {
+          String_Const_char clip_char = string_const_char(clip_data_char);
+
+          expect_message(false, "unimplemented");
+
+          got_result = true;
+        }
+        GlobalUnlock(clip_data);
+      }
+    }
+    else
+    {
+      platform_debug_print_system_error();
+    }
+
+    CloseClipboard();
+  }
+
+  return(result);
 }
 
 #define WIN32_IMPLEMENTATION_H

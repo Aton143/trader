@@ -106,7 +106,7 @@ internal i64 render_get_font_height_index(f32 font_height);
 internal i64 render_get_packed_char_start(f32 font_height);
 
 internal void render_get_text_dimensions(f32 *x, f32 *y, Rect_f32 bounds, String_Const_utf8 string, u64 up_to);
-internal void render_draw_text(f32 *x, f32 *y, RGBA_f32 color, Rect_f32 bounds, utf8 *format, ...);
+internal void render_draw_text(Arena *render_arena, f32 *x, f32 *y, RGBA_f32 color, Rect_f32 bounds, utf8 *format, ...);
 
 internal b32 render_atlas_initialize(Arena         *arena,
                                      Texture_Atlas *atlas,
@@ -416,8 +416,15 @@ internal void render_get_text_dimensions(f32 *x, f32 *y, Rect_f32 bounds, String
   *y = cur_pos.y;
 }
 
-internal void render_draw_text(f32 *baseline_x, f32 *baseline_y, RGBA_f32 color, Rect_f32 bounds, utf8 *format, ...)
+internal void render_draw_text(Arena    *render_arena,
+                               f32      *baseline_x,
+                               f32      *baseline_y,
+                               RGBA_f32  color,
+                               Rect_f32  bounds,
+                               utf8     *format, ...)
 {
+  expect(render_arena != NULL);
+
   expect(baseline_x != NULL);
   expect(baseline_y != NULL);
 
@@ -441,7 +448,7 @@ internal void render_draw_text(f32 *baseline_x, f32 *baseline_y, RGBA_f32 color,
 
   Common_Render_Context   *render_context  = render_get_common_context();
   Texture_Atlas           *atlas           = render_context->atlas;
-  Instance_Buffer_Element *render_elements = push_array_zero(&render_context->render_data,
+  Instance_Buffer_Element *render_elements = push_array_zero(render_arena,
                                                              Instance_Buffer_Element,
                                                              sprinted_text.size);
 

@@ -1397,8 +1397,9 @@ WinMain(HINSTANCE instance,
       }
 
       Rect_f32 render_rect = render_get_client_rect();
-      // render_rect = translate(render_rect, V2(50.0f * cosf(acc_time * tau_f32), 50.0f * sinf(acc_time * tau_f32)));
       ui_prepare_render_from_panels(ui_get_sentinel_panel(), render_rect);
+
+      ui_flatten_draw_layers();
 
       acc_time += 1.0f/60.0f;
       if (acc_time > 1.0f)
@@ -1488,14 +1489,15 @@ WinMain(HINSTANCE instance,
         D3D11_RECT scissor_rectangle = {(LONG) 0, (LONG) 0, (LONG) client_rect.x1, (LONG) client_rect.y1};
         device_context->RSSetScissorRects(1, &scissor_rectangle);
 
-        ui->draw_count_per_layer[0] =
-          (u32) (win32_global_state.render_context.render_data.used / sizeof(Instance_Buffer_Element));
-
         for (u32 draw_layer_index = 0;
-             draw_layer_index < array_count(ui->draw_layers);
+             draw_layer_index < array_count(ui->render_layers);
              ++draw_layer_index)
         {
-          device_context->DrawInstanced(4, ui->draw_count_per_layer[draw_layer_index], ui->draw_layers[draw_layer_index], 0);
+          u32 instance_count = (u32) (ui->render_layers[draw_layer_index].used / sizeof(Instance_Buffer_Element));
+          device_context->DrawInstanced(4,
+                                        instance_count,
+                                        ui->flattened_draw_layer_indices[draw_layer_index],
+                                        0);
         }
       }
 

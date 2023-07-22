@@ -494,7 +494,7 @@ internal void ui_initialize(UI_Context *ui)
   ui->widget_memory_size = sizeof(Widget) * default_widget_count;
 
   ui->string_pool  = push_struct(global_arena, Arena);
-  *ui->string_pool = arena_alloc(default_string_pool_size, 1, NULL);
+  *ui->string_pool =arena_alloc(default_string_pool_size, 1, NULL);
 
   // TODO(antonio): do I need to do back links?
   Widget *free_widget_list = ui->widget_memory;
@@ -520,6 +520,13 @@ internal void ui_initialize(UI_Context *ui)
 
   ui->event_queue.start = ui->event_queue.read = ui->event_queue.write = (u8 *) __event_queue_buffer;
   ui->event_queue.size  = array_count(__event_queue_buffer);
+
+  for (u32 layer_index = 0;
+       layer_index < array_count(ui->render_layers);
+       ++layer_index)
+  {
+    ui->render_layers[layer_index] = arena_alloc(render_data_size / 4, 1, NULL);
+  }
 };
 
 internal void ui_initialize_frame(void)
@@ -580,17 +587,9 @@ internal void ui_initialize_frame(void)
 
   default_persistent_data    = {};
 
-  u32 render_data_partition_size = (render_data_size >> 2);
-  u32 render_data_index          = 0;
-
-  for (u32 draw_layer_index = 0;
-       draw_layer_index < array_count(ui->draw_layers);
-       ++draw_layer_index)
+  for (u32 layer_index = 0; layer_index < array_count(ui->render_layers); ++layer_index)
   {
-    ui->draw_layers[draw_layer_index] = render_data_index;
-    render_data_index += render_data_partition_size;
-
-    ui->draw_count_per_layer[draw_layer_index] = 0;
+    arena_reset(&ui->render_layers[layer_index]);
   }
 }
 
@@ -1125,6 +1124,15 @@ internal void ui_evaluate_child_sizes_panel(Panel *panel)
   }
 }
 
+internal inline Arena *ui_get_render_layer(u32 layer)
+{
+  UI_Context *ui = ui_get_context();
+  expect(is_between_inclusive(0, layer, array_count(ui->render_layers) - 1));
+
+  Arena *render_layer = &ui->render_layers[layer];
+  return(render_layer);
+}
+
 internal void ui_flatten_draw_layers(void)
 {
   UI_Context            *ui     = ui_get_context();
@@ -1132,30 +1140,31 @@ internal void ui_flatten_draw_layers(void)
 
   u32 draw_call_count = 0;
   for (u32 layer_index = 0;
-       layer_index < array_count(ui->draw_layers);
+       layer_index < array_count(ui->render_layers);
        ++layer_index)
   {
-    draw_call_count += ui->draw_count_per_layer[layer_index];
+    draw_call_count += (u32) ui->render_layers[layer_index].used / sizeof(Instance_Buffer_Element);
   }
 
-  Instance_Buffer_Element *instances;
   Instance_Buffer_Element *flattened_elements = push_array(&render->render_data, Instance_Buffer_Element, draw_call_count);
 
   expect(flattened_elements != NULL);
-  expect(instances != NULL);
+  expect(draw_call_count <= (render->render_data.size - render->render_data.used));
 
   u32 layer_start_index = (u32) (((u8 *) flattened_elements - render->render_data.start) / sizeof(*flattened_elements));
+  unused(layer_start_index);
 
   for (u32 layer_index = 0;
-       layer_index < array_count(ui->draw_layers);
+       layer_index < array_count(ui->render_layers);
        ++layer_index)
   {
-    instances = (Instance_Buffer_Element *) (ui->render_data.start +  (ui->draw_layers[layer_index] * sizeof(*instances)));
-    copy_memory_block(flattened_elements, instances, ui->draw_count_per_layer[layer_index]);
+    Instance_Buffer_Element *instances      = (Instance_Buffer_Element *) ui->render_layers[layer_index].start;
+    u32                      instance_count = (u32) (ui->render_layers[layer_index].used / sizeof(*instances));
 
-    ui->draw_layers[layer_index]  = layer_start_index;
-    layer_start_index            += ui->draw_count_per_layer[layer_index] / sizeof(*flattened_elements);
-    flattened_elements           += ui->draw_count_per_layer[layer_index];
+    copy_memory_block(flattened_elements, instances, instance_count);
+
+    ui->flattened_draw_layer_indices[layer_index]  = layer_start_index;
+    layer_start_index                             += instance_count;
   }
 }
 
@@ -1213,7 +1222,8 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
     if (cur_panel->first_child == NULL)
     {
       // NOTE(antonio): need to remove draw call
-      Instance_Buffer_Element *draw_call = push_struct(&render->render_data, Instance_Buffer_Element);
+      Arena *background_render_layer = ui_get_render_layer(0);
+      Instance_Buffer_Element *draw_call = push_struct(background_render_layer, Instance_Buffer_Element);
 
       draw_call->size  = {0.0f, 0.0f, rect_get_width(&to_place), rect_get_height(&to_place)};
       draw_call->uv    =
@@ -1699,7 +1709,8 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
 
       if (cur_widget->widget_flags & widget_flag_draw_background)
       {
-        Instance_Buffer_Element *draw_call = push_struct(&render->render_data, Instance_Buffer_Element);
+        Arena *background_render_layer = ui_get_render_layer(0);
+        Instance_Buffer_Element *draw_call = push_struct(background_render_layer, Instance_Buffer_Element);
 
         Persistent_Widget_Data *found_data = ui_search_persistent_data(cur_widget);
         f32 t = 1 - fast_powf(2.0f, 16.0f * -((f32) global_state->dt));
@@ -1760,8 +1771,9 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
         f32 x        = cur_widget->rectangle.x0 + ((f32) ui->text_gutter_dim.x);
         f32 baseline = cur_widget->rectangle.y0 + ui->text_height - ((f32) ui->text_gutter_dim.y);
 
+        Arena *text_render_layer = ui_get_render_layer(1);
         set_temp_arena_wait(1);
-        render_draw_text(&x, &baseline, cur_widget->text_color, rect, cur_widget->string.str);
+        render_draw_text(text_render_layer, &x, &baseline, cur_widget->text_color, rect, cur_widget->string.str);
 
         if (cur_widget->widget_flags & widget_flag_get_user_input)
         {

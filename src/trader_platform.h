@@ -28,6 +28,8 @@ struct Thread_Handle;
 internal Global_Platform_State *platform_get_global_state(void);
 internal Arena *platform_get_global_arena(void);
 
+unimplemented internal void  *platform_allocate_memory_pages(u64 bytes);
+
 internal void platform_debug_print(char *text);
 internal void platform_debug_printf(char *format, ...);
 internal void platform_debug_print_system_error();

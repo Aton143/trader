@@ -373,9 +373,8 @@ struct UI_Context
 
   Rect_f32                canvas_viewport;
 
-  Arena                   render_data; 
-  u32                     draw_layers[4];
-  u32                     draw_count_per_layer[4];
+  Arena                   render_layers[4];
+  u32                     flattened_draw_layer_indices[4];
 
   // TODO(antonio): when does this get cleared?
   Persistent_Widget_Data  persistent_data[4];
@@ -454,7 +453,9 @@ internal void ui_initialize(UI_Context *ui);
 internal void ui_initialize_frame(void);
 
 internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect);
-internal void ui_flatten_draw_layers(void);
+
+internal inline Arena *ui_get_render_layer(u32 layer);
+internal void   ui_flatten_draw_layers(void);
 
 internal void ui_update_persistent_data(Persistent_Widget_Data *data);
 internal Persistent_Widget_Data *ui_search_persistent_data(Widget *widget);

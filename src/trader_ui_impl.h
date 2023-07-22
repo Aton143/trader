@@ -1149,10 +1149,9 @@ internal void ui_flatten_draw_layers(void)
   Instance_Buffer_Element *flattened_elements = push_array(&render->render_data, Instance_Buffer_Element, draw_call_count);
 
   expect(flattened_elements != NULL);
-  expect(draw_call_count <= (render->render_data.size - render->render_data.used));
+  expect(draw_call_count    <= (render->render_data.size - render->render_data.used));
 
   u32 layer_start_index = (u32) (((u8 *) flattened_elements - render->render_data.start) / sizeof(*flattened_elements));
-  unused(layer_start_index);
 
   for (u32 layer_index = 0;
        layer_index < array_count(ui->render_layers);
@@ -1161,10 +1160,29 @@ internal void ui_flatten_draw_layers(void)
     Instance_Buffer_Element *instances      = (Instance_Buffer_Element *) ui->render_layers[layer_index].start;
     u32                      instance_count = (u32) (ui->render_layers[layer_index].used / sizeof(*instances));
 
-    copy_memory_block(flattened_elements, instances, instance_count);
+#define TRADER_FLATTEN_DEBUG 0
+#if TRADER_FLATTEN_DEBUG
+    for (u32 instance_index = 0; instance_index < instance_count; ++instance_index)
+    {
+      Instance_Buffer_Element *cur_inst; cur_inst = instances + instance_index;
+      int i = 0; i++;
+    }
+#endif
+
+    copy_memory_block(flattened_elements, instances, ui->render_layers[layer_index].used);
+
+#if TRADER_FLATTEN_DEBUG
+    for (u32 instance_index = 0; instance_index < instance_count; ++instance_index)
+    {
+      Instance_Buffer_Element *cur_inst; cur_inst = flattened_elements + instance_index;
+      int i = 0; i++;
+    }
+#endif
 
     ui->flattened_draw_layer_indices[layer_index]  = layer_start_index;
     layer_start_index                             += instance_count;
+
+    flattened_elements                            += instance_count;
   }
 }
 

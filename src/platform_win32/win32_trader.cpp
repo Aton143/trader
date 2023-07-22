@@ -4,6 +4,7 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #define _CRT_NO_VA_START_VALIDATION
 #define OEMRESOURCE
+
 #include <windows.h>
 #include <windowsx.h>
 
@@ -1569,8 +1570,8 @@ WinMain(HINSTANCE instance,
 
         device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-        u32 triangle_draw_call_count =
-          (u32) (win32_global_state.render_context.triangle_render_data.used / sizeof(Vertex_Buffer_Element));
+        u32 triangle_draw_call_count = 0;
+          // (u32) (win32_global_state.render_context.triangle_render_data.used / sizeof(Vertex_Buffer_Element));
 
         /*
         expect_message((vertex_count % 3) == 0, 

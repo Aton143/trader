@@ -333,59 +333,60 @@ struct Persistent_Widget_Data
 struct Panel;
 struct UI_Context
 {
-  Panel                   *current_panel_parent;
-  Panel                   *panels_start;
-  Panel                   *panel_free_list_head;
-  u32                      panel_memory_size;
-  u32                      panel_count;
+  Panel                  *current_panel_parent;
+  Panel                  *panels_start;
+  Panel                  *panel_free_list_head;
+  u32                     panel_memory_size;
+  u32                     panel_count;
 
   // NOTE(antonio): only one can be active at any given time
-  UI_Key                   hot_key;    // NOTE(antonio): about to interact
-  UI_Key                   active_key; // NOTE(antonio): interacting
+  UI_Key                  hot_key;    // NOTE(antonio): about to interact
+  UI_Key                  active_key; // NOTE(antonio): interacting
 
-  Widget                  *widget_memory;
-  u64                      widget_memory_size;
+  Widget                 *widget_memory;
+  u64                     widget_memory_size;
 
-  Widget                  *allocated_widgets;
-  Widget                  *widget_free_list_head;
+  Widget                 *allocated_widgets;
+  Widget                 *widget_free_list_head;
 
-  Arena                   *string_pool;
+  Arena                  *string_pool;
 
-  u32                      max_widget_count;
-  u32                      current_widget_count;
+  u32                     max_widget_count;
+  u32                     current_widget_count;
 
-  V2_i16                   text_gutter_dim;
+  V2_i16                  text_gutter_dim;
 
-  Mouse_Area               mouse_area;
+  Mouse_Area              mouse_area;
 
-  Mouse_Event              prev_frame_mouse_event;
-  Mouse_Event              cur_frame_mouse_event;
+  Mouse_Event             prev_frame_mouse_event;
+  Mouse_Event             cur_frame_mouse_event;
 
-  V2_f32                   mouse_pos;
-  V2_f32                   mouse_delta;
-  V2_f32                   mouse_wheel_delta;
+  V2_f32                  mouse_pos;
+  V2_f32                  mouse_delta;
+  V2_f32                  mouse_wheel_delta;
 
-  f32                      text_height;
-  RGBA_f32                 text_color;
-  RGBA_f32                 background_color[4];
+  f32                     text_height;
+  RGBA_f32                text_color;
+  RGBA_f32                background_color[4];
 
-  UI_Interaction           interactions[4];
+  UI_Interaction          interactions[4];
 
-  Rect_f32                 canvas_viewport;
+  Rect_f32                canvas_viewport;
 
-  u32                      draw_layers[4];
-  u32                      draw_count_per_layer[4];
+  Arena                   render_data; 
+  u32                     draw_layers[4];
+  u32                     draw_count_per_layer[4];
 
   // TODO(antonio): when does this get cleared?
-  Persistent_Widget_Data   persistent_data[4];
+  Persistent_Widget_Data  persistent_data[4];
 
-  Mod_Keys                 mod_keys;
+  Mod_Keys                mod_keys;
   // b8                       key_events[key_event_count];
 
-  b8                       keep_hot_key;
-  b8                       keep_active_key;
+  b8                      keep_hot_key;
+  b8                      keep_active_key;
 
-  Ring_Buffer              event_queue;
+  Ring_Buffer             event_queue;
 };
 
 enum
@@ -453,6 +454,7 @@ internal void ui_initialize(UI_Context *ui);
 internal void ui_initialize_frame(void);
 
 internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect);
+internal void ui_flatten_draw_layers(void);
 
 internal void ui_update_persistent_data(Persistent_Widget_Data *data);
 internal Persistent_Widget_Data *ui_search_persistent_data(Widget *widget);
@@ -464,7 +466,7 @@ internal void ui_pop_text_color(void);
 
 internal inline void ui_push_background_color(f32 r, f32 g, f32 b, f32 a);
 internal inline void ui_push_background_color(RGBA_f32 color);
-internal void ui_push_background_color();
+internal void ui_push_background_color(void);
 
 internal void ui_push_parent(Widget *widget);
 internal void ui_pop_parent(void);
@@ -501,7 +503,7 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
                              String_Const_utf8 *alt_key_source   = NULL);
 
 internal void   ui_adjust_widget(Widget *widget_to_adjust, Widget_Parameters *params);
-internal inline Widget *ui_get_last_placed_widget();
+internal inline Widget *ui_get_last_placed_widget(void);
 
 // NOTE(antonio): panels
 internal inline Panel *ui_get_sentinel_panel(void);

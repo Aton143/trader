@@ -1125,6 +1125,40 @@ internal void ui_evaluate_child_sizes_panel(Panel *panel)
   }
 }
 
+internal void ui_flatten_draw_layers(void)
+{
+  UI_Context            *ui     = ui_get_context();
+  Common_Render_Context *render = render_get_common_context();
+
+  u32 draw_call_count = 0;
+  for (u32 layer_index = 0;
+       layer_index < array_count(ui->draw_layers);
+       ++layer_index)
+  {
+    draw_call_count += ui->draw_count_per_layer[layer_index];
+  }
+
+  Instance_Buffer_Element *instances;
+  Instance_Buffer_Element *flattened_elements = push_array(&render->render_data, Instance_Buffer_Element, draw_call_count);
+
+  expect(flattened_elements != NULL);
+  expect(instances != NULL);
+
+  u32 layer_start_index = (u32) (((u8 *) flattened_elements - render->render_data.start) / sizeof(*flattened_elements));
+
+  for (u32 layer_index = 0;
+       layer_index < array_count(ui->draw_layers);
+       ++layer_index)
+  {
+    instances = (Instance_Buffer_Element *) (ui->render_data.start +  (ui->draw_layers[layer_index] * sizeof(*instances)));
+    copy_memory_block(flattened_elements, instances, ui->draw_count_per_layer[layer_index]);
+
+    ui->draw_layers[layer_index]  = layer_start_index;
+    layer_start_index            += ui->draw_count_per_layer[layer_index] / sizeof(*flattened_elements);
+    flattened_elements           += ui->draw_count_per_layer[layer_index];
+  }
+}
+
 internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
 {
   if (panel == NULL) {

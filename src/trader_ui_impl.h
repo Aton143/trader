@@ -579,6 +579,19 @@ internal void ui_initialize_frame(void)
   ui->keep_active_key = false;
 
   default_persistent_data    = {};
+
+  u32 render_data_partition_size = (render_data_size >> 2);
+  u32 render_data_index          = 0;
+
+  for (u32 draw_layer_index = 0;
+       draw_layer_index < array_count(ui->draw_layers);
+       ++draw_layer_index)
+  {
+    ui->draw_layers[draw_layer_index] = render_data_index;
+    render_data_index += render_data_partition_size;
+
+    ui->draw_count_per_layer[draw_layer_index] = 0;
+  }
 }
 
 internal void ui_update_persistent_data(Persistent_Widget_Data *data)

@@ -82,8 +82,8 @@ struct Common_Render_Context
 
 #include "trader_platform.h"
 
-global_const u64 render_data_size          = mb(1);
-global_const u64 triangle_render_data_size = mb(1);
+global_const u32 render_data_size          = mb(1);
+global_const u32 triangle_render_data_size = mb(1);
 global File_Buffer default_font = {};
 
 global_const utf32 starting_code_point = 32;  // ' '

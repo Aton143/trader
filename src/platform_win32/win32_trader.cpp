@@ -1408,7 +1408,6 @@ WinMain(HINSTANCE instance,
       }
 
       // NOTE(antonio): instances
-      u32 draw_call_count;
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
       Constant_Buffer constant_buffer_items = {};
       {
@@ -1489,8 +1488,15 @@ WinMain(HINSTANCE instance,
         D3D11_RECT scissor_rectangle = {(LONG) 0, (LONG) 0, (LONG) client_rect.x1, (LONG) client_rect.y1};
         device_context->RSSetScissorRects(1, &scissor_rectangle);
 
-        draw_call_count = (u32) (win32_global_state.render_context.render_data.used / sizeof(Instance_Buffer_Element));
-        device_context->DrawInstanced(4, draw_call_count, 0, 0);
+        ui->draw_count_per_layer[0] =
+          (u32) (win32_global_state.render_context.render_data.used / sizeof(Instance_Buffer_Element));
+
+        for (u32 draw_layer_index = 0;
+             draw_layer_index < array_count(ui->draw_layers);
+             ++draw_layer_index)
+        {
+          device_context->DrawInstanced(4, ui->draw_count_per_layer[draw_layer_index], ui->draw_layers[draw_layer_index], 0);
+        }
       }
 
       Rect_f32 client_rect = render_get_client_rect();
@@ -1573,7 +1579,7 @@ WinMain(HINSTANCE instance,
         device_context->Draw(triangle_draw_call_count, 0);
       }
 
-#if !SHIP_MODE
+#if 0 && !SHIP_MODE
       if (save_current_frame_buffer)
       {
         save_current_frame_buffer = false;

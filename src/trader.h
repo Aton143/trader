@@ -1,20 +1,26 @@
 #ifndef TRADER_H
+
+#pragma warning(push)
+#pragma warning(disable: 4996)
+
+#define STB_SPRINTF_IMPLEMENTATION
+#include <stb_sprintf.h>
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image_write.h>
+
+#define TRADER_VERSION 1LL
+#include "trader_base_defines.h"
+
 #include <stdarg.h>
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
-#define STB_SPRINTF_IMPLEMENTATION
-#include "./foreign/stb_sprintf.h"
-
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "./foreign/stb_image_write.h"
+#pragma warning(pop)
 
 struct Global_Platform_State;
 struct Render_Context;
-
-#define TRADER_VERSION 1LL
-#include "trader_base_defines.h"
 
 static f32 global_slider_float;
 

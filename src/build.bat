@@ -1,7 +1,10 @@
 @echo off
 
+set SUBMODULES_DIR=..\src\submodules
+
 set INCLUDE_DIRS=
 set INCLUDE_DIRS=%INCLUDE_DIRS% /I D:\openssl\include\
+set INCLUDE_DIRS=%INCLUDE_DIRS% /I %SUBMODULES_DIR%\stb\
 
 set LIBS=
 set LIBS=%LIBS% D:\openssl\libssl.lib

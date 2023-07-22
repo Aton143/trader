@@ -1,0 +1,6 @@
+[submodule "src/submodules/stb"]
+	path = src/submodules/stb
+	url = https://github.com/nothings/stb
+[submodule "src/submodules/openssl"]
+	path = src/submodules/openssl
+	url = https://github.com/openssl/openssl

@@ -1,10 +1,10 @@
 #ifndef TRADER_RENDER_H
 
 #define STB_RECT_PACK_IMPLEMENTATION
-#include "./foreign/stb_rect_pack.h"
+#include <stb_rect_pack.h>
 
 #define STB_TRUETYPE_IMPLEMENTATION
-#include "./foreign/stb_truetype.h"
+#include <stb_truetype.h>
 
 #pragma pack(push, 4)
 struct Constant_Buffer

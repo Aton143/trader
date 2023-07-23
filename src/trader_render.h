@@ -390,8 +390,8 @@ internal void render_get_text_dimensions(f32 *x, f32 *y, Rect_f32 bounds, String
   V2_f32 cur_pos = V2(*x, *y);
   f32 font_scale = stbtt_ScaleForPixelHeight(&atlas->font_info, atlas->heights[0]);
 
-  for (u64 text_index = 0;
-       (text_index < string.size) && (text_index <= up_to);
+  for (i64 text_index = 0;
+       (text_index < (i64) string.size) && (text_index <= (i64) up_to);
        ++text_index)
   {
     // TODO(antonio): deal with new lines more gracefully

@@ -152,7 +152,7 @@ float4 PS_Main(PS_Input input): SV_Target
     if (inside_d > 0.0f) border_factor = inside_f;
   }
 
-  float  multiplied_alpha = alpha_sample * border_factor;
+  float  multiplied_alpha = alpha_sample * border_factor * input.color.a;
   float3 combined  = float3(input.color.rgb) * multiplied_alpha;
   float4 out_color = float4(combined, multiplied_alpha);
   return out_color;

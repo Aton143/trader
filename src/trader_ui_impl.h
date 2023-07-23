@@ -1813,7 +1813,7 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
                                        &cursor.y0,
                                        rect,
                                        teb_string,
-                                       debug_teb.range.inclusive_end_index);
+                                       debug_teb.range.inclusive_end_index - 1);
           }
           else
           {
@@ -1842,7 +1842,7 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
 
             RGBA_f32 cursor_color = (range_get_length(&debug_teb.range) == 0) ?
               rgba(1.0f, 1.0f, 1.0f, 1.0f) :
-              rgba(0.0f, 0.0f, 1.0f, 0.5f);
+              rgba_from_u8(0, 204, 255, 180);
 
             draw_call->color[0] = cursor_color;
             draw_call->color[1] = cursor_color;

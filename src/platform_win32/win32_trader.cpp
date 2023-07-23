@@ -1497,8 +1497,8 @@ WinMain(HINSTANCE instance,
           u32 instance_count = (u32) (ui->render_layers[draw_layer_index].used / sizeof(Instance_Buffer_Element));
           device_context->DrawInstanced(4,
                                         instance_count,
-                                        ui->flattened_draw_layer_indices[draw_layer_index],
-                                        0);
+                                        0,
+                                        ui->flattened_draw_layer_indices[draw_layer_index]);
         }
       }
 

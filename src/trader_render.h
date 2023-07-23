@@ -381,7 +381,8 @@ internal void render_get_text_dimensions(f32 *x, f32 *y, Rect_f32 bounds, String
   expect(bounds.x0 <= bounds.x1);
   expect(bounds.y0 <= bounds.y1);
 
-  expect(is_between_inclusive(0, up_to, string.size));
+  // TODO(antonio): kind of a hack
+  expect(is_between_inclusive(-1, (i64) up_to, (i64) string.size));
 
   Common_Render_Context   *render_context  = render_get_common_context();
   Texture_Atlas           *atlas           = render_context->atlas;

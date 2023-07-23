@@ -1160,8 +1160,8 @@ internal void ui_flatten_draw_layers(void)
     Instance_Buffer_Element *instances      = (Instance_Buffer_Element *) ui->render_layers[layer_index].start;
     u32                      instance_count = (u32) (ui->render_layers[layer_index].used / sizeof(*instances));
 
-#define TRADER_FLATTEN_DEBUG 0
-#if TRADER_FLATTEN_DEBUG
+#define TRADER__FLATTEN_DEBUG 0
+#if TRADER__FLATTEN_DEBUG
     for (u32 instance_index = 0; instance_index < instance_count; ++instance_index)
     {
       Instance_Buffer_Element *cur_inst; cur_inst = instances + instance_index;
@@ -1171,7 +1171,7 @@ internal void ui_flatten_draw_layers(void)
 
     copy_memory_block(flattened_elements, instances, ui->render_layers[layer_index].used);
 
-#if TRADER_FLATTEN_DEBUG
+#if TRADER__FLATTEN_DEBUG
     for (u32 instance_index = 0; instance_index < instance_count; ++instance_index)
     {
       Instance_Buffer_Element *cur_inst; cur_inst = flattened_elements + instance_index;
@@ -1795,124 +1795,62 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
 
         if (cur_widget->widget_flags & widget_flag_get_user_input)
         {
-          f32 cursor_x        = cur_widget->rectangle.x0 + ((f32) ui->text_gutter_dim.x);
-          f32 cursor_x_end    = cursor_x;
+          Rect_f32 cursor = {};
 
-          f32 cursor_y_top    = cur_widget->rectangle.y0;
-          f32 cursor_y_bottom = cursor_y_top + ui->text_height;
+          cursor.x0 = cur_widget->rectangle.x0 + ((f32) ui->text_gutter_dim.x);
+          cursor.x1 = cursor.x0;
+
+          cursor.y0 = cur_widget->rectangle.y0;
+          cursor.y1 = cursor.y0 + ui->text_height;
 
           String_Const_utf8 teb_string = {debug_teb.buf.data, debug_teb.buf.used};
-
-          render_get_text_dimensions(&cursor_x, &cursor_y_top, rect, teb_string, debug_teb.range.start_index);
+          render_get_text_dimensions(&cursor.x0, &cursor.y0, rect, teb_string, debug_teb.range.start_index - 1);
 
           i64 range_length = range_get_length(&debug_teb.range);
           if (range_length > 0)
           {
-            render_get_text_dimensions(&cursor_x_end,
-                                       &cursor_y_top,
+            render_get_text_dimensions(&cursor.x1,
+                                       &cursor.y0,
                                        rect,
                                        teb_string,
                                        debug_teb.range.inclusive_end_index);
           }
           else
           {
-            cursor_x_end += 2.0f;
+            cursor.x1 = cursor.x0 + 1.0f;
           }
 
           {
-            Common_Render_Context *common = render_get_common_context();
-            Rect_f32 solid_color_rect = {
-              (f32) common->atlas->solid_color_rect.x0,
-              (f32) common->atlas->solid_color_rect.y0,
-              (f32) common->atlas->solid_color_rect.x1,
-              (f32) common->atlas->solid_color_rect.y1,
-            };
-
-            Vertex_Buffer_Element *vertices = render_push_triangles(2);
-            Vertex_Buffer_Element *cur_vert = vertices;
-
-            Rect_f32 client_rect = render_get_client_rect();
-            V2_f32 client_dim = rect_get_dimensions(&client_rect);
-
-            cursor_x     /= client_dim.x;
-            cursor_x_end /= client_dim.x;
-
-            cursor_y_top    /= client_dim.y;
-            cursor_y_bottom /= client_dim.y;
-
-            V2_f32 tl = V2(cursor_x,     cursor_y_top);
-            V2_f32 bl = V2(cursor_x,     cursor_y_bottom);
-            V2_f32 tr = V2(cursor_x_end, cursor_y_top);
-            V2_f32 br = V2(cursor_x_end, cursor_y_bottom);
-
-            RGBA_f32 color = (range_length > 0) ?
-              (rgba(0.0f, 0.0f, 1.0f, 0.5f)) : rgba(1.0f, 1.0f, 1.0f, 1.0f);
-
-            // TL
-            *cur_vert++ =
-            {
-              V4(tl.x, tl.y, 0.5f, 1.0f),
-              color,
-              V2(solid_color_rect.x0, solid_color_rect.y0)
-            };
-
-            // BL
-            *cur_vert++ =
-            {
-              V4(bl.x, bl.y, 0.5f, 1.0f),
-              color,
-              V2(solid_color_rect.x0, solid_color_rect.y1)
-            };
-
-            // TR
-            *cur_vert++ =
-            {
-              V4(tr.x, tr.y, 0.5f, 1.0f),
-              color,
-              V2(solid_color_rect.x1, solid_color_rect.y0)
-            };
-
-            // BL
-            *cur_vert++ =
-            {
-              V4(bl.x, bl.y, 0.5f, 1.0f),
-              color,
-              V2(solid_color_rect.x0, solid_color_rect.y1)
-            };
-
-            // TR
-            *cur_vert++ =
-            {
-              V4(tr.x, tr.y, 0.5f, 1.0f),
-              color,
-              V2(solid_color_rect.x1, solid_color_rect.y0)
-            };
-
-            // BR
-            *cur_vert++ =
-            {
-              V4(br.x, br.y, 0.5f, 1.0f),
-              color,
-              V2(solid_color_rect.x1, solid_color_rect.y1)
-            };
-
-            /*
-            Instance_Buffer_Element *draw_call = push_struct(&render->render_data, Instance_Buffer_Element);
+            Arena *over_text_layer = ui_get_render_layer(2);
+            Instance_Buffer_Element *draw_call = push_struct(over_text_layer, Instance_Buffer_Element);
             zero_struct(draw_call);
+
+            Rect_f32 solid_color_rect = {
+              (f32) render->atlas->solid_color_rect.x0,
+              (f32) render->atlas->solid_color_rect.y0,
+              (f32) render->atlas->solid_color_rect.x1,
+              (f32) render->atlas->solid_color_rect.y1,
+            };
 
             draw_call->size = 
             {
               0.0f, 0.0f,
-              12.0f, ui->text_height
+              rect_get_width(&cursor), rect_get_height(&cursor),
             };
 
-            draw_call->color[0] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
-            draw_call->color[1] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
-            draw_call->color[2] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
-            draw_call->color[3] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+            draw_call->pos = V3(cursor.x0, cursor.y0, 1.0f);
 
-            draw_call->pos = V3(cursor_x, cursor_baseline, 1.0f);
-            */
+            RGBA_f32 cursor_color = (range_get_length(&debug_teb.range) == 0) ?
+              rgba(1.0f, 1.0f, 1.0f, 1.0f) :
+              rgba(0.0f, 0.0f, 1.0f, 0.5f);
+
+            draw_call->color[0] = cursor_color;
+            draw_call->color[1] = cursor_color;
+            draw_call->color[2] = cursor_color;
+            draw_call->color[3] = cursor_color;
+
+            draw_call->uv            = solid_color_rect;
+            draw_call->edge_softness = 0.0f;
           }
         }
       }

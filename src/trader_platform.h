@@ -66,7 +66,7 @@ internal File_Buffer       platform_open_and_read_entire_file_from_system_prompt
 internal void  platform_set_cursor(Cursor_Kind cursor);
 
 internal String_Const_utf8 platform_read_clipboard_contents(Arena *arena);
-internal b32               plaform_write_clipboard_contents();
+internal void              plaform_write_clipboard_contents(String_utf8 string);
 
 // NOTE(antonio): threads
 internal Thread_Handle platform_create_thread(Thread_Routine routine, void *routine_arg);

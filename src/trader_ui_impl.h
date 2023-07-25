@@ -888,16 +888,39 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
 
           case key_event_v:
             {
-              if (control)
+              if (range_get_length(&teb->range) > 0)
               {
-                if (range_get_length(&teb->range) > 0)
-                {
-                  text_edit_delete(teb, -1);
-                }
-
-                String_utf8 clipboard_data = su8(platform_read_clipboard_contents(ui->string_pool));
-                text_edit_insert_string_and_advance(teb, clipboard_data);
+                text_edit_delete(teb, -1);
               }
+
+              String_utf8 clipboard_data = su8(platform_read_clipboard_contents(ui->string_pool));
+              text_edit_insert_string_and_advance(teb, clipboard_data);
+            } break;
+          case key_event_c:
+            {
+              String_utf8 data_to_set;
+              u64 range_length = range_get_length(&teb->range);
+
+              if (range_length > 0)
+              {
+                data_to_set =
+                {
+                  teb->buf.data + teb->range.start_index,
+                  range_length,
+                  range_length
+                };
+              }
+              else
+              {
+                data_to_set =
+                {
+                  teb->buf.data + teb->range.start_index - 1,
+                  1,
+                  1,
+                };
+              }
+
+              platform_write_clipboard_contents(data_to_set);
             } break;
           }
         }

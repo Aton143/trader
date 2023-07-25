@@ -1340,7 +1340,7 @@ internal String_Const_utf8 platform_read_clipboard_contents(Arena *arena)
         {
           String_Const_char clip_char = string_const_char(clip_data_char);
 
-          expect_message(false, "unimplemented");
+          copy_struct(&result, &clip_char);
 
           got_result = true;
         }
@@ -1357,6 +1357,58 @@ internal String_Const_utf8 platform_read_clipboard_contents(Arena *arena)
   }
 
   return(result);
+}
+
+internal void platform_write_clipboard_contents(String_utf8 string)
+{
+  if (OpenClipboard(win32_global_state.window_handle))
+  {
+    if (EmptyClipboard())
+    {
+      HGLOBAL data_handle = GlobalAlloc(GMEM_MOVEABLE, string.size + 1);
+      platform_debug_print_system_error();
+
+      if (data_handle != NULL)
+      {
+        void *write_dest = GlobalLock(data_handle);
+        platform_debug_print_system_error();
+
+        if (write_dest != NULL)
+        {
+          copy_memory_block(write_dest, string.str, string.size);
+          *(((u8 * ) write_dest) + string.size) = 0;
+
+          if (GlobalUnlock(data_handle) == NULL)
+          {
+            if (SetClipboardData(CF_TEXT, data_handle) == NULL)
+            {
+              platform_debug_print_system_error();
+            }
+          }
+          else
+          {
+            platform_debug_print_system_error();
+          }
+        }
+        else
+        {
+          platform_debug_print_system_error();
+        }
+      }
+    }
+    else
+    {
+      platform_debug_print_system_error();
+    }
+
+    CloseClipboard();
+  }
+  else
+  {
+    platform_debug_print_system_error();
+  }
+
+  platform_debug_print_system_error();
 }
 
 #define WIN32_IMPLEMENTATION_H

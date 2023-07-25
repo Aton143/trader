@@ -273,11 +273,11 @@ internal inline void ui_add_interaction(Widget *cur_widget, i32 frames_left, u32
        interaction_index < array_count(ui->interactions);
        ++interaction_index) 
   {
-    UI_Interaction *cur_interaction = &ui->interactions[interaction_index];
-    if ((cur_interaction->key == cur_widget->key) || (cur_interaction->key == nil_key))
+    UI_Interaction *cur_int = &ui->interactions[interaction_index];
+    if ((cur_int->key == cur_widget->key) || (cur_int->key == nil_key))
     {
       interaction_update_index = interaction_index;
-      was_nil = (cur_interaction->key == nil_key);
+      was_nil = (cur_int->key == nil_key);
 
       break;
     }
@@ -285,29 +285,31 @@ internal inline void ui_add_interaction(Widget *cur_widget, i32 frames_left, u32
 
   if (interaction_update_index != -1)
   {
-    UI_Interaction *cur_interaction = ui->interactions + interaction_update_index;
+    UI_Interaction *cur_int = ui->interactions + interaction_update_index;
 
-    cur_interaction->key            = cur_widget->key;
+    cur_int->key            = cur_widget->key;
 
-    cur_interaction->frames_left    = frames_left;
-    cur_interaction->frames_active  = was_nil ? 0 : cur_interaction->frames_active + 1;
+    cur_int->frames_left    = frames_left;
+    cur_int->frames_active  = was_nil ? 0 : cur_int->frames_active + 1;
 
-    cur_interaction->event          = event;
+    cur_int->event          = cur_int->event ? cur_int->event : event;
 
-    copy_struct(&cur_interaction->value, event_value);
+    V2_f32 mouse_initial    = cur_int->value.mouse_initial_pos;
+    copy_struct(&cur_int->value, event_value);
+    cur_int->value.mouse_initial_pos = mouse_initial;
 
-    if (event & ui_event_mouse)
+    const u32 frames_until_drag = 10;
+    if ((event & ui_event_drag) && (cur_widget->widget_flags & widget_flag_clickable))
     {
-      if ((cur_interaction->value.mouse_initial_pos.x == 0.0f) && 
-          (cur_interaction->value.mouse_initial_pos.y == 0.0f))
+      if ((cur_int->frames_active < frames_until_drag) && ((event & ui_event_keyboard) == 0))
       {
-        cur_interaction->value.mouse_initial_pos = event_value->mouse;
+        cur_int->event = ui_event_none;
       }
 
-      const u32 frames_until_drag = 10;
-      if ((cur_widget->widget_flags & widget_flag_draggable) &&
-          (cur_interaction->frames_active > frames_until_drag)) {
-        cur_interaction->event |= ui_event_drag;
+      if ((cur_int->value.mouse_initial_pos.x == 0.0f) && 
+          (cur_int->value.mouse_initial_pos.y == 0.0f))
+      {
+        cur_int->value.mouse_initial_pos = event_value->mouse;
       }
     }
   }
@@ -812,8 +814,7 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
     if (cur_int->key == widget_key)
     {
       UI_Event_Value *value = &cur_int->value;
-      if (((cur_int->event & ui_event_mouse) && ((cur_int->event & ui_event_drag) == 0)) || 
-          ((cur_int->event & ui_event_mouse) && (cur_int->event & ui_event_drag)))
+      if ((cur_int->event & ui_event_mouse) || (cur_int->event & ui_event_drag))
       {
         Common_Render_Context *render            = render_get_common_context();
         stbtt_packedchar      *packed_char_start = render->atlas->char_data + render_get_packed_char_start(ui->text_height);
@@ -827,7 +828,8 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
 
         Text_Range text_range = {-1, -1};
 
-        for (u64 string_index = 0;
+        u64 string_index;
+        for (string_index = 0;
              (teb->buf.data[string_index] != '\0') && (string_index < teb->buf.used);
              ++string_index)
         {
@@ -850,29 +852,29 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
               }
             }
 
+            if ((text_range.start_index != -1) && (text_range.inclusive_end_index != -1))
+            {
+              break;
+            }
+
             if (is_between_inclusive(cur_rel_x, scaled_initial.x, next_cur_rel_x) &&
                 (cur_int->event & ui_event_drag))
             {
               text_range.inclusive_end_index = string_index;
             }
 
-            if ((text_range.start_index != -1) && (text_range.inclusive_end_index != -1))
-            {
-              break;
-            }
-
             cur_rel_x = next_cur_rel_x;
           }
+        }
+
+        if (text_range.start_index == -1)
+        {
+          text_range.start_index = teb->buf.used;
         }
 
         if (text_range.start_index > text_range.inclusive_end_index)
         {
           swap(i64, text_range.start_index, text_range.inclusive_end_index);
-        }
-
-        if (text_range.start_index == -1)
-        {
-          text_range = {(i64) teb->buf.used, (i64) teb->buf.used};
         }
 
         teb->range = text_range;
@@ -1714,7 +1716,20 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
 
         if (ui->active_key == cur_widget->key)
         {
-          Rect_f32 rect_to_use     = border_draggable ? render_get_client_rect() : cur_widget->parent->rectangle;
+          Rect_f32 rect_to_use; 
+          if (border_draggable)
+          {
+            rect_to_use = render_get_client_rect();
+          }
+          else if (cur_widget->widget_flags & widget_flag_draw_text)
+          {
+            rect_to_use = cur_widget->rectangle;
+          } 
+          else
+          {
+            rect_to_use = cur_widget->parent->rectangle;
+          }
+
           V2_f32   rect_dimensions = rect_get_dimensions(&rect_to_use);
 
           event_value            = {};

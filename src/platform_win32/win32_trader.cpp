@@ -1639,8 +1639,13 @@ WinMain(HINSTANCE instance,
            interaction_index < array_count(ui->interactions);
            ++interaction_index) 
       {
-        ui->interactions[interaction_index].frames_left--;
-        if (ui->interactions[interaction_index].frames_left < 0)
+        b32 had_frames_left = ui->interactions[interaction_index].frames_left > 0;
+        unused(had_frames_left);
+
+        UI_Interaction *cur_int = &ui->interactions[interaction_index];
+        cur_int->frames_left--;
+
+        if (cur_int->frames_left < 0)
         {
           ui->interactions[interaction_index] = {};
         }

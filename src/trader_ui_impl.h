@@ -304,7 +304,7 @@ internal inline void ui_add_interaction(Widget *cur_widget, i32 frames_left, u32
         cur_interaction->value.mouse_initial_pos = event_value->mouse;
       }
 
-      const u32 frames_until_drag = 4;
+      const u32 frames_until_drag = 10;
       if ((cur_widget->widget_flags & widget_flag_draggable) &&
           (cur_interaction->frames_active > frames_until_drag)) {
         cur_interaction->event |= ui_event_drag;
@@ -812,7 +812,8 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
     if (cur_int->key == widget_key)
     {
       UI_Event_Value *value = &cur_int->value;
-      if ((cur_int->event & ui_event_mouse) || (cur_int->event & ui_event_drag))
+      if (((cur_int->event & ui_event_mouse) && ((cur_int->event & ui_event_drag) == 0)) || 
+          ((cur_int->event & ui_event_mouse) && (cur_int->event & ui_event_drag)))
       {
         Common_Render_Context *render            = render_get_common_context();
         stbtt_packedchar      *packed_char_start = render->atlas->char_data + render_get_packed_char_start(ui->text_height);
@@ -876,7 +877,7 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
 
         teb->range = text_range;
       }
-      else
+      else if (cur_int->event & ui_event_keyboard)
       {
         utf8 *char_data   = value->utf8_data;
         u32   utf8_length = value->utf8_length;
@@ -1721,7 +1722,7 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
                                       (ui->mouse_pos.y - rect_to_use.y0) / rect_dimensions.y);
           event_value.extra_data = rect_get_closest_side_to_point(ui->mouse_pos, cur_widget->rectangle, rectangle_side_none);
 
-          ui_add_interaction(cur_widget, 1, ui_event_mouse, &event_value);
+          ui_add_interaction(cur_widget, 1, ui_event_drag, &event_value);
         }
       }
 

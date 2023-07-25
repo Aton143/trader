@@ -288,9 +288,10 @@ struct Widget
 typedef u32 UI_Event;
 enum
 {
-  ui_event_none,
-  ui_event_mouse,
-  ui_event_keyboard,
+  ui_event_none     = 0,
+  ui_event_mouse    = (1 << 1),
+  ui_event_drag     = (1 << 2),
+  ui_event_keyboard = (1 << 3),
 };
 
 union UI_Event_Value
@@ -298,6 +299,7 @@ union UI_Event_Value
   struct 
   {
     V2_f32 mouse;
+    V2_f32 mouse_initial_pos;
     u32    extra_data;
   };
   struct
@@ -312,7 +314,10 @@ union UI_Event_Value
 struct UI_Interaction
 {
   UI_Key         key;
+
   i32            frames_left;
+  i32            frames_active;
+
   UI_Event       event;
   UI_Event_Value value;
 

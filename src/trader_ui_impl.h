@@ -780,7 +780,7 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
 
   va_end(args);
 
-  ui_make_widget(widget_flag_draw_text  | widget_flag_get_user_input | widget_flag_clickable | widget_flag_draggable,
+  ui_make_widget(widget_flag_draw_text  | widget_flag_get_user_input | widget_flag_clickable | widget_flag_draggable | widget_flag_selectable_text,
                  size_flag_text_content | size_flag_advancer_y,
                  copy_string,
                  V2(1.0f, 1.0f),
@@ -1275,7 +1275,6 @@ internal inline void ui_add_interaction(Widget *cur_widget, i32 frames_left, u32
         cur_int->value.mouse_initial_pos = event_value->mouse;
       }
     }
-
   }
 }
 
@@ -1617,6 +1616,8 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
     }
   }
 
+  Widget *hover_widget = NULL;
+
   arena_reset(temp_arena);
   {
     Ring_Buffer widget_queue = ring_buffer_make(temp_arena, structs_in_size(ring_buffer_size, Widget *));
@@ -1687,6 +1688,8 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
           {
             ui->hot_key = cur_widget->key;
           }
+
+          hover_widget = cur_widget;
           keep_hot_key = true;
         }
       }
@@ -1753,6 +1756,7 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
             }
           }
 
+          hover_widget = cur_widget;
           keep_hot_key = true;
         }
 
@@ -1985,6 +1989,14 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
       }
 
       ui->keep_hot_key = ui->keep_hot_key || keep_hot_key;
+    }
+  }
+
+  if (hover_widget)
+  {
+    if (hover_widget->widget_flags & widget_flag_selectable_text)
+    {
+      platform_set_cursor(cursor_kind_text_selection);
     }
   }
 

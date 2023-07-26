@@ -42,6 +42,7 @@ enum
   widget_flag_top_level          = (1LL << 21),
 
   widget_flag_get_user_input     = (1LL << 22),
+  widget_flag_selectable_text    = (1LL << 23),
 };
 
 typedef u64 Widget_Size_Flag;

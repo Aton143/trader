@@ -15,6 +15,8 @@ enum
   cursor_kind_up_down_direction,
   cursor_kind_up_down_left_right_direction,
 
+  cursor_kind_text_selection,
+
   cursor_kind_count,
 };
 

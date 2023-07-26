@@ -1005,10 +1005,15 @@ WinMain(HINSTANCE instance,
 
 #pragma warning(disable:4302)
     cursors[cursor_kind_none]._handle = NULL;
+
+    cursors[cursor_kind_finger_pointer]._handle =
+      (HCURSOR) LoadImage(NULL, MAKEINTRESOURCEW(IDC_HAND), IMAGE_CURSOR, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
+
     cursors[cursor_kind_left_right_direction]._handle =
       (HCURSOR) LoadImage(NULL, MAKEINTRESOURCEW(IDC_SIZEWE), IMAGE_CURSOR, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
     cursors[cursor_kind_up_down_direction]._handle =
       (HCURSOR) LoadImage(NULL, MAKEINTRESOURCEW(IDC_SIZENS), IMAGE_CURSOR, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
+
     cursors[cursor_kind_text_selection]._handle =
       (HCURSOR) LoadImage(NULL, MAKEINTRESOURCEW(IDC_IBEAM), IMAGE_CURSOR, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
 #pragma warning(default:4302)

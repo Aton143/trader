@@ -1998,6 +1998,10 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
     {
       platform_set_cursor(cursor_kind_text_selection);
     }
+    else if (hover_widget->widget_flags & widget_flag_clickable)
+    {
+      platform_set_cursor(cursor_kind_finger_pointer);
+    }
   }
 
   arena_reset(temp_arena);

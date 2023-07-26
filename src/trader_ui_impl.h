@@ -262,59 +262,6 @@ internal inline UI_Context *ui_get_context()
   return(&platform_get_global_state()->ui_context);
 }
 
-internal inline void ui_add_interaction(Widget *cur_widget, i32 frames_left, u32 event, UI_Event_Value *event_value)
-{
-  UI_Context *ui = ui_get_context();
-
-  b32 was_nil = false;
-  i32 interaction_update_index = -1;
-
-  for (i32 interaction_index = 0;
-       interaction_index < array_count(ui->interactions);
-       ++interaction_index) 
-  {
-    UI_Interaction *cur_int = &ui->interactions[interaction_index];
-    if ((cur_int->key == cur_widget->key) || (cur_int->key == nil_key))
-    {
-      interaction_update_index = interaction_index;
-      was_nil = (cur_int->key == nil_key);
-
-      break;
-    }
-  }
-
-  if (interaction_update_index != -1)
-  {
-    UI_Interaction *cur_int = ui->interactions + interaction_update_index;
-
-    cur_int->key            = cur_widget->key;
-
-    cur_int->frames_left    = frames_left;
-    cur_int->frames_active  = was_nil ? 0 : cur_int->frames_active + 1;
-
-    cur_int->event          = cur_int->event ? cur_int->event : event;
-
-    V2_f32 mouse_initial    = cur_int->value.mouse_initial_pos;
-    copy_struct(&cur_int->value, event_value);
-    cur_int->value.mouse_initial_pos = mouse_initial;
-
-    const u32 frames_until_drag = 10;
-    if ((event & ui_event_drag) && (cur_widget->widget_flags & widget_flag_clickable))
-    {
-      if ((cur_int->frames_active < frames_until_drag) && ((event & ui_event_keyboard) == 0))
-      {
-        cur_int->event = ui_event_none;
-      }
-
-      if ((cur_int->value.mouse_initial_pos.x == 0.0f) && 
-          (cur_int->value.mouse_initial_pos.y == 0.0f))
-      {
-        cur_int->value.mouse_initial_pos = event_value->mouse;
-      }
-    }
-  }
-}
-
 internal inline void ui_add_key_event(Key_Event event, b32 is_down)
 {
   UI_Context *ui = ui_get_context();
@@ -773,6 +720,46 @@ internal void ui_do_formatted_string(char *format, ...)
                  sprinted_text);
 }
 
+internal inline b32 ui__update_text_edit_bounds(Text_Range *range,
+                                                UI_Event    event,
+                                                i64         index,
+                                                V2_f32      mouse,
+                                                V2_f32      initial,
+                                                f32        *bounds)
+{
+  f32 first_half   = lerpf(bounds[0], 0.6f, bounds[1]);
+  f32 second_half  = lerpf(bounds[1], 0.6f, bounds[2]);
+
+  if (is_between_inclusive(first_half, mouse.x, second_half))
+  {
+    range->start_index = index;
+
+    if ((event & ui_event_drag) == 0)
+    {
+      range->inclusive_end_index = index;
+    }
+  }
+
+  if ((range->start_index != -1) && (range->inclusive_end_index != -1))
+  {
+    return(true);
+  }
+
+  if (is_between_inclusive(first_half, initial.x, second_half))
+  {
+    range->inclusive_end_index = index;
+  }
+
+  if ((range->start_index != -1) && (range->inclusive_end_index != -1))
+  {
+    return(true);
+  }
+  else
+  {
+    return(false);
+  }
+}
+
 internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
 {
   expect(teb != NULL);
@@ -824,14 +811,19 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
         V2_f32 scaled_mouse    = hadamard_product(text_edit_widget->computed_size_in_pixels, value->mouse);
         V2_f32 scaled_initial  = hadamard_product(text_edit_widget->computed_size_in_pixels, value->mouse_initial_pos);
 
-        f32    cur_rel_x       = ui->text_gutter_dim.x;
-
         Text_Range text_range = {-1, -1};
+        f32        bounds[3] = {};
 
-        u64 string_index;
-        for (string_index = 0;
-             (teb->buf.data[string_index] != '\0') && (string_index < teb->buf.used);
-             ++string_index)
+        i64 string_index      = 0;
+
+        /*
+        stbtt_packedchar *cur_packed_char = packed_char_start + (teb->buf.data[string_index] - starting_code_point);
+        bounds[2] = cur_packed_char->xadvance;
+        */
+        stbtt_packedchar *cur_packed_char = NULL;
+
+        i64 one_char_before_end = unicode_utf8_advance_char_pos(teb->buf.data, teb->buf.used, teb->buf.used, -1);
+        while ((teb->buf.data[string_index] != '\0') && (string_index <= one_char_before_end))
         {
           // TODO(antonio): deal with new lines more gracefully
           if (is_newline(teb->buf.data[string_index])) 
@@ -840,31 +832,24 @@ internal void ui_do_text_edit(Text_Edit_Buffer *teb, char *format, ...)
           }
           else
           {
-            stbtt_packedchar *cur_packed_char = packed_char_start + (teb->buf.data[string_index] - starting_code_point);
-            f32 next_cur_rel_x = cur_rel_x + cur_packed_char->xadvance;
+            cur_packed_char = packed_char_start + (teb->buf.data[string_index] - starting_code_point);
 
-            if (is_between_inclusive(cur_rel_x, scaled_mouse.x, next_cur_rel_x))
-            {
-              text_range.start_index = string_index;
+            bounds[0]  = bounds[1];
+            bounds[1]  = bounds[2];
+            bounds[2] += cur_packed_char->xadvance;
 
-              if ((cur_int->event & ui_event_drag) == 0) {
-                text_range.inclusive_end_index = string_index;
-              }
-            }
-
-            if ((text_range.start_index != -1) && (text_range.inclusive_end_index != -1))
+            if (ui__update_text_edit_bounds(&text_range, cur_int->event, string_index, scaled_mouse, scaled_initial, bounds))
             {
               break;
             }
 
-            if (is_between_inclusive(cur_rel_x, scaled_initial.x, next_cur_rel_x) &&
-                (cur_int->event & ui_event_drag))
-            {
-              text_range.inclusive_end_index = string_index;
-            }
-
-            cur_rel_x = next_cur_rel_x;
+            string_index += unicode_utf8_encoding_length(teb->buf.data + string_index);
           }
+        }
+
+        if (text_range.inclusive_end_index == -1)
+        {
+          text_range.inclusive_end_index = teb->buf.used;
         }
 
         if (text_range.start_index == -1)
@@ -1234,6 +1219,63 @@ internal void ui_flatten_draw_layers(void)
     layer_start_index                             += instance_count;
 
     flattened_elements                            += instance_count;
+  }
+}
+
+internal inline void ui_add_interaction(Widget *cur_widget, i32 frames_left, u32 event, UI_Event_Value *event_value)
+{
+  UI_Context *ui = ui_get_context();
+
+  b32 was_nil = false;
+  i32 interaction_update_index = -1;
+
+  for (i32 interaction_index = 0;
+       interaction_index < array_count(ui->interactions);
+       ++interaction_index) 
+  {
+    UI_Interaction *cur_int = &ui->interactions[interaction_index];
+    if ((cur_int->key == cur_widget->key) || (cur_int->key == nil_key))
+    {
+      interaction_update_index = interaction_index;
+      was_nil = (cur_int->key == nil_key);
+
+      break;
+    }
+  }
+
+  if (interaction_update_index != -1)
+  {
+    UI_Interaction *cur_int = ui->interactions + interaction_update_index;
+    cur_int->key            = cur_widget->key;
+
+    cur_int->frames_left    = frames_left;
+    cur_int->frames_active  = was_nil ? 0 : cur_int->frames_active + 1;
+
+    cur_int->event          = cur_int->event ? cur_int->event : event;
+
+    V2_f32 mouse_initial = cur_int->value.mouse_initial_pos;
+    copy_struct(&cur_int->value, event_value);
+
+    if ((event & ui_event_drag) || (event & ui_event_mouse))
+    {
+      cur_int->value.mouse_initial_pos = mouse_initial;
+    }
+
+    const u32 frames_until_drag = 10;
+    if ((event & ui_event_drag) && (cur_widget->widget_flags & widget_flag_clickable))
+    {
+      if ((cur_int->frames_active < frames_until_drag) && ((event & ui_event_keyboard) == 0))
+      {
+        cur_int->event = ui_event_none;
+      }
+
+      if ((cur_int->value.mouse_initial_pos.x == 0.0f) && 
+          (cur_int->value.mouse_initial_pos.y == 0.0f))
+      {
+        cur_int->value.mouse_initial_pos = event_value->mouse;
+      }
+    }
+
   }
 }
 

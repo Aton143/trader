@@ -708,6 +708,7 @@ typedef V4_f32        RGBA_f32;
 #define rect_get_height(rect)     (((rect)->y1) - ((rect)->y0))
 #define rect_get_dimensions(rect) V2(rect_get_width(rect), rect_get_height(rect))
 #define rect_get_center(rect)     {((rect)->x0 + (rect)->x1) / 2, ((rect)->y0 + (rect)->y1) / 2}
+#define rect_get_area(rect)       ((rect_get_width(rect)) * (rect_get_height(rect)))
 
 internal inline V2_f32 V2(f32 x, f32 y);
 internal inline V4_f32 V4(f32 x, f32 y, f32 z, f32 w = 1.0f);
@@ -1114,6 +1115,13 @@ internal u64 difference_with_wrap(u64 a, u64 b)
 
   return(b_a_diff);
 }
+
+internal b32 xor(b32 a, b32 b)
+{
+  b32 res = (!!a) ^ (!!b); 
+  return(res);
+}
+
 #endif
 
 #define TRADER_BASE_DEFINES_H

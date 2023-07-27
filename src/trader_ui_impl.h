@@ -213,7 +213,7 @@ internal Panel *ui_make_panel(Axis_Split split, f32 *size_relative_to_parent, St
     {
       V2(0.0f, 0.0f),
       V2(1.0f, 1.0f),
-      global_slider_float * 1000.0f,
+      global_slider_float * 100.0f,
       *panel->size_relative_to_parent,
       3.0f,
     };
@@ -1196,24 +1196,7 @@ internal void ui_flatten_draw_layers(void)
     Instance_Buffer_Element *instances      = (Instance_Buffer_Element *) ui->render_layers[layer_index].start;
     u32                      instance_count = (u32) (ui->render_layers[layer_index].used / sizeof(*instances));
 
-#define TRADER__FLATTEN_DEBUG 0
-#if TRADER__FLATTEN_DEBUG
-    for (u32 instance_index = 0; instance_index < instance_count; ++instance_index)
-    {
-      Instance_Buffer_Element *cur_inst; cur_inst = instances + instance_index;
-      int i = 0; i++;
-    }
-#endif
-
     copy_memory_block(flattened_elements, instances, ui->render_layers[layer_index].used);
-
-#if TRADER__FLATTEN_DEBUG
-    for (u32 instance_index = 0; instance_index < instance_count; ++instance_index)
-    {
-      Instance_Buffer_Element *cur_inst; cur_inst = flattened_elements + instance_index;
-      int i = 0; i++;
-    }
-#endif
 
     ui->flattened_draw_layer_indices[layer_index]  = layer_start_index;
     layer_start_index                             += instance_count;
@@ -1304,7 +1287,9 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
   ui_evaluate_child_sizes_panel(panel);
 
   RGBA_f32 start_color = rgba_from_u8(0, 0, 0, 255);
-  RGBA_f32 end_color   = rgba_from_u8(255, 255, 255, 255);
+  RGBA_f32 end_color   = rgba_from_u8((u8) (global_slider_float * 255), (u8) ((1.0f - global_slider_float) * 255), 0, 255);
+
+  f32 rect_area = rect_get_area(&rect);
 
   while (panel_queue.read != panel_queue.write)
   {
@@ -1332,8 +1317,8 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
     if (cur_panel->first_child == NULL)
     {
       // NOTE(antonio): need to remove draw call
-      Arena *background_render_layer = ui_get_render_layer(0);
-      Instance_Buffer_Element *draw_call = push_struct(background_render_layer, Instance_Buffer_Element);
+      Arena                   *background_render_layer = ui_get_render_layer(0);
+      Instance_Buffer_Element *draw_call               = push_struct(background_render_layer, Instance_Buffer_Element);
 
       draw_call->size  = {0.0f, 0.0f, rect_get_width(&to_place), rect_get_height(&to_place)};
       draw_call->uv    =
@@ -1350,9 +1335,10 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
       draw_call->color[2] = start_color;
       draw_call->color[3] = start_color;
 
-      start_color = wide_lerp(start_color, 0.5f, end_color);
+      f32 area_ratio = (rect_get_area(&to_place)) / rect_area;
+      start_color = wide_lerp(start_color, area_ratio, end_color);
 
-      draw_call->corner_radius    = global_slider_float * 1000.0f;
+      draw_call->corner_radius    = global_slider_float * 100.0f;
       draw_call->border_thickness = 3.0f;
       draw_call->edge_softness    = 0.5f;
 
@@ -1936,16 +1922,9 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
           }
 
           {
-            Arena *over_text_layer = ui_get_render_layer(2);
+            Arena *over_text_layer = ui_get_render_layer(1);
             Instance_Buffer_Element *draw_call = push_struct(over_text_layer, Instance_Buffer_Element);
             zero_struct(draw_call);
-
-            Rect_f32 solid_color_rect = {
-              (f32) render->atlas->solid_color_rect.x0,
-              (f32) render->atlas->solid_color_rect.y0,
-              (f32) render->atlas->solid_color_rect.x1,
-              (f32) render->atlas->solid_color_rect.y1,
-            };
 
             draw_call->size = 
             {
@@ -1964,7 +1943,7 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
             draw_call->color[2] = cursor_color;
             draw_call->color[3] = cursor_color;
 
-            draw_call->uv            = solid_color_rect;
+            draw_call->uv            = render_get_solid_color_rect();
             draw_call->edge_softness = 0.0f;
           }
         }

@@ -94,9 +94,12 @@ internal Render_Context        *render_get_context(void);
 internal Common_Render_Context *render_get_common_context(void);
 internal void                   render_set_client_rect(Rect_f32 new_rect);
 internal Rect_f32               render_get_client_rect(void);
+internal Rect_f32               render_get_solid_color_rect(void);
 
 internal void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *shader, b32 force = false);
 internal void  render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shader, b32 force = false);
+
+internal void  render_push_line_instance(V2_f32 line_start, f32 length, f32 dir_x, f32 dir_y); 
 
 // internal Vertex_Buffer_Element render_vertex(V4_f32 position, RGBA_f32 color, 
 internal Vertex_Buffer_Element *render_push_triangles(u64 triangle_count);
@@ -523,6 +526,41 @@ internal void render_draw_text(Arena    *render_arena,
 
   *baseline_x = cur_pos.x;
   *baseline_y = cur_pos.y;
+}
+
+internal Rect_f32 render_get_solid_color_rect(void)
+{
+  Texture_Atlas *atlas = render_get_common_context()->atlas;
+
+  Rect_f32 solid_color_rect;
+
+  solid_color_rect.x0 = (f32) atlas->solid_color_rect.x0;
+  solid_color_rect.y0 = (f32) atlas->solid_color_rect.y0;
+  solid_color_rect.x1 = (f32) atlas->solid_color_rect.x1;
+  solid_color_rect.y1 = (f32) atlas->solid_color_rect.y1;
+
+  return(solid_color_rect);
+}
+
+internal void render_push_line_instance(V2_f32 line_start, f32 length, f32 dir_x, f32 dir_y)
+{
+  expect(xor(dir_x != 0.0f, dir_y != 0.0f));
+
+  Common_Render_Context *common_context =  render_get_common_context();
+  Arena                 *instance_data  = &common_context->render_data;
+
+  Instance_Buffer_Element *draw = push_struct_zero(instance_data, Instance_Buffer_Element);
+
+  V2_f32 line_sizes = V2(dir_x ? dir_x * length : 1.0f, dir_y ? dir_y * length : 1.0f);
+  draw->size.p1  = line_sizes;
+  draw->pos      = V3(line_start.x, line_start.y, 0.6f);
+
+  draw->color[0] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+  draw->color[1] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+  draw->color[2] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+  draw->color[3] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+
+  draw->uv       = render_get_solid_color_rect();
 }
 
 #define TRADER_RENDER_H

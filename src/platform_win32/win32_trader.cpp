@@ -1411,12 +1411,16 @@ WinMain(HINSTANCE instance,
 
       Rect_f32 render_rect = render_get_client_rect();
 
-      line_length = clamp(0.0f, line_length + (10.0f * ui->mouse_wheel_delta.y), 500.0f);
+      line_length = clamp(0.0f, line_length + (10.0f * ui->mouse_wheel_delta.y), 1000.0f);
 
       V2_f32 line_start  = V2(500.0f, 100.0f);
       V2_f32 line_end    = V2(line_start.x + line_length, line_start.y);
 
-      render_push_line_instance(line_start, line_length, 1.0f, 0.0f);
+      render_push_line_instance(line_start, line_length + 0.5f, 1.0f, 0.0f);
+      render_push_line_instance(line_start, line_length + 0.5f, 0.0f, 1.0f);
+
+      render_push_line_instance(V2(line_start.x, line_start.y + line_length), line_length + 0.5f, 1.0f, 0.0f);
+      render_push_line_instance(V2(line_start.x + line_length, line_start.y), line_length + 0.5f, 0.0f, 1.0f);
 
       range.end = line_length;
 
@@ -1430,7 +1434,7 @@ WinMain(HINSTANCE instance,
       render_get_text_dimensions(&end_text_dimensions.x, &end_text_dimensions.y, render_rect, end_str, end_str.size);
 
       V2_f32 start_text_pos = V2(line_start.x - (0.5f * start_text_dimensions.x),
-                                 line_start.y + common_render->atlas->heights[0]);
+                                 line_start.y + common_render->atlas->heights[0] + line_length);
 
       render_draw_text(&common_render->render_data,
                        &start_text_pos.x,
@@ -1440,7 +1444,7 @@ WinMain(HINSTANCE instance,
                        start_str.str);
 
       V2_f32 end_text_pos = V2(line_end.x - (0.5f * end_text_dimensions.x),
-                                 line_end.y + common_render->atlas->heights[0]);
+                                 line_end.y + common_render->atlas->heights[0] + line_length);
 
       render_draw_text(&common_render->render_data,
                        &end_text_pos.x,

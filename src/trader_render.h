@@ -108,7 +108,7 @@ internal void render_data_to_lines(V2_f32 *points, u64 point_count);
 internal i64 render_get_font_height_index(f32 font_height);
 internal i64 render_get_packed_char_start(f32 font_height);
 
-internal void render_get_text_dimensions(f32 *x, f32 *y, Rect_f32 bounds, String_Const_utf8 string, u64 up_to);
+internal void render_get_text_dimensions(f32 *x, f32 *y, Rect_f32 bounds, String_Const_utf8 string, i64 up_to);
 internal void render_draw_text(Arena *render_arena, f32 *x, f32 *y, RGBA_f32 color, Rect_f32 bounds, utf8 *format, ...);
 
 internal b32 render_atlas_initialize(Arena         *arena,
@@ -376,7 +376,7 @@ internal void render_data_to_lines(V2_f32 *points, u64 point_count)
   }
 }
 
-internal void render_get_text_dimensions(f32 *x, f32 *y, Rect_f32 bounds, String_Const_utf8 string, u64 up_to)
+internal void render_get_text_dimensions(f32 *x, f32 *y, Rect_f32 bounds, String_Const_utf8 string, i64 up_to)
 {
   expect(x != NULL);
   expect(y != NULL);
@@ -385,7 +385,7 @@ internal void render_get_text_dimensions(f32 *x, f32 *y, Rect_f32 bounds, String
   expect(bounds.y0 <= bounds.y1);
 
   // TODO(antonio): kind of a hack
-  expect(is_between_inclusive(-1, (i64) up_to, (i64) string.size));
+  expect(is_between_inclusive(-1, up_to, (i64) string.size));
 
   Common_Render_Context   *render_context  = render_get_common_context();
   Texture_Atlas           *atlas           = render_context->atlas;
@@ -394,7 +394,7 @@ internal void render_get_text_dimensions(f32 *x, f32 *y, Rect_f32 bounds, String
   f32 font_scale = stbtt_ScaleForPixelHeight(&atlas->font_info, atlas->heights[0]);
 
   for (i64 text_index = 0;
-       (text_index < (i64) string.size) && (text_index <= (i64) up_to);
+       (text_index < (i64) string.size) && (text_index <= up_to);
        ++text_index)
   {
     // TODO(antonio): deal with new lines more gracefully
@@ -417,7 +417,7 @@ internal void render_get_text_dimensions(f32 *x, f32 *y, Rect_f32 bounds, String
   }
 
   *x = cur_pos.x;
-  *y = cur_pos.y;
+  *y = cur_pos.y + font_scale;
 }
 
 internal void render_draw_text(Arena    *render_arena,

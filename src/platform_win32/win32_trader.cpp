@@ -1069,6 +1069,9 @@ WinMain(HINSTANCE instance,
     f32 panel_floats[16]  = {1.0f / 4.0f, 1.0f / 4.0f, 1.0f / 4.0f, 1.0f / 4.0f};
     u32 panel_float_index = 0;
 
+    f32       line_length = 0.0f;
+    Range_f32 range       = {0.0f, 1.0f};
+
     Buffer           teb_buf = stack_alloc_buffer(128);
     zero_memory_block(teb_buf.data, teb_buf.size);
     Text_Edit_Buffer teb = {teb_buf, string_encoding_utf8};
@@ -1081,6 +1084,8 @@ WinMain(HINSTANCE instance,
     expect_message(win32_global_state.main_fiber_address != NULL, "could not create a fiber for messages");
 
     text_edit_insert_string_and_advance(&debug_teb, str_from_lit("abcdefI don't    know", utf8));
+
+    Common_Render_Context *common_render = render_get_common_context();
 
     while (global_running)
     {
@@ -1404,9 +1409,46 @@ WinMain(HINSTANCE instance,
           */
       }
 
-      render_push_line_instance(V2(100.0f, 100.0f), (1.0f - global_slider_float) * 500.0f, 1.0f, 0.0f);
-
       Rect_f32 render_rect = render_get_client_rect();
+
+      line_length = clamp(0.0f, line_length + (10.0f * ui->mouse_wheel_delta.y), 500.0f);
+
+      V2_f32 line_start  = V2(500.0f, 100.0f);
+      V2_f32 line_end    = V2(line_start.x + line_length, line_start.y);
+
+      render_push_line_instance(line_start, line_length, 1.0f, 0.0f);
+
+      range.end = line_length;
+
+      String_Const_utf8 start_str = scu8f(ui->string_pool, "%.0f", range.start);
+      String_Const_utf8 end_str   = scu8f(ui->string_pool, "%.0f", range.end);
+
+      V2_f32 start_text_dimensions = {};
+      V2_f32 end_text_dimensions   = {};
+
+      render_get_text_dimensions(&start_text_dimensions.x, &start_text_dimensions.y, render_rect, start_str, start_str.size);
+      render_get_text_dimensions(&end_text_dimensions.x, &end_text_dimensions.y, render_rect, end_str, end_str.size);
+
+      V2_f32 start_text_pos = V2(line_start.x - (0.5f * start_text_dimensions.x),
+                                 line_start.y + common_render->atlas->heights[0]);
+
+      render_draw_text(&common_render->render_data,
+                       &start_text_pos.x,
+                       &start_text_pos.y,
+                       rgba(1.0f, 1.0f, 1.0f, 1.0f),
+                       render_rect,
+                       start_str.str);
+
+      V2_f32 end_text_pos = V2(line_end.x - (0.5f * end_text_dimensions.x),
+                                 line_end.y + common_render->atlas->heights[0]);
+
+      render_draw_text(&common_render->render_data,
+                       &end_text_pos.x,
+                       &end_text_pos.y,
+                       rgba(1.0f, 1.0f, 1.0f, 1.0f),
+                       render_rect,
+                       end_str.str);
+
       ui_prepare_render_from_panels(ui_get_sentinel_panel(), render_rect);
 
       u32 initial_draw_count = (u32) (win32_global_state.render_context.render_data.used / sizeof(Instance_Buffer_Element));

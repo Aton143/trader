@@ -244,7 +244,7 @@ internal inline String_Const_utf8 scu8f(Arena *arena, i32 limit, char *format, .
 
   utf8 *string_start = (utf8 *) (arena->start + arena->used);
 
-  res.size = stbsp_vsnprintf((char *) string_start, (limit > 0) ? limit : 512, format, args);
+  res.size = stbsp_vsnprintf((char *) string_start, limit, format, args);
   res.str  = string_start;
 
   arena_push(arena, res.size + 1);
@@ -256,7 +256,20 @@ internal inline String_Const_utf8 scu8f(Arena *arena, i32 limit, char *format, .
 
 internal inline String_Const_utf8 scu8f(Arena *arena, char *format, ...)
 {
-  String_Const_utf8 res = scu8f(arena, 0, format);
+  String_Const_utf8 res = {};
+
+  va_list args;
+  va_start(args, format);
+
+  utf8 *string_start = (utf8 *) (arena->start + arena->used);
+
+  res.size = stbsp_vsnprintf((char *) string_start, 512, format, args);
+  res.str  = string_start;
+
+  arena_push(arena, res.size + 1);
+
+  va_end(args);
+
   return(res);
 }
 

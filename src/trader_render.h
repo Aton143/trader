@@ -99,7 +99,8 @@ internal Rect_f32               render_get_solid_color_rect(void);
 internal void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *shader, b32 force = false);
 internal void  render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shader, b32 force = false);
 
-internal void  render_push_line_instance(V2_f32 line_start, f32 length, f32 dir_x, f32 dir_y); 
+internal void  render_push_line_instance(V2_f32 line_start, f32 length, f32 dir_x, f32 dir_y,
+                                         RGBA_f32 color = rgba_white); 
 
 // internal Vertex_Buffer_Element render_vertex(V4_f32 position, RGBA_f32 color, 
 internal Vertex_Buffer_Element *render_push_triangles(u64 triangle_count);
@@ -543,7 +544,7 @@ internal Rect_f32 render_get_solid_color_rect(void)
   return(solid_color_rect);
 }
 
-internal void render_push_line_instance(V2_f32 line_start, f32 length, f32 dir_x, f32 dir_y)
+internal void render_push_line_instance(V2_f32 line_start, f32 length, f32 dir_x, f32 dir_y, RGBA_f32 color)
 {
   expect(xor(dir_x != 0.0f, dir_y != 0.0f));
 
@@ -557,10 +558,10 @@ internal void render_push_line_instance(V2_f32 line_start, f32 length, f32 dir_x
 
   draw->pos      = V3(line_start.x + 0.5f, line_start.y + 0.5f, 0.6f);
 
-  draw->color[0] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
-  draw->color[1] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
-  draw->color[2] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
-  draw->color[3] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+  draw->color[0] = color;
+  draw->color[1] = color;
+  draw->color[2] = color;
+  draw->color[3] = color;
 
   draw->uv       = render_get_solid_color_rect();
 }

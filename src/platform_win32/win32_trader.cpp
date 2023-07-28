@@ -1059,17 +1059,16 @@ WinMain(HINSTANCE instance,
     u32 data_index  = 0;
     u32 click_count = 0;
 
-    f32 slider_float = 1.0f;
+    f32 slider_float = 0.25f;
     f32 panel_float  = 0.5f;
 
     f32 acc_time    = 0.0f;
     f32 up_down     = 0.0f;
     b32 triangle    = false;
 
-    f32 panel_floats[16]  = {1.0f / 4.0f, 1.0f / 4.0f, 1.0f / 4.0f, 1.0f / 4.0f};
+    f32 panel_floats[16]  = {0.20f, 0.45f, 0.05f, 0.30f};
     u32 panel_float_index = 0;
 
-    f32       line_length = 0.0f;
     Range_f32 range       = {0.0f, 1.0f};
 
     Buffer           teb_buf = stack_alloc_buffer(128);
@@ -1411,20 +1410,18 @@ WinMain(HINSTANCE instance,
 
       Rect_f32 render_rect = render_get_client_rect();
 
-      line_length = clamp(0.0f, line_length + (10.0f * ui->mouse_wheel_delta.y), 1000.0f);
-      if (line_length > 0.0f)
       {
+        f32 width  = 800.0f;
+        f32 height = 900.0f;
 
         V2_f32 line_start  = V2(500.0f, 100.0f);
-        V2_f32 line_end    = V2(line_start.x + line_length, line_start.y);
+        V2_f32 line_end    = V2(line_start.x + width, line_start.y);
 
-        render_push_line_instance(line_start, line_length, 1.0f, 0.0f);
-        render_push_line_instance(line_start, line_length, 0.0f, 1.0f);
+        render_push_line_instance(line_start, width, 1.0f, 0.0f);
+        render_push_line_instance(line_start, height, 0.0f, 1.0f);
 
-        render_push_line_instance(V2(line_start.x, line_start.y + line_length), line_length + 0.5f, 1.0f, 0.0f);
-        render_push_line_instance(V2(line_start.x + line_length, line_start.y), line_length + 0.5f, 0.0f, 1.0f);
-
-        range.end = line_length;
+        render_push_line_instance(V2(line_start.x, line_start.y + height), width + 0.5f, 1.0f, 0.0f);
+        render_push_line_instance(V2(line_start.x + width, line_start.y), height + 0.5f, 0.0f, 1.0f);
 
         String_Const_utf8 start_str = scu8f(ui->string_pool, "%.0f", range.start);
         String_Const_utf8 end_str   = scu8f(ui->string_pool, "%.0f", range.end);
@@ -1436,7 +1433,7 @@ WinMain(HINSTANCE instance,
         render_get_text_dimensions(&end_text_dimensions.x, &end_text_dimensions.y, render_rect, end_str, end_str.size);
 
         V2_f32 start_text_pos = V2(line_start.x - (0.5f * start_text_dimensions.x),
-                                   line_start.y + common_render->atlas->heights[0] + line_length);
+                                   line_start.y + common_render->atlas->heights[0] + height);
 
         render_draw_text(&common_render->render_data,
                          &start_text_pos.x,
@@ -1446,7 +1443,7 @@ WinMain(HINSTANCE instance,
                          start_str.str);
 
         V2_f32 end_text_pos = V2(line_end.x - (0.5f * end_text_dimensions.x),
-                                 line_end.y + common_render->atlas->heights[0] + line_length);
+                                 line_end.y + common_render->atlas->heights[0] + height);
 
         render_draw_text(&common_render->render_data,
                          &end_text_pos.x,
@@ -1454,6 +1451,18 @@ WinMain(HINSTANCE instance,
                          rgba(1.0f, 1.0f, 1.0f, 1.0f),
                          render_rect,
                          end_str.str);
+
+        for (f32 x = 0.1f; x < 1.00f; x += 0.10f)
+        {
+          V2_f32 x_line_start = V2(fmaddf(width, x, line_start.x), line_start.y);
+          render_push_line_instance(x_line_start, height + 0.5f, 0.0f, 1.0f, rgba(1.0f, 1.0f, 1.0f, 0.55f));
+        }
+
+        for (f32 y = 0.1f; y < 1.00f; y += 0.10f)
+        {
+          V2_f32 y_line_start = V2(line_start.x, fmaddf(height, y, line_start.y));
+          render_push_line_instance(y_line_start, width + 0.5f, 1.0f, 0.0f, rgba(1.0f, 1.0f, 1.0f, 0.55f));
+        }
       }
 
       ui_prepare_render_from_panels(ui_get_sentinel_panel(), render_rect);

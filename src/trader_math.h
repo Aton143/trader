@@ -13,6 +13,8 @@ internal inline f32 fast_powf(f32 a, f32 b);
 internal inline V2_f32 line_get_closest_point_to_point(V2_f32 p, V2_f32 line_start, V2_f32 line_end);
 internal inline f32    line_get_squared_distance_from_point(V2_f32 p, V2_f32 line_start, V2_f32 line_end);
 
+internal inline f32    fmaddf(f32 m1, f32 m2, f32 a);
+
 typedef u32 Rectangle_Side;
 enum
 {
@@ -332,6 +334,12 @@ internal inline Rect_f32 translate(Rect_f32 rect, V2_f32 v)
   res.p1 = rect.p1 + v;
 
   return(res);
+}
+
+internal inline f32 fmaddf(f32 m1, f32 m2, f32 a)
+{
+  f32 result = fmaf(m1, m2, a);
+  return(result);
 }
 
 #endif

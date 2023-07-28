@@ -1063,7 +1063,6 @@ WinMain(HINSTANCE instance,
     f32 panel_float  = 0.5f;
 
     f32 acc_time    = 0.0f;
-    f32 up_down     = 0.0f;
     b32 triangle    = false;
 
     f32 panel_floats[16]  = {0.20f, 0.45f, 0.05f, 0.30f};
@@ -1344,15 +1343,8 @@ WinMain(HINSTANCE instance,
       }
       else
       {
-        ui_canvas(string_literal_init_type("Canvas", utf8), V2(200.0f, 200.0f));
+        // ui_canvas(string_literal_init_type("Canvas", utf8), V2(200.0f, 200.0f));
 
-        data_for_lines[data_index] = V2(acc_time, 0.5f * (sinf(acc_time * tau_f32) + 1.0f) + up_down);
-        data_index = (data_index + 1) % array_count(data_for_lines);
-
-        /*
-        u64 lines_to_render = (u64) ceilf(slider_float * data_index);
-        render_data_to_lines(data_for_lines, lines_to_render);
-        */
       }
 
       ui_push_text_color(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1409,6 +1401,7 @@ WinMain(HINSTANCE instance,
       }
 
       Rect_f32 render_rect = render_get_client_rect();
+      Rect_f32 plot_rect;
 
       {
         f32 width  = 800.0f;
@@ -1461,19 +1454,22 @@ WinMain(HINSTANCE instance,
                          render_rect,
                          end_str.str);
 
-        for (f32 x = 0.1f; x < 1.00f; x += 0.10f)
+        if (!triangle)
         {
-          V2_f32 x_line_start = V2(fmaddf(width, x, line_start.x), line_start.y);
-          render_push_line_instance(x_line_start, height + 0.5f, 0.0f, 1.0f, rgba(1.0f, 1.0f, 1.0f, 0.55f));
+          for (f32 x = 0.1f; x < 1.00f; x += 0.10f)
+          {
+            V2_f32 x_line_start = V2(fmaddf(width, x, line_start.x), line_start.y);
+            render_push_line_instance(x_line_start, height + 0.5f, 0.0f, 1.0f, rgba(1.0f, 1.0f, 1.0f, 0.55f));
+          }
+
+          for (f32 y = 0.1f; y < 1.00f; y += 0.10f)
+          {
+            V2_f32 y_line_start = V2(line_start.x, fmaddf(height, y, line_start.y));
+            render_push_line_instance(y_line_start, width + 0.5f, 1.0f, 0.0f, rgba(1.0f, 1.0f, 1.0f, 0.55f));
+          }
         }
 
-        for (f32 y = 0.1f; y < 1.00f; y += 0.10f)
-        {
-          V2_f32 y_line_start = V2(line_start.x, fmaddf(height, y, line_start.y));
-          render_push_line_instance(y_line_start, width + 0.5f, 1.0f, 0.0f, rgba(1.0f, 1.0f, 1.0f, 0.55f));
-        }
-
-        Rect_f32 plot_rect = {line_start.x, line_start.y, line_start.x + width, line_start.y + height};
+        plot_rect  = {line_start.x, line_start.y, line_start.x + width, line_start.y + height};
         if (rect_is_point_inside(ui->mouse_pos, plot_rect))
         {
           f32 x = ui->mouse_pos.x;
@@ -1484,6 +1480,16 @@ WinMain(HINSTANCE instance,
                            (x - plot_rect.x0) / rect_get_width(&plot_rect),
                            (y - plot_rect.y0) / rect_get_height(&plot_rect));
         }
+
+        if (acc_time < 1.0f)
+        {
+          data_for_lines[data_index] = V2(acc_time, 0.5f * (sinf(acc_time * tau_f32) + 1.0f));
+          data_index = (data_index + 1) % array_count(data_for_lines);
+        }
+
+        common_render->vertex_render_dimensions = {width, height};
+        u64 lines_to_render = data_index;
+        render_data_to_lines(data_for_lines, lines_to_render);
       }
 
       ui_prepare_render_from_panels(ui_get_sentinel_panel(), render_rect);
@@ -1492,11 +1498,13 @@ WinMain(HINSTANCE instance,
       ui_flatten_draw_layers();
 
       acc_time += 1.0f/60.0f;
+      /*
       if (acc_time > 1.0f)
       {
         acc_time = 0.f;
         up_down = ((f32) (rng_get_random32() % 1024)) / (1024.0f);
       }
+      */
 
       // NOTE(antonio): instances
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -1597,15 +1605,18 @@ WinMain(HINSTANCE instance,
       // NOTE(antonio): triangles
       D3D11_VIEWPORT viewport =
       {
-        0.0f, 0.0f, 
-        client_rect.x1, client_rect.y1,
-        /*
-        ui->canvas_viewport.x0, ui->canvas_viewport.y0,
-        rect_get_width(&ui->canvas_viewport),
-        rect_get_height(&ui->canvas_viewport),
-        */
+        plot_rect.x0, plot_rect.y0, 
+        rect_get_width(&plot_rect), rect_get_height(&plot_rect),
         0.0f, 1.0f
       };
+
+      /*
+       D3D11_VIEWPORT viewport = 
+       {
+       ui->canvas_viewport.x0,               ui->canvas_viewport.y0,
+       rect_get_width(&ui->canvas_viewport), rect_get_height(&ui->canvas_viewport),
+       }
+      */
 
       device_context->RSSetViewports(1, &viewport);
 
@@ -1661,8 +1672,8 @@ WinMain(HINSTANCE instance,
 
         device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-        u32 triangle_draw_call_count = 0;
-          // (u32) (win32_global_state.render_context.triangle_render_data.used / sizeof(Vertex_Buffer_Element));
+        u32 triangle_draw_call_count = 
+          (u32) (win32_global_state.render_context.triangle_render_data.used / sizeof(Vertex_Buffer_Element));
 
         /*
         expect_message((vertex_count % 3) == 0, 

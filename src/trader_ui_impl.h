@@ -1267,7 +1267,6 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
     return;
   }
 
-  Common_Render_Context *render = render_get_common_context();
   V2_f32 rect_dimensions = rect_get_dimensions(&rect);
 
   Arena *temp_arena     = get_temp_arena();
@@ -1320,14 +1319,8 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
       Arena                   *background_render_layer = ui_get_render_layer(0);
       Instance_Buffer_Element *draw_call               = push_struct(background_render_layer, Instance_Buffer_Element);
 
-      draw_call->size  = {0.0f, 0.0f, rect_get_width(&to_place), rect_get_height(&to_place)};
-      draw_call->uv    =
-      {
-        (f32) render->atlas->solid_color_rect.x0,
-        (f32) render->atlas->solid_color_rect.y0,
-        (f32) render->atlas->solid_color_rect.x1,
-        (f32) render->atlas->solid_color_rect.y1,
-      };
+      draw_call->size     = {0.0f, 0.0f, rect_get_width(&to_place), rect_get_height(&to_place)};
+      draw_call->uv       = render_get_solid_color_rect();
       draw_call->pos      = V3(to_place.x0, to_place.y0, 0.4f);
 
       draw_call->color[0] = start_color;
@@ -1378,7 +1371,6 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
   Arena                 _temp_arena   = get_rest_of_temp_arena(0.5f);
   Arena                 *temp_arena   = &_temp_arena;
   UI_Context            *ui           = ui_get_context();
-  Render_Context        *render       = render_get_context();
 
   u64 ring_buffer_size = temp_arena->size;
 
@@ -1865,13 +1857,7 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
           cur_widget->computed_size_in_pixels.y,
         };
 
-        draw_call->uv =
-        {
-          (f32) render->atlas->solid_color_rect.x0,
-          (f32) render->atlas->solid_color_rect.y0,
-          (f32) render->atlas->solid_color_rect.x1,
-          (f32) render->atlas->solid_color_rect.y1,
-        };
+        draw_call->uv = render_get_solid_color_rect();
 
         draw_call->pos =
         {

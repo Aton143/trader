@@ -845,7 +845,7 @@ WinMain(HINSTANCE instance,
     {
       D3D11_SAMPLER_DESC sampler_description = {};
 
-      sampler_description.Filter         = D3D11_FILTER_MIN_MAG_MIP_POINT;
+      sampler_description.Filter         = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
       sampler_description.AddressU       = D3D11_TEXTURE_ADDRESS_WRAP;
       sampler_description.AddressV       = D3D11_TEXTURE_ADDRESS_WRAP;
       sampler_description.AddressW       = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -1412,46 +1412,49 @@ WinMain(HINSTANCE instance,
       Rect_f32 render_rect = render_get_client_rect();
 
       line_length = clamp(0.0f, line_length + (10.0f * ui->mouse_wheel_delta.y), 1000.0f);
+      if (line_length > 0.0f)
+      {
 
-      V2_f32 line_start  = V2(500.0f, 100.0f);
-      V2_f32 line_end    = V2(line_start.x + line_length, line_start.y);
+        V2_f32 line_start  = V2(500.0f, 100.0f);
+        V2_f32 line_end    = V2(line_start.x + line_length, line_start.y);
 
-      render_push_line_instance(line_start, line_length + 0.5f, 1.0f, 0.0f);
-      render_push_line_instance(line_start, line_length + 0.5f, 0.0f, 1.0f);
+        render_push_line_instance(line_start, line_length, 1.0f, 0.0f);
+        render_push_line_instance(line_start, line_length, 0.0f, 1.0f);
 
-      render_push_line_instance(V2(line_start.x, line_start.y + line_length), line_length + 0.5f, 1.0f, 0.0f);
-      render_push_line_instance(V2(line_start.x + line_length, line_start.y), line_length + 0.5f, 0.0f, 1.0f);
+        render_push_line_instance(V2(line_start.x, line_start.y + line_length), line_length + 0.5f, 1.0f, 0.0f);
+        render_push_line_instance(V2(line_start.x + line_length, line_start.y), line_length + 0.5f, 0.0f, 1.0f);
 
-      range.end = line_length;
+        range.end = line_length;
 
-      String_Const_utf8 start_str = scu8f(ui->string_pool, "%.0f", range.start);
-      String_Const_utf8 end_str   = scu8f(ui->string_pool, "%.0f", range.end);
+        String_Const_utf8 start_str = scu8f(ui->string_pool, "%.0f", range.start);
+        String_Const_utf8 end_str   = scu8f(ui->string_pool, "%.0f", range.end);
 
-      V2_f32 start_text_dimensions = {};
-      V2_f32 end_text_dimensions   = {};
+        V2_f32 start_text_dimensions = {};
+        V2_f32 end_text_dimensions   = {};
 
-      render_get_text_dimensions(&start_text_dimensions.x, &start_text_dimensions.y, render_rect, start_str, start_str.size);
-      render_get_text_dimensions(&end_text_dimensions.x, &end_text_dimensions.y, render_rect, end_str, end_str.size);
+        render_get_text_dimensions(&start_text_dimensions.x, &start_text_dimensions.y, render_rect, start_str, start_str.size);
+        render_get_text_dimensions(&end_text_dimensions.x, &end_text_dimensions.y, render_rect, end_str, end_str.size);
 
-      V2_f32 start_text_pos = V2(line_start.x - (0.5f * start_text_dimensions.x),
-                                 line_start.y + common_render->atlas->heights[0] + line_length);
+        V2_f32 start_text_pos = V2(line_start.x - (0.5f * start_text_dimensions.x),
+                                   line_start.y + common_render->atlas->heights[0] + line_length);
 
-      render_draw_text(&common_render->render_data,
-                       &start_text_pos.x,
-                       &start_text_pos.y,
-                       rgba(1.0f, 1.0f, 1.0f, 1.0f),
-                       render_rect,
-                       start_str.str);
+        render_draw_text(&common_render->render_data,
+                         &start_text_pos.x,
+                         &start_text_pos.y,
+                         rgba(1.0f, 1.0f, 1.0f, 1.0f),
+                         render_rect,
+                         start_str.str);
 
-      V2_f32 end_text_pos = V2(line_end.x - (0.5f * end_text_dimensions.x),
+        V2_f32 end_text_pos = V2(line_end.x - (0.5f * end_text_dimensions.x),
                                  line_end.y + common_render->atlas->heights[0] + line_length);
 
-      render_draw_text(&common_render->render_data,
-                       &end_text_pos.x,
-                       &end_text_pos.y,
-                       rgba(1.0f, 1.0f, 1.0f, 1.0f),
-                       render_rect,
-                       end_str.str);
+        render_draw_text(&common_render->render_data,
+                         &end_text_pos.x,
+                         &end_text_pos.y,
+                         rgba(1.0f, 1.0f, 1.0f, 1.0f),
+                         render_rect,
+                         end_str.str);
+      }
 
       ui_prepare_render_from_panels(ui_get_sentinel_panel(), render_rect);
 

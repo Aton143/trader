@@ -123,7 +123,7 @@ float4 PS_Main(PS_Input input): SV_Target
   float alpha_sample = global_texture.Sample(global_sampler, input.uv).r;
 
   float border_factor = 1.0f;
-  if(input.border_thickness != 0)
+  if(input.border_thickness != 0.0f)
   {
     float2 interior_half_size = input.dst_half_size - input.border_thickness;
 
@@ -151,10 +151,14 @@ float4 PS_Main(PS_Input input): SV_Target
     float inside_f = 1.0f - smoothstep(0, 2.0f * input.edge_softness, inside_d);
     if (inside_d > 0.0f) border_factor = inside_f;
   }
+  else
+  {
+    border_factor = 1.0f;
+  }
 
   float  multiplied_alpha = alpha_sample * border_factor * input.color.a;
-  float3 combined  = float3(input.color.rgb) * multiplied_alpha;
-  float4 out_color = float4(combined, multiplied_alpha);
+  float3 combined         = float3(input.color.rgb) * multiplied_alpha;
+  float4 out_color        = float4(combined, multiplied_alpha);
   return out_color;
 }
 

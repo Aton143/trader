@@ -292,12 +292,13 @@ internal void render_data_to_lines(V2_f32 *points, u64 point_count)
   Vertex_Buffer_Element *cur_vert = vertices;
 
   Common_Render_Context *common = render_get_common_context();
-  Rect_f32 solid_color_rect = {
+  Rect_f32 solid_color_rect = render_get_solid_color_rect();
+    /*{
     (f32) common->atlas->solid_color_rect.x0,
     (f32) common->atlas->solid_color_rect.y0,
     (f32) common->atlas->solid_color_rect.x1,
     (f32) common->atlas->solid_color_rect.y1,
-  };
+  };*/
 
   f32 to_next_pixel = (1.0f / (2.0f * common->vertex_render_dimensions.x));
 
@@ -534,10 +535,10 @@ internal Rect_f32 render_get_solid_color_rect(void)
 
   Rect_f32 solid_color_rect;
 
-  solid_color_rect.x0 = (f32) atlas->solid_color_rect.x0;
-  solid_color_rect.y0 = (f32) atlas->solid_color_rect.y0;
-  solid_color_rect.x1 = (f32) atlas->solid_color_rect.x1;
-  solid_color_rect.y1 = (f32) atlas->solid_color_rect.y1;
+  solid_color_rect.x0 = ((f32) atlas->solid_color_rect.x0) + 0.5f;
+  solid_color_rect.y0 = ((f32) atlas->solid_color_rect.y0) + 0.5f;
+  solid_color_rect.x1 = ((f32) atlas->solid_color_rect.x1) - 0.5f;
+  solid_color_rect.y1 = ((f32) atlas->solid_color_rect.y1) - 0.5f;
 
   return(solid_color_rect);
 }
@@ -553,7 +554,8 @@ internal void render_push_line_instance(V2_f32 line_start, f32 length, f32 dir_x
 
   V2_f32 line_sizes = V2(dir_x ? dir_x * length : 1.0f, dir_y ? dir_y * length : 1.0f);
   draw->size.p1  = line_sizes;
-  draw->pos      = V3(line_start.x, line_start.y, 0.6f);
+
+  draw->pos      = V3(line_start.x + 0.5f, line_start.y + 0.5f, 0.6f);
 
   draw->color[0] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
   draw->color[1] = rgba(1.0f, 1.0f, 1.0f, 1.0f);

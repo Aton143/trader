@@ -1429,8 +1429,17 @@ WinMain(HINSTANCE instance,
         V2_f32 start_text_dimensions = {};
         V2_f32 end_text_dimensions   = {};
 
-        render_get_text_dimensions(&start_text_dimensions.x, &start_text_dimensions.y, render_rect, start_str, start_str.size);
-        render_get_text_dimensions(&end_text_dimensions.x, &end_text_dimensions.y, render_rect, end_str, end_str.size);
+        render_get_text_dimensions(&start_text_dimensions.x,
+                                   &start_text_dimensions.y,
+                                   render_rect,
+                                   start_str,
+                                   start_str.size);
+
+        render_get_text_dimensions(&end_text_dimensions.x,
+                                   &end_text_dimensions.y,
+                                   render_rect,
+                                   end_str,
+                                   end_str.size);
 
         V2_f32 start_text_pos = V2(line_start.x - (0.5f * start_text_dimensions.x),
                                    line_start.y + common_render->atlas->heights[0] + height);
@@ -1462,6 +1471,18 @@ WinMain(HINSTANCE instance,
         {
           V2_f32 y_line_start = V2(line_start.x, fmaddf(height, y, line_start.y));
           render_push_line_instance(y_line_start, width + 0.5f, 1.0f, 0.0f, rgba(1.0f, 1.0f, 1.0f, 0.55f));
+        }
+
+        Rect_f32 plot_rect = {line_start.x, line_start.y, line_start.x + width, line_start.y + height};
+        if (rect_is_point_inside(ui->mouse_pos, plot_rect))
+        {
+          f32 x = ui->mouse_pos.x;
+          f32 y = ui->mouse_pos.y;
+
+          render_draw_text(&common_render->render_data, &x, &y, rgba_white, render_rect,
+                           (utf8 *) "(%.2f, %.2f)",
+                           (x - plot_rect.x0) / rect_get_width(&plot_rect),
+                           (y - plot_rect.y0) / rect_get_height(&plot_rect));
         }
       }
 

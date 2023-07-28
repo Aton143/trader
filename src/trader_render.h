@@ -556,7 +556,7 @@ internal void render_push_line_instance(V2_f32 line_start, f32 length, f32 dir_x
   V2_f32 line_sizes = V2(dir_x ? dir_x * length : 1.0f, dir_y ? dir_y * length : 1.0f);
   draw->size.p1  = line_sizes;
 
-  draw->pos      = V3(line_start.x + 0.5f, line_start.y + 0.5f, 0.6f);
+  draw->pos      = V3(line_start.x + 0.5f, line_start.y + 0.5f, 0.5f);
 
   draw->color[0] = color;
   draw->color[1] = color;

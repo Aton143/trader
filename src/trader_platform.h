@@ -1,5 +1,6 @@
 #ifndef TRADER_PLATFORM_H
 
+struct Handle;
 struct Cursor_Handle;
 typedef u32 Cursor_Kind;
 
@@ -72,19 +73,6 @@ internal void              plaform_write_clipboard_contents(String_utf8 string);
 
 // NOTE(antonio): threads
 internal Thread_Handle platform_create_thread(Thread_Routine routine, void *routine_arg);
-
-// implementation
-internal void platform_debug_printf(char *format, ...)
-{
-  char buffer[512] = {};
-  va_list args;
-  va_start(args, format);
-
-  stbsp_vsnprintf(buffer, array_count(buffer), format, args);
-  platform_debug_print(buffer);
-
-  va_end(args);
-}
 
 #define TRADER_PLATFORM_H
 #endif

@@ -1,5 +1,20 @@
 #ifndef TRADER_HANDLE_H
 
+#include <stdio.h>
+
+#define expect(expr)
+#define expect_message(expr, message)
+
+#include "trader_base_defines.h"
+#include "trader_memory.h"
+
+#if OS_LINUX
+struct OS_Handle
+{
+  FILE __file_handle;
+};
+#endif
+
 enum {
   Handle_Kind_None,
   Handle_Kind_File,
@@ -8,6 +23,7 @@ enum {
 typedef u64 Handle_Kind;
 
 struct Asset_Node;
+struct OS_Handle;
 
 struct Handle {
   u64         generation;
@@ -16,7 +32,7 @@ struct Handle {
 
   union
   {
-    HANDLE file_handle;
+    OS_Handle file_handle;
   };
 };
 

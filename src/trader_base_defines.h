@@ -7,13 +7,12 @@
 #if defined(_WIN32)
 # define OS_WINDOWS 1
 # define THREAD_CALL_CONVENTION __stdcall
+
 #else
 # error This compiler/platform combination is not supported
 #endif
 
-# if defined(_M_AMD64)
-#  define ARCH_X64 1
-# elif defined(_M_IX86)
+# if defined(_M_AMD64) #  define ARCH_X64 1 # elif defined(_M_IX86)
 #  define ARCH_X86 1
 # elif defined(_M_ARM64)
 #  define ARCH_ARM64 1
@@ -271,6 +270,8 @@ global_const f64 max_f64     =  1.79769313486231e+308;
 global_const f64 min_f64     = -1.79769313486231e+308;
 global_const f64 smallest_positive_f64 = 4.94065645841247e-324;
 global_const f64 epsilon_f64 =  1.11022302462515650e-16;
+
+global_const f32 float_epsilon = 0.0005f;
 
 #define clamp_signed_to_i8(x)    (i8)  (clamp((i64)i8_min, (i64)(x), (i64)i8_max))
 #define clamp_signed_to_i16(x)   (i16) (clamp((i64)i16_min, (i64)(x), (i64)i16_max))
@@ -732,17 +733,17 @@ internal inline RGBA_f32 rgba_from_u8(u8 r, u8 g, u8 b, u8 a)
   return(conv_rgba);
 }
 
-global_const RGBA_f32 rgba_white = rgba(1.0f, 1.0f, 1.0f, 1.0f);
-global_const RGBA_f32 rgba_black = rgba(0.0f, 0.0f, 0.0f, 1.0f);
+global_const RGBA_f32 rgba_white = {1.0f, 1.0f, 1.0f, 1.0f};
+global_const RGBA_f32 rgba_black = {0.0f, 0.0f, 0.0f, 1.0f};
 
-global_const RGBA_f32 rgba_red   = rgba(1.0f, 0.0f, 0.0f, 1.0f);
-global_const RGBA_f32 rgba_green = rgba(0.0f, 1.0f, 0.0f, 1.0f);
-global_const RGBA_f32 rgba_blue  = rgba(0.0f, 0.0f, 1.0f, 1.0f);
+global_const RGBA_f32 rgba_red   = {1.0f, 0.0f, 0.0f, 1.0f};
+global_const RGBA_f32 rgba_green = {0.0f, 1.0f, 0.0f, 1.0f};
+global_const RGBA_f32 rgba_blue  = {0.0f, 0.0f, 1.0f, 1.0f};
 
-global_const V2_f32 down_v2  = V2( 0.0f,  1.0f);
-global_const V2_f32 up_v2    = V2( 0.0f, -1.0f);
-global_const V2_f32 right_v2 = V2( 1.0f,  0.0f);
-global_const V2_f32 left_v2  = V2(-1.0f,  0.0f);
+global_const V2_f32 down_v2  = { 0.0f,  1.0f};
+global_const V2_f32 up_v2    = { 0.0f, -1.0f};
+global_const V2_f32 right_v2 = { 1.0f,  0.0f};
+global_const V2_f32 left_v2  = {-1.0f,  0.0f};
 
 union Matrix_f32_4x4 {
   struct {
@@ -792,10 +793,6 @@ struct Array_u64 {
 };
 
 internal inline Matrix_f32_4x4 matrix4x4_from_rows(V4_f32 row0, V4_f32 row1, V4_f32 row2, V4_f32 row3);
-global_const Matrix_f32_4x4 identity_m4x4 = matrix4x4_from_rows(V4(1.0f, 0.0f, 0.0f, 0.0f),
-                                                                V4(0.0f, 1.0f, 0.0f, 0.0f),
-                                                                V4(0.0f, 0.0f, 1.0f, 0.0f),
-                                                                V4(0.0f, 0.0f, 0.0f, 1.0f));
 
 typedef u8      utf8;
 typedef wchar_t utf16;
@@ -899,7 +896,6 @@ struct String_Any {
 
 #define align(val, alignment) ((((val) + (alignment) - 1) / (alignment)) * (alignment))
 
-// TODO(antonio): does this break things???
 struct Buffer
 {
   u8  *data;
@@ -908,221 +904,6 @@ struct Buffer
   u64  used;
 };
 typedef Buffer File_Buffer;
-
-#define buffer_from_string_literal_type(s) {(u8 *) (s), sizeof(s), sizeof(s)}
-
-internal inline b32 is_in_buffer(Buffer *buf, i64 pos)
-{
-  b32 is_in = (0 <= pos) && (pos <= ((i64) buf->used));
-  return(is_in);
-}
-
-#if OS_WINDOWS
-#include "trader_meta.h"
-#include "trader_memory.h"
-#include "trader_string_utilities.h"
-
-#define str_from_lit(s, t) concat(String_, t) {(t *) (s), (sizeof(s) - sizeof(*s)), (sizeof(s) - sizeof(*s))}
-#define string_literal_init(s) {(s), sizeof(s) - sizeof(*s)}
-#define string_literal_init_type(s, t) concat(String_Const_, t) {(t *) (s), sizeof(s) - 1}
-#define string_from_c_string(type, s, capacity) {(type *) s, get_length_c_string((type *) s), (capacity)}
-#define string_from_fixed_size(type, buffer) {(type *) (buffer), 0, sizeof(buffer) - sizeof(type)}
-
-// helpful functions
-u32 count_set_bits(u64 bits)
-{
-    u32 count = 0;
-    while (bits != 0)
-    {
-        bits = bits & (bits - 1);
-        count++;
-    }
-    return count;
-}
-
-// WELL512 rng, Chris Lomont, www.lomont.org
-
-// initialize state to random bits
-static u32 rng_state[16] = 
-{
-  0b10000101000010000101010101110010,
-  0b10111110011111001111100010010110,
-  0b11111100000010010011100000111001,
-  0b11011000000001011100001000000101,
-  0b10011100011101111001101101111101,
-  0b11111010001101010001011101010011,
-  0b10101001110010011111011111000001,
-  0b01000011001011000000101100110111,
-  0b01010111010101110110001110101010,
-  0b11011011010111000110100010100100,
-  0b11001010111101010000101010110000,
-  0b00011001101000010011101011100000,
-  0b01111010111010100110000001111111,
-  0b01000100101010010010101100111100,
-  0b00101000001010110011011011101101,
-  0b00001111100000101110011010101011,
-};
-
-// init should also reset this to 0
-global u32 rng_index = 0;
-
-// return 32 bit random number
-internal u32 WELLRNG512(void)
-{
-  u32 a, b, c, d;
-  a = rng_state[rng_index];
-  c = rng_state[(rng_index + 13) & 15];
-  b = a ^ c ^ (a << 16) ^ (c << 15);
-  c = rng_state[(rng_index + 9) & 15];
-  c ^= (c >> 11);
-  a = rng_state[rng_index] = b ^ c;
-  d = a^((a << 5) & 0xDA442D24UL);
-  rng_index = (rng_index + 15) & 15;
-  a = rng_state[rng_index];
-  rng_state[rng_index] = a ^ b ^ d ^ (a << 2) ^ (b << 18) ^ (c << 28);
-  return rng_state[rng_index];
-}
-
-internal void rng_init(void)
-{
-  rng_index = 0;
-}
-
-internal u32 rng_get_random32(void)
-{
-  u32 result = WELLRNG512();
-  return(result);
-}
-
-internal u64 rng_fill_buffer(u8 *buffer, u64 buffer_length)
-{
-  u32 *buffer32 = (u32 *) buffer;
-  u64 length32 = buffer_length / sizeof(*buffer32);
-
-  for (u64 index32 = 0;
-       index32 < length32;
-       ++index32)
-  {
-    buffer32[index32] = rng_get_random32();
-  }
-
-  u64 remaining = buffer_length % sizeof(*buffer32);
-
-  buffer += length32 * sizeof(*buffer32);
-  for (u64 remaining_index = 0;
-       remaining_index < remaining;
-       ++remaining_index)
-  {
-    buffer[remaining_index] = (u8) rng_get_random32();
-  }
-
-  return(buffer_length);
-}
-
-internal u16 fletcher_sum(u8 *data, u32 count)
-{
-   u8 sum1 = 0;
-   u8 sum2 = 0;
-
-   for (u32 index = 0;
-        index < count;
-        ++index)
-   {
-      sum1 = (sum1 + data[index]) % 255;
-      sum2 = (sum2 + sum1) % 255;
-   }
-
-   return((sum2 << 8) | sum1);
-}
-
-global u64 hash_seed = 0x400921fb54442d18;
-
-internal u64 hash_mix(u64 value)
-{
- value ^= value >> 23;
- value *= 0x2127599bf4325c37ULL;
- value ^= (value) >> 47;
- return(value);
-}
-
-internal u64 hash(u8 *buffer, u64 length)
-{
-  u64 multiplier = 0x880355f21e6d1965ULL;
-  u64 *buffer_position = (u64 *) buffer;
-  u64 *buffer_end = buffer_position + (length / 8);
-
-  u8 *remaining_buffer_position;
-  u64 result = hash_seed ^ (length * multiplier);
-
-  u64 current_buffer_value;
-  while (buffer_position != buffer_end) {
-    current_buffer_value = *buffer_position;
-    buffer_position++;
-    result ^= hash_mix(current_buffer_value);
-    result *= multiplier;
-  }
-
-  remaining_buffer_position = (u8 *) buffer_position;
-  current_buffer_value = 0;
-
-  switch (length & 7) {
-  case 7: current_buffer_value ^= ((u64) remaining_buffer_position[6]) << 48;
-  case 6: current_buffer_value ^= ((u64) remaining_buffer_position[5]) << 40;
-  case 5: current_buffer_value ^= ((u64) remaining_buffer_position[4]) << 32;
-  case 4: current_buffer_value ^= ((u64) remaining_buffer_position[3]) << 24;
-  case 3: current_buffer_value ^= ((u64) remaining_buffer_position[2]) << 16;
-  case 2: current_buffer_value ^= ((u64) remaining_buffer_position[1]) << 8;
-  case 1: current_buffer_value ^= ((u64) remaining_buffer_position[0]);
-          result ^= hash_mix(current_buffer_value);
-          result *= multiplier;
-  }
-
-  return(hash_mix(result));
-}
-
-internal u64 hash_c_string(char *str)
-{
-  return(hash((u8 *) str, c_string_length(str)));
-}
-
-// TODO(antonio): this of course doesn't really make sense
-global_const f32 float_epsilon = 0.0005f;
-
-internal f32 abs(f32 a)
-{
-  f32 result = (a < 0.0f) ? -a : a;
-  return(result);
-}
-
-internal b32 approx_equal(f32 a, f32 b)
-{
-  b32 result = (abs(a - b) < float_epsilon);
-  return(result);
-}
-
-internal u64 difference_with_wrap(u64 a, u64 b)
-{
-  u64 b_a_diff;
-
-  if (a >= b)
-  {
-    b_a_diff = a - b;
-  }
-  else
-  {
-    b_a_diff = (max_u64 - b) + a;
-  }
-
-  return(b_a_diff);
-}
-
-internal b32 xor(b32 a, b32 b)
-{
-  b32 res = (!!a) ^ (!!b); 
-  return(res);
-}
-
-#endif
 
 #define TRADER_BASE_DEFINES_H
 #endif

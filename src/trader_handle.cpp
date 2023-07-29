@@ -1,5 +1,5 @@
-#ifndef TRADER_HANDLE_IMPL_H
-// implementation
+#include "trader_handle.h"
+
 internal b32 is_nil(Handle *handle)
 {
   b32 result = (handle->generation == nil_handle.generation) &&
@@ -44,5 +44,3 @@ internal Handle *make_handle(String_Const_utf8 id, Handle_Kind kind, Handle *pre
 
   return(result);
 }
-#define TRADER_HANDLE_IMPL_H
-#endif

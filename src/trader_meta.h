@@ -2,8 +2,16 @@
 #include "trader_handle.h"
 
 #if OS_WINDOWS
-# define debug_break() __debugbreak()
+#elif COMPILER_GCC
+# if ARCH_X64
+internal inline void __debugbreak()
+{
+  asm volatile("int3");
+}
+# endif
 #endif
+
+# define debug_break() __debugbreak()
 
 #define expect_break(m) debug_break()
 #define expect_always(c, m) \

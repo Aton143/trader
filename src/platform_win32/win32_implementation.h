@@ -991,12 +991,6 @@ internal i64 render_get_font_height_index(f32 font_height)
   return(result);
 }
 
-internal u64 platform_get_processor_time_stamp(void)
-{
-  u64 time_stamp = (u64) __rdtsc();
-  return(time_stamp);
-}
-
 internal u64 platform_get_high_precision_timer(void)
 {
   u64 result = {};

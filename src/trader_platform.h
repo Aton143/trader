@@ -55,7 +55,6 @@ internal b32 platform_did_file_change(utf8 *file_name, u64 file_name_length);
 internal String_Const_utf8 platform_get_file_name_from_path(String_Const_utf8 *path);
 
 internal u64 platform_get_high_precision_timer(void);
-internal u64 platform_get_processor_time_stamp(void);
 
 internal double platform_convert_high_precision_time_to_seconds(u64 high_precision_time);
 
@@ -70,6 +69,7 @@ internal String_Const_utf8 platform_read_clipboard_contents(Arena *arena);
 internal void              platform_write_clipboard_contents(String_utf8 string);
 
 // NOTE(antonio): threads
+internal void platform_thread_init(void);
 internal Thread_Handle platform_create_thread(Thread_Routine routine, void *routine_arg);
 
 #define TRADER_PLATFORM_H

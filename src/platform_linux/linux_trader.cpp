@@ -15,14 +15,15 @@
 
 int main(int arg_count, char *arg_values[])
 {
-  arg_count  = 0;
-  arg_values = 0;
+  unused(arg_count);
+  unused(arg_values);
 
-  arg_count++;
-  arg_values++;
+  platform_thread_init();
+  rng_init();
 
-  u8 *memory = platform_allocate_memory_pages(kb(4), NULL);
-  unused(memory);
+#if !SHIP_MODE
+  meta_init();
+#endif
 
   return(0);
 }

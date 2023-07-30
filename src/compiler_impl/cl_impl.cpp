@@ -21,5 +21,11 @@ inline internal u64 byte_swap_64(u64 val)
   return(swapped);
 }
 
+inline internal u64 get_processor_time_stamp(void)
+{
+  u64 processor_ts = __rdtsc();
+  return(processor_ts);
+}
+
 #define CL_IMPL_H
 #endif

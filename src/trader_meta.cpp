@@ -21,7 +21,7 @@ internal Timed_Block meta_start_timed_block(u32 counter, char *file_name, char *
   res.record->line_number = line_number;
   res.record->hit_count   = 0;
 
-  res.cycle_count_start   = platform_get_processor_time_stamp();
+  res.cycle_count_start   = get_processor_time_stamp();
   res.high_precision_time = platform_get_high_precision_timer();
 
   return(res);
@@ -30,7 +30,7 @@ internal Timed_Block meta_start_timed_block(u32 counter, char *file_name, char *
 internal void meta_end_timed_block(Timed_Block *timed_block)
 {
   timed_block->record->time_stamp +=
-    difference_with_wrap(platform_get_processor_time_stamp(), timed_block->cycle_count_start);
+    difference_with_wrap(get_processor_time_stamp(), timed_block->cycle_count_start);
   timed_block->record->high_precision_time += platform_get_high_precision_timer() - timed_block->high_precision_time;
 
   double high_precision_time_in_seconds =

@@ -20,5 +20,15 @@ inline internal u64 byte_swap_64(u64 val)
   return(swapped);
 }
 
+inline internal u64 get_processor_time_stamp(void)
+{
+#if ARCH_X64
+  u32 tick_lo, tick_hi;
+  __asm__ __volatile__("rdtsc" : "=a"(tick_lo), "=d"(tick_hi));
+  u64 processor_ts = (((u64) tick_hi) << 32) | ((u64) tick_lo);
+  return(processor_ts);
+#endif
+}
+
 #define GCC_IMPL_H
 #endif

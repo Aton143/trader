@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include <errno.h>
+#include <time.h>
 #include <sys/mman.h>
 
 #include "../trader_platform.h"
@@ -20,6 +21,8 @@ struct Global_Platform_State
   UI_Context     ui_context;
   Render_Context render_context;
   f32            dt;
+
+
 };
 
 Global_Platform_State linux_platform_state;
@@ -47,15 +50,22 @@ internal b32 platform_open_file(utf8 *file_name, u64 file_name_length, Handle *o
   return(result);
 }
 
-internal inline u64 platform_get_processor_time_stamp(void)
+internal b32 platform_open_file_for_appending(utf8 *file_path, u64 file_path_size, Handle *out_handle)
 {
-  u64 ts = 0;
-  return(ts);
+  unused(file_path);
+  unused(file_path_size);
+  unused(out_handle);
+  return(false);
 }
 
 internal inline u64 platform_get_high_precision_timer(void)
 {
-  u64 ts = 0;
+  timespec _ts;
+  u64 ts;
+
+  clock_gettime(CLOCK_MONOTONIC, &_ts);
+  ts = (_ts.tv_sec * 1e6) + _ts.tv_nsec;
+
   return(ts);
 }
 
@@ -179,4 +189,48 @@ internal inline f64 platform_convert_high_precision_time_to_seconds(u64 hpt)
 internal void platform_debug_print_system_error()
 {
   perror(NULL);
+}
+
+internal void platform_thread_init(void)
+{
+  for (u32 thread_context_index = 0;
+       thread_context_index < thread_count;
+       ++thread_context_index)
+  {
+    thread_contexts[thread_context_index].local_temp_arena.arena = arena_alloc(global_temp_arena_size, 1, NULL);
+  }
+}
+
+internal void meta_init(void)
+{
+  timespec _freq;
+  if (clock_getres(CLOCK_MONOTONIC, &_freq) == -1)
+  {
+    platform_debug_print_system_error();
+  }
+
+  meta_info.high_precision_timer_frequency = (_freq.tv_sec * 1e6) + _freq.tv_nsec;
+
+  Arena *temp_arena = get_temp_arena();
+  set_temp_arena_wait(1);
+
+  temp_arena->used = copy_string_lit(temp_arena->start, (utf8 *) "./logs/");
+  temp_arena->used -= 1;
+
+  time_t _now = time(NULL);
+  tm now = *localtime(&_now);
+
+  temp_arena->used = stbsp_snprintf((char *) (temp_arena->start + temp_arena->used),
+                                    (int) (temp_arena->size - temp_arena->used - 1),
+                                    "%04d_%02d_%02d_%02d_%02d_%02d",
+                                    now.tm_year + 1900,
+                                    now.tm_mon + 1,
+                                    now.tm_mday,
+                                    now.tm_hour,
+                                    now.tm_min,
+                                    now.tm_sec);
+  temp_arena->used -= 1;
+
+  temp_arena->used += copy_string_lit(&temp_arena->start[temp_arena->used], (utf8 *) ".log");
+  temp_arena->used -= 1;
 }

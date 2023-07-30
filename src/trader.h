@@ -52,6 +52,14 @@ global u8 __debug_memory[1 << 20];
 # endif
 #endif
 
+#if COMPILER_CL
+# include "compiler_impl/cl_impl.cpp"
+#elif COMPILER_GCC
+# include "compiler_impl/gcc_impl.cpp"
+#elif COMPILER_CLANG
+# include "compiler_impl/clang_impl.cpp"
+#endif
+
 #include "trader_math.cpp"
 #include "trader_memory.cpp"
 #include "trader_string_utilities.cpp"
@@ -64,14 +72,6 @@ global u8 __debug_memory[1 << 20];
 
 #include "trader_unicode.cpp"
 #include "trader_text_edit.cpp"
-
-#if COMPILER_CL
-# include "compiler_impl/cl_impl.cpp"
-#elif COMPILER_GCC
-# include "compiler_impl/gcc_impl.cpp"
-#elif COMPILER_CLANG
-# include "compiler_impl/clang_impl.cpp"
-#endif
 
 global Text_Edit_Buffer debug_teb = make_text_edit_buffer({__debug_memory, array_count(__debug_memory), 0});
 

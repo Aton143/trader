@@ -35,3 +35,4 @@ This project depends on stb\_image\_write.h, stb\_rect\_pack.h, stb\_sprintf.h, 
 - [Jonathan Blow](http://number-none.com/blow/)
 - [Kevin Moran](https://github.com/kevinmoran)
 - [Allen Webster](https://mr4th.com/)
+- [Eskil Steenberg](http://quelsolaar.com/about)

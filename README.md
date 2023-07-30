@@ -5,9 +5,8 @@ A multiplatform, performant trading client and GUI with very few dependencies.
 This project is still in its early stages, so to say. Right now, it supports HTTPS using a blocking- and sockets-based architecture sockets on Windows and has a Direct3D 11 rendering backend, running at 60fps with ease. It has the infrastructure to do hot-reloads using efficient methods (a.k.a. [I/O Completion Ports](https://learn.microsoft.com/en-us/windows/win32/fileio/i-o-completion-ports)), instrumented profiling, logging asserts, frame buffer captures, visual debugging, plots, text editing, and more! One might say it's awesome!
 
 ## Currently working on 
-- WebSockets implementation from soup to nuts
-- Immediate Mode GUI
-    - Real-time plotting
+- Linux build on linux-bootstrap branch
+- Reorganizing project for multiplatform builds
 
 ## Planned features
 - [ ] Linux! Oh, no...

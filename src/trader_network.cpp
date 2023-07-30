@@ -6,7 +6,10 @@ internal void network_print_error()
   zero_literal(network_error_buffer);
 
   u32 ssl_error = ERR_get_error();
-  ERR_error_string_n(ssl_error, (char *) network_error_buffer, array_count(network_error_buffer) - 1);
+  ERR_error_string_n(ssl_error,
+                     (char *) network_error_buffer,
+                     array_count(network_error_buffer) - 1);
+
   platform_debug_print((char *) "\n");
   platform_debug_print((char *) network_error_buffer);
   platform_debug_print((char *) "\n");

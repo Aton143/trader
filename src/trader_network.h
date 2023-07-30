@@ -1,4 +1,5 @@
 #ifndef TRADER_NETWORK_H
+#include <openssl/err.h>
 
 struct Network_State
 {
@@ -6,7 +7,8 @@ struct Network_State
 };
 
 #define SSL_MAX_HOST_NAME_LENGTH 255
-#define SSL_OK                   1 #define SSL_ERROR                0
+#define SSL_OK                   1
+#define SSL_ERROR                0
 
 enum
 {
@@ -30,6 +32,7 @@ enum
   network_error_decrypt_failure,
 
   network_error_unknown,
+  network_error_unimplemented,
 
   network_return_code_count,
 };

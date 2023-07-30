@@ -445,3 +445,30 @@ internal void render_push_line_instance(V2_f32 line_start, f32 length, f32 dir_x
   draw->uv       = render_get_solid_color_rect();
 }
 
+internal i64 render_get_packed_char_start(f32 font_height)
+{
+  Texture_Atlas *atlas = render_get_common_context()->atlas;
+
+  i64 result = 0;
+  b32 found = false;
+
+  for (u64 font_height_index = 0;
+       font_height_index < array_count(atlas->heights);
+       ++font_height_index)
+  {
+    f32 cur_height = atlas->heights[font_height_index];
+
+    if (approx_equal_f32(cur_height, font_height))
+    {
+      found = true;
+      break;
+    }
+    else
+    {
+      result += atlas->char_data_set_counts[font_height_index];
+    }
+  }
+
+  return(found ? result : -1);
+}
+

@@ -534,9 +534,6 @@ internal b32 platform_did_file_change(utf8 *file_name, u64 file_name_length)
   return(file_changed);
 }
 
-global_const u8 platform_path_separator = '\\';
-global_const u8 unix_path_separator = '/';
-
 internal String_Const_utf8 platform_get_file_name_from_path(String_Const_utf8 *path)
 {
   String_Const_utf8 result = {};
@@ -992,33 +989,6 @@ internal i64 render_get_font_height_index(f32 font_height)
   }
 
   return(result);
-}
-
-internal i64 render_get_packed_char_start(f32 font_height)
-{
-  Texture_Atlas *atlas = win32_global_state.render_context.atlas;
-
-  i64 result = 0;
-  b32 found = false;
-
-  for (u64 font_height_index = 0;
-       font_height_index < array_count(atlas->heights);
-       ++font_height_index)
-  {
-    f32 cur_height = atlas->heights[font_height_index];
-
-    if (approx_equal(cur_height, font_height))
-    {
-      found = true;
-      break;
-    }
-    else
-    {
-      result += atlas->char_data_set_counts[font_height_index];
-    }
-  }
-
-  return(found ? result : -1);
 }
 
 internal u64 platform_get_processor_time_stamp(void)

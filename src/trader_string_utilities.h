@@ -3,9 +3,6 @@
 #include <wchar.h>
 #include <stdarg.h>
 
-#define expect(expr)
-#define expect_message(expr, message)
-
 #define str_from_lit(s, t) concat(String_, t) {(t *) (s), (sizeof(s) - sizeof(*s)), (sizeof(s) - sizeof(*s))}
 #define string_literal_init(s) {(s), sizeof(s) - sizeof(*s)}
 #define string_literal_init_type(s, t) concat(String_Const_, t) {(t *) (s), sizeof(s) - 1}

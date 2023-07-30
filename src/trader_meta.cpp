@@ -1,11 +1,10 @@
-#ifndef TRADER_META_IMPL_H
 #include "trader_meta.h"
 
-const extern u32 timing_records_count;
-extern Timing_Record timing_records[];
+const u32 timing_records_count = 1;
+Timing_Record timing_records[1];
 
-struct Timed_Block
-{
+struct Timed_Block {
+
   Timing_Record *record;
   u64            cycle_count_start;
   u64            high_precision_time;
@@ -34,7 +33,7 @@ internal void meta_end_timed_block(Timed_Block *timed_block)
     difference_with_wrap(platform_get_processor_time_stamp(), timed_block->cycle_count_start);
   timed_block->record->high_precision_time += platform_get_high_precision_timer() - timed_block->high_precision_time;
 
-  double high_precision_time_in_seconds; high_precision_time_in_seconds =
+  double high_precision_time_in_seconds =
     platform_convert_high_precision_time_to_seconds(timed_block->high_precision_time);
 
   timed_block->record->hit_count++;
@@ -93,8 +92,8 @@ internal void meta_collate_timing_records(void)
       sprinted_text.size = stbsp_snprintf(sprinted_text.str, (int) sprinted_text.cap,
                                          "%s (%lld): %lld cycles (%fs) - %d %s\n",
                                          cur_collated->function,
-                                         cur_collated->line_number,
-                                         cur_collated->time_stamp,
+                                         (long long int) cur_collated->line_number,
+                                         (long long int) cur_collated->time_stamp,
                                          high_precision_time_in_seconds,
                                          cur_collated->hit_count,
                                          cur_collated->hit_count == 1 ? "time" : "times");
@@ -107,6 +106,3 @@ internal void meta_collate_timing_records(void)
 
   zero_array(timing_records, Timing_Record, timing_records_count);
 }
-
-#define TRADER_META_IMPL_H
-#endif

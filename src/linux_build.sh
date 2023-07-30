@@ -9,7 +9,7 @@ BIN_NAME="trader"
 INCLUDES="-I ../src/submodules/stb/ -I ../src/submodules/openssl/include"
 SOURCES="$SRC_DIR/platform_linux/linux_trader.cpp"
 
-DEBUG_FLAGS="-Wall -Werror -Wextra -Wdouble-promotion -Wformat -Wformat-overflow -Wno-unused-function -Wno-unused-variable -Wno-missing-field-initializers -Wunused -Wuninitialized"
+DEBUG_FLAGS="-Wall -Werror -Wextra -Wdouble-promotion -Wformat -Wformat-overflow -Wno-unused-function -Wno-unused-variable -Wno-missing-field-initializers -Wunused -Wuninitialized -Wno-type-limits"
 
 if [ ! -d "$BUILD_DIR" ]; then
   mkdir $BUILD_DIR

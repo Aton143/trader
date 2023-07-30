@@ -1,4 +1,5 @@
-#if !defined(TRADER_UI_IMPL_H)
+#include "trader_ui.h"
+
 internal void ui_make_widget(Widget_Flag        widget_flags,
                              Widget_Size_Flag   size_flags,
                              String_Const_utf8  string,
@@ -12,8 +13,8 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
                              String_Const_utf8 *alt_key_source)
 {
   // TODO(antonio): sprint nation?
-  UI_Context     *ui     = ui_get_context();
-  Render_Context *render = render_get_context();
+  UI_Context            *ui     = ui_get_context();
+  Common_Render_Context *render = render_get_common_context();
 
   unused(data);
   unused(data_size);
@@ -461,7 +462,7 @@ internal void ui_initialize(UI_Context *ui)
   ui->widget_memory_size = sizeof(Widget) * default_widget_count;
 
   ui->string_pool  = push_struct(global_arena, Arena);
-  *ui->string_pool =arena_alloc(default_string_pool_size, 1, NULL);
+  *ui->string_pool = arena_alloc(default_string_pool_size, 1, NULL);
 
   // TODO(antonio): do I need to do back links?
   Widget *free_widget_list = ui->widget_memory;
@@ -1213,7 +1214,7 @@ internal inline void ui_add_interaction(Widget *cur_widget, i32 frames_left, u32
   i32 interaction_update_index = -1;
 
   for (i32 interaction_index = 0;
-       interaction_index < array_count(ui->interactions);
+       interaction_index < (i32) array_count(ui->interactions);
        ++interaction_index) 
   {
     UI_Interaction *cur_int = &ui->interactions[interaction_index];
@@ -1244,7 +1245,7 @@ internal inline void ui_add_interaction(Widget *cur_widget, i32 frames_left, u32
       cur_int->value.mouse_initial_pos = mouse_initial;
     }
 
-    const u32 frames_until_drag = 10;
+    const i32 frames_until_drag = 10;
     if ((event & ui_event_drag) && (cur_widget->widget_flags & widget_flag_clickable))
     {
       if ((cur_int->frames_active < frames_until_drag) && ((event & ui_event_keyboard) == 0))
@@ -1971,5 +1972,3 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
 
   arena_reset(temp_arena);
 }
-#define TRADER_UI_IMPL_H
-#endif

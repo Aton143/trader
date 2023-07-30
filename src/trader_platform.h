@@ -1,7 +1,5 @@
 #ifndef TRADER_PLATFORM_H
-
-struct Handle;
-struct Cursor_Handle;
+struct Handle; struct Cursor_Handle;
 typedef u32 Cursor_Kind;
 
 enum
@@ -31,7 +29,7 @@ struct Thread_Handle;
 internal Global_Platform_State *platform_get_global_state(void);
 internal Arena *platform_get_global_arena(void);
 
-unimplemented internal void  *platform_allocate_memory_pages(u64 bytes);
+unimplemented internal u8 *platform_allocate_memory_pages(u64 bytes, void *start);
 
 internal void platform_debug_print(char *text);
 internal void platform_debug_printf(char *format, ...);
@@ -69,7 +67,7 @@ internal File_Buffer       platform_open_and_read_entire_file_from_system_prompt
 internal void  platform_set_cursor(Cursor_Kind cursor);
 
 internal String_Const_utf8 platform_read_clipboard_contents(Arena *arena);
-internal void              plaform_write_clipboard_contents(String_utf8 string);
+internal void              platform_write_clipboard_contents(String_utf8 string);
 
 // NOTE(antonio): threads
 internal Thread_Handle platform_create_thread(Thread_Routine routine, void *routine_arg);

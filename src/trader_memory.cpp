@@ -1,9 +1,4 @@
 #include <stdlib.h>
-
-#define expect(expr)
-#define expect_message(expr, message)
-
-#include "trader_base_defines.h"
 #include "trader_memory.h"
 
 internal inline i64 copy_memory_block(void *dest, void *source, i64 byte_count)
@@ -257,4 +252,65 @@ internal inline void ring_buffer_pop_and_put(Ring_Buffer *rb,
   copy_memory_block(data, read, size);
 }
 
+internal inline Arena *get_temp_arena(Thread_Context *context)
+{
+  Temp_Arena *temp_arena = &context->local_temp_arena;
+
+  if (temp_arena->wait > 0)
+  {
+    temp_arena->wait--;
+  }
+  else
+  {
+    temp_arena->arena.used = 0;
+  }
+
+  return(&temp_arena->arena);
+}
+
+internal Arena arena_alloc(u64 size, u64 alignment, void *start)
+{
+  Arena arena = {};
+
+  u8 *allocated = platform_allocate_memory_pages(size, start);
+
+  expect(allocated != NULL);
+
+  arena.start     = allocated;
+  arena.size      = size;
+  arena.used      = 0;
+  arena.alignment = alignment;
+
+  return(arena);
+}
+
+internal inline Arena get_rest_of_temp_arena(f32 rest, Thread_Context *context)
+{
+  expect(is_between_inclusive(0.0f, rest, 1.0f));
+  expect(context != NULL);
+
+  Temp_Arena *temp_arena = &context->local_temp_arena;
+
+  Arena res;
+  res.start     = temp_arena->arena.start + temp_arena->arena.used;
+  res.size      = (u64) (rest * (temp_arena->arena.size  - temp_arena->arena.used));
+  res.used      = 0;
+  res.alignment = temp_arena->arena.alignment;
+
+  temp_arena->arena.used += res.size;
+  expect(temp_arena->arena.used < temp_arena->arena.size);
+
+  return(res);
+}
+
+internal inline u64 get_temp_arena_used(Thread_Context *context)
+{
+  Temp_Arena *temp_arena = &context->local_temp_arena;
+  return(temp_arena->arena.used);
+}
+
+internal void set_temp_arena_wait(u64 wait, Thread_Context *context)
+{
+  context->local_temp_arena.wait = wait;
+}
 

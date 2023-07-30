@@ -905,5 +905,25 @@ struct Buffer
 };
 typedef Buffer File_Buffer;
 
+struct Arena
+{
+  u8   *start;
+  u64   size;
+  u64   used;
+  u64   alignment;
+};
+
+struct Temp_Arena
+{
+  Arena arena;
+  u64   wait;
+};
+
+struct Thread_Context
+{
+  Temp_Arena local_temp_arena;
+};
+
+
 #define TRADER_BASE_DEFINES_H
 #endif

@@ -1,5 +1,8 @@
 #ifndef TRADER_UI_H
 
+#include "trader_platform.h"
+#include "trader_text_edit.h"
+
 typedef u64 Widget_Flag;
 enum
 {
@@ -423,9 +426,6 @@ struct Panel
   f32         sizing_left;
 };
 
-#include "trader_platform.h"
-#include "trader_render.h"
-
 global_const UI_Key             nil_key                  = 0;
 global_const f32                default_text_height      = 24.0f;
 global_const V2_i16             default_text_gutter_dim  = {2, 4};
@@ -533,5 +533,6 @@ internal Panel *ui_make_panels(Axis_Split         split,
 
 internal void ui_evaluate_child_sizes(Panel *panel);
 internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect);
+
 #define TRADER_UI_H
 #endif

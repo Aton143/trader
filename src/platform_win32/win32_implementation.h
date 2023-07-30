@@ -120,41 +120,6 @@ internal inline Arena *get_temp_arena(Thread_Context *context)
   return(&temp_arena->arena);
 }
 
-internal inline Arena  get_rest_of_temp_arena(f32 rest, Thread_Context *context)
-{
-  expect(is_between_inclusive(0.0f, rest, 1.0f));
-  expect(context != NULL);
-
-  Temp_Arena *temp_arena = &context->local_temp_arena;
-
-  Arena res;
-  res.start     = temp_arena->arena.start + temp_arena->arena.used;
-  res.size      = (u64) (rest * (temp_arena->arena.size  - temp_arena->arena.used));
-  res.used      = 0;
-  res.alignment = temp_arena->arena.alignment;
-
-  temp_arena->arena.used += res.size;
-  expect(temp_arena->arena.used < temp_arena->arena.size);
-
-  return(res);
-}
-
-internal inline u64 get_temp_arena_used(Thread_Context *context)
-{
-  Temp_Arena *temp_arena = &context->local_temp_arena;
-  return(temp_arena->arena.used);
-}
-internal inline void set_temp_arena_used(u64 size, Thread_Context *context)
-{
-  Temp_Arena *temp_arena = &context->local_temp_arena;
-  temp_arena->arena.used = size;
-}
-
-internal void set_temp_arena_wait(u64 wait, Thread_Context *context)
-{
-  context->local_temp_arena.wait = wait;
-}
-
 struct Socket
 {
   SOCKET socket;
@@ -216,14 +181,6 @@ internal void meta_init(void)
   temp_arena->used -= 1;
 
   platform_open_file_for_appending(temp_arena->start, temp_arena->used, &meta_info.log_handle);
-}
-
-internal void meta_log(utf8 *format, ...)
-{
-  va_list arguments;
-  va_start(arguments, format);
-  platform_append_to_file(&meta_info.log_handle, format, arguments);
-  va_end(arguments);
 }
 
 internal b32 platform_open_file(utf8 *file_path, u64 file_path_size, Handle *out_handle)
@@ -911,22 +868,6 @@ internal void platform_debug_print_system_error()
   }
 }
 
-internal Arena arena_alloc(u64 size, u64 alignment, void *start)
-{
-  Arena arena = {};
-
-  u8 *allocated = (u8 *) VirtualAlloc(start, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-
-  expect_message(allocated != NULL, "virtual alloc failed");
-
-  arena.start     = allocated;
-  arena.size      = size;
-  arena.used      = 0;
-  arena.alignment = alignment;
-
-  return(arena);
-}
-
 internal void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *shader, b32 force)
 {
   void *blob = NULL;
@@ -1409,6 +1350,12 @@ internal void platform_write_clipboard_contents(String_utf8 string)
   }
 
   platform_debug_print_system_error();
+}
+
+internal u8 *platform_allocate_memory_pages(u64 bytes, void *start)
+{
+  u8 *pages = (u8 *) VirtualAlloc(start, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+  return(pages);
 }
 
 #define WIN32_IMPLEMENTATION_H

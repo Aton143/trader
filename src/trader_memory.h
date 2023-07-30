@@ -6,27 +6,10 @@
 #include <alloca.h>
 #endif
 
+#include "trader_platform.h"
+
 // TODO(antonio): store_ptr/load_ptr versions
 // i.e. ring_buffer_append(..., &widget) caused issues in the past
-
-struct Arena
-{
-  u8   *start;
-  u64   size;
-  u64   used;
-  u64   alignment;
-};
-
-struct Temp_Arena
-{
-  Arena arena;
-  u64   wait;
-};
-
-struct Thread_Context
-{
-  Temp_Arena local_temp_arena;
-};
 
 global_const u32            thread_count = 2;
 global       Thread_Context thread_contexts[thread_count] = {};

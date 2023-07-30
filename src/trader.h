@@ -10,6 +10,7 @@
 # pragma GCC diagnostic push
 # pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 # pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+# pragma GCC diagnostic ignored "-Wdouble-promotion"
 #endif
 
 #define STB_SPRINTF_IMPLEMENTATION
@@ -17,6 +18,12 @@
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
+
+#define STB_RECT_PACK_IMPLEMENTATION
+#include <stb_rect_pack.h>
+
+#define STB_TRUETYPE_IMPLEMENTATION
+#include <stb_truetype.h>
 
 #include <stdarg.h>
 
@@ -53,42 +60,30 @@ global u8 __debug_memory[1 << 20];
 #include "platform_linux/linux_implementation.cpp"
 
 #include "trader_handle.cpp"
-#if 0
-#include "trader_utils.h"
-#include "trader_math.h"
-#include "trader_meta.h"
-#include "trader_memory.h"
-#include "trader_platform.h"
+#include "trader_meta.cpp"
 
-#include "trader_unicode.h"
-#include "trader_handle.h"
-#include "trader_string_utilities.h"
-#include "trader_text_edit.h"
+#include "trader_unicode.cpp"
+#include "trader_text_edit.cpp"
+
+#if COMPILER_CL
+# include "compiler_impl/cl_impl.cpp"
+#elif COMPILER_GCC
+# include "compiler_impl/gcc_impl.cpp"
+#elif COMPILER_CLANG
+# include "compiler_impl/clang_impl.cpp"
+#endif
 
 global Text_Edit_Buffer debug_teb = make_text_edit_buffer({__debug_memory, array_count(__debug_memory), 0});
 
-#include "trader_render.h"
-#include "trader_font.h"
-#include "trader_ui.h"
-#include "trader_network.h"
-#include "trader_serialization.h"
+#include "trader_render.cpp"
+#include "trader_ui.cpp"
+
+#include "trader_network.cpp"
+#include "trader_serialization.cpp"
 
 #if OS_WINDOWS
 # include "platform_win32/win32_implementation.h"
 #endif
 
-#if COMPILER_CL
-# include "compiler_impl/cl_impl.h"
-#elif COMPILER_GCC
-# include "compiler_impl/gcc_impl.h"
-#elif COMPILER_CLANG
-# include "compiler_impl/clang_impl.h"
-#endif
-
-#include "trader_meta_impl.h"
-#include "trader_handle_impl.h"
-#include "trader_ui_impl.h"
-
-#endif
 #define TRADER_H
 #endif

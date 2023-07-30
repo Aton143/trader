@@ -2,9 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "trader_base_defines.h"
-
-#define expect(expr)
-#define expect_message(expr, message)
+#include "trader_meta.h"
 
 internal inline f32 lerpf(f32 a, f32 t, f32 b);
 internal inline f64 lerpd(f64 a, f64 t, f64 b);

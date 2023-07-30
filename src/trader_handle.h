@@ -1,10 +1,6 @@
 #ifndef TRADER_HANDLE_H
 
 #include <stdio.h>
-
-#define expect(expr)
-#define expect_message(expr, message)
-
 #include "trader_base_defines.h"
 #include "trader_memory.h"
 

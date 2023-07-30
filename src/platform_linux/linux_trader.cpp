@@ -18,12 +18,10 @@ int main(int arg_count, char *arg_values[])
   unused(arg_count);
   unused(arg_values);
 
-  platform_thread_init();
-  rng_init();
-
-#if !SHIP_MODE
-  meta_init();
-#endif
+  if (!platform_common_init())
+  {
+    return(EXIT_FAILURE);
+  }
 
   return(0);
 }

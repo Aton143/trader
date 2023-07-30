@@ -66,6 +66,7 @@ global u8 __debug_memory[1 << 20];
 #include "trader_utils.cpp"
 
 #include "platform_linux/linux_implementation.cpp"
+#include "trader_platform_common.cpp"
 
 #include "trader_handle.cpp"
 #include "trader_meta.cpp"

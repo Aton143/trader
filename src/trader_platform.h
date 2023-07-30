@@ -35,7 +35,7 @@ internal void platform_debug_print(char *text);
 internal void platform_debug_printf(char *format, ...);
 internal void platform_debug_print_system_error(void);
 
-internal void platform_initialize(void);
+internal b32 platform_common_init(void);
 
 internal File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u64 file_path_size);
 

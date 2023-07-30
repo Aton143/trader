@@ -1,4 +1,8 @@
 #include <stdio.h>
+
+#include <errno.h>
+#include <sys/mman.h>
+
 #include "../trader_platform.h"
 #include "../trader_ui.h"
 #include "../trader_render.h"
@@ -67,9 +71,24 @@ internal Global_Platform_State *platform_get_global_state(void)
 
 internal u8 *platform_allocate_memory_pages(u64 bytes, void *start)
 {
-  unused(bytes);
-  unused(start);
-  return(NULL);
+  u64 mmap_additional_flags = (start != NULL) ? MAP_FIXED : 0;
+
+  i32 backing_fd            = 0;
+  i32 offset                = 0;
+
+  u8 *mapped_pages = (u8 *) mmap(start,
+                                 bytes,
+                                 PROT_READ | PROT_WRITE,
+                                 MAP_PRIVATE | MAP_ANONYMOUS | mmap_additional_flags,
+                                 backing_fd, offset);
+
+  if (mapped_pages == MAP_FAILED)
+  {
+    mapped_pages = NULL;
+    platform_debug_print_system_error();
+  }
+
+  return(mapped_pages);
 }
 
 internal Network_Return_Code network_receive_simple(Network_State *state, Socket *in_socket, Buffer *receive_buffer)
@@ -155,4 +174,9 @@ internal inline f64 platform_convert_high_precision_time_to_seconds(u64 hpt)
   f64 seconds = 0.0;
   unused(hpt);
   return(seconds);
+}
+
+internal void platform_debug_print_system_error()
+{
+  perror(NULL);
 }

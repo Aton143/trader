@@ -33,7 +33,7 @@ unimplemented internal u8 *platform_allocate_memory_pages(u64 bytes, void *start
 
 internal void platform_debug_print(char *text);
 internal void platform_debug_printf(char *format, ...);
-internal void platform_debug_print_system_error();
+internal void platform_debug_print_system_error(void);
 
 internal void platform_initialize(void);
 
@@ -61,7 +61,7 @@ internal double platform_convert_high_precision_time_to_seconds(u64 high_precisi
 
 internal Key_Event platform_convert_key_to_our_key(u64 key_value);
 
-internal String_Const_utf8 platform_get_file_from_system_prompt();
+internal String_Const_utf8 platform_get_file_from_system_prompt(void);
 internal File_Buffer       platform_open_and_read_entire_file_from_system_prompt(Arena *arena);
 
 internal void  platform_set_cursor(Cursor_Kind cursor);

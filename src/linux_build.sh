@@ -9,7 +9,7 @@ BIN_NAME="trader"
 INCLUDES="-I../src/submodules/stb/ -I../src/submodules/openssl/include"
 
 LIBRARY_PATHS="-L/usr/local/ssl/lib"
-LIBRARIES="-lX11 -lXfixes -lssl -lcrypto" #-lGL 
+LIBRARIES="-lX11 -lXfixes -lssl -lcrypto -lGL"
 
 SOURCES="$SRC_DIR/platform_linux/linux_trader.cpp"
 
@@ -23,5 +23,6 @@ pushd $BUILD_DIR
 g++ $DEBUG_FLAGS -fdiagnostics-show-caret -g -ggdb -gdwarf -g3 -Og -O0 -p -fno-exceptions -fno-stack-protector -fno-rtti -save-temps $INCLUDES -nostdinc++ -D_GNU_SOURCE $SOURCES -o $BIN_NAME $LIBRARY_PATHS $LIBRARIES 
 
   chmod +x $BIN_NAME
+  cp ../utils/.gdbinit .gdbinit
 popd
 

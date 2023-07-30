@@ -21,7 +21,8 @@ int main(int arg_count, char *arg_values[])
   arg_count++;
   arg_values++;
 
-  SSL_load_error_strings();
+  u8 *memory = platform_allocate_memory_pages(kb(4), NULL);
+  unused(memory);
 
   return(0);
 }

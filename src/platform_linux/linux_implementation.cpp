@@ -11,7 +11,21 @@
 
 struct Render_Context
 {
-  Common_Render_Context common_context;
+  Common_Render_Context  common_context;
+  Display               *display;
+
+  Atom                   atom_TARGETS;
+  Atom                   atom_CLIPBOARD;
+  Atom                   atom_UTF8_STRING;
+  Atom                   atom__NET_WM_STATE;
+  Atom                   atom__NET_WM_STATE_MAXIMIZED_HORZ;
+  Atom                   atom__NET_WM_STATE_MAXIMIZED_VERT;
+  Atom                   atom__NET_WM_STATE_FULLSCREEN;
+  Atom                   atom__NET_WM_PING;
+  Atom                   atom__NET_WM_WINDOW_TYPE;
+  Atom                   atom__NET_WM_WINDOW_TYPE_NORMAL;
+  Atom                   atom__NET_WM_PID;
+  Atom                   atom_WM_DELETE_WINDOW;
 };
 
 struct UI_Context;

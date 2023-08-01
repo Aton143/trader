@@ -35,6 +35,8 @@ struct Global_Platform_State
   UI_Context     ui_context;
   Render_Context render_context;
   f32            dt;
+
+  Window         window_handle;
 };
 
 Global_Platform_State linux_platform_state;

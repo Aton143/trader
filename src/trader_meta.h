@@ -80,7 +80,10 @@ global Meta_Info meta_info = {};
 
 internal void meta_init(void);
 internal void meta_log(utf8 *format, ...);
-#define meta_log_char(format, ...) meta_log((utf8 *) format, __VA_ARGS__)
+internal void meta_log(const char *format, ...);
+
+#define meta_log_char(string) meta_log((utf8 *) (string))
+#define meta_log_charf(format, ...) meta_log((utf8 *) (format), __VA_ARGS__)
 
 internal void meta_collate_timing_records(void);
 

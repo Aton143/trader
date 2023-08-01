@@ -16,6 +16,17 @@
 
 #include "../trader.h"
 
+global b32 glx_context_error = false;
+
+internal int glx_error_handler(Display* display, XErrorEvent* error_event)
+{
+  unused(display);
+  unused(error_event);
+
+  glx_context_error = true;
+  return(0);
+}
+
 int main(int arg_count, char *arg_values[])
 {
   unused(arg_count);
@@ -229,6 +240,56 @@ int main(int arg_count, char *arg_values[])
 
     // NOTE(antonio): (inso) make the window visible
     XMapWindow(linux_platform_state.display, linux_platform_state.window_handle);
+
+    {
+typedef GLXContext (glXCreateContextAttribsARB_Function)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
+typedef void       (glXSwapIntervalEXT_Function)        (Display *dpy, GLXDrawable drawable, int interval);
+typedef int        (glXSwapIntervalMESA_Function)       (unsigned int interval);
+typedef int        (glXGetSwapIntervalMESA_Function)    (void);
+typedef int        (glXSwapIntervalSGI_Function)        (int interval);
+
+      const char *glx_exts =
+        glXQueryExtensionsString(linux_platform_state.display,
+                                 DefaultScreen(linux_platform_state.display));
+
+      glXCreateContextAttribsARB_Function *glXCreateContextAttribsARB = NULL;
+      glXSwapIntervalEXT_Function         *glXSwapIntervalEXT = NULL;
+      glXSwapIntervalMESA_Function        *glXSwapIntervalMESA = NULL;
+      glXGetSwapIntervalMESA_Function     *glXGetSwapIntervalMESA = NULL;
+      glXSwapIntervalSGI_Function         *glXSwapIntervalSGI = NULL;
+
+
+#define GLXLOAD(f) f = (f##_Function*) glXGetProcAddressARB((const GLubyte*) #f);
+      GLXLOAD(glXCreateContextAttribsARB);
+
+      GLXContext glx_context = NULL;
+
+      int (*old_handler)(Display*, XErrorEvent*) = XSetErrorHandler(&glx_error_handler);
+      unused(old_handler);
+
+      if (glXCreateContextAttribsARB == NULL)
+      {
+        meta_log_char("glXCreateContextAttribsARB() not found, using old-style GLX context\n");
+        glx_context = glXCreateNewContext(linux_platform_state.display, chosen_glxfb_config, GLX_RGBA_TYPE, 0, True);
+      }
+      else
+      {
+        global_const int context_attributes[] =
+        {
+          GLX_CONTEXT_MAJOR_VERSION_ARB, 2,
+          GLX_CONTEXT_MINOR_VERSION_ARB, 1,
+          GLX_CONTEXT_PROFILE_MASK_ARB , GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
+#if GL_DEBUG_MODE
+          GLX_CONTEXT_FLAGS_ARB        , GLX_CONTEXT_DEBUG_BIT_ARB,
+#endif
+          None
+        };
+
+        glx_context = glXCreateContextAttribsARB(linux_platform_state.display, chosen_glxfb_config, 0, True, context_attributes);
+      }
+
+#undef GLXLOAD
+    }
   }
 
   return(0);

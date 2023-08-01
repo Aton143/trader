@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include <time.h>
+#include <unistd.h>
 #include <sys/mman.h>
 
 #include "../trader_platform.h"
@@ -12,31 +13,31 @@
 struct Render_Context
 {
   Common_Render_Context  common_context;
-  Display               *display;
-
-  Atom                   atom_TARGETS;
-  Atom                   atom_CLIPBOARD;
-  Atom                   atom_UTF8_STRING;
-  Atom                   atom__NET_WM_STATE;
-  Atom                   atom__NET_WM_STATE_MAXIMIZED_HORZ;
-  Atom                   atom__NET_WM_STATE_MAXIMIZED_VERT;
-  Atom                   atom__NET_WM_STATE_FULLSCREEN;
-  Atom                   atom__NET_WM_PING;
-  Atom                   atom__NET_WM_WINDOW_TYPE;
-  Atom                   atom__NET_WM_WINDOW_TYPE_NORMAL;
-  Atom                   atom__NET_WM_PID;
-  Atom                   atom_WM_DELETE_WINDOW;
 };
 
 struct UI_Context;
 struct Global_Platform_State
 {
-  Arena          global_arena;
-  UI_Context     ui_context;
-  Render_Context render_context;
-  f32            dt;
+  Arena           global_arena;
+  UI_Context      ui_context;
+  Render_Context  render_context;
+  f32             dt;
 
-  Window         window_handle;
+  Display        *display;
+  Window          window_handle;
+
+  Atom            atom_TARGETS;
+  Atom            atom_CLIPBOARD;
+  Atom            atom_UTF8_STRING;
+  Atom            atom__NET_WM_STATE;
+  Atom            atom__NET_WM_STATE_MAXIMIZED_HORZ;
+  Atom            atom__NET_WM_STATE_MAXIMIZED_VERT;
+  Atom            atom__NET_WM_STATE_FULLSCREEN;
+  Atom            atom__NET_WM_PING;
+  Atom            atom__NET_WM_WINDOW_TYPE;
+  Atom            atom__NET_WM_WINDOW_TYPE_NORMAL;
+  Atom            atom__NET_WM_PID;
+  Atom            atom_WM_DELETE_WINDOW;
 };
 
 Global_Platform_State linux_platform_state;

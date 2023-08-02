@@ -1,3 +1,6 @@
+// NOTE(antonio): Ripped straight from 4coder
+// https://github.com/Dion-Systems/4coder
+
 #undef function
 #undef internal
 
@@ -13,6 +16,12 @@
 
 #include <GL/glx.h>
 #include <GL/glext.h>
+
+#include <GL/gl.h>
+#include "linux_opengl_defines.h"
+
+#define GL_FUNC(N,R,P) typedef R (N##_Function)P; N##_Function *N = 0;
+#include "linux_opengl_functions.h"
 
 #include "../trader.h"
 
@@ -279,16 +288,43 @@ typedef int        (glXSwapIntervalSGI_Function)        (int interval);
           GLX_CONTEXT_MAJOR_VERSION_ARB, 2,
           GLX_CONTEXT_MINOR_VERSION_ARB, 1,
           GLX_CONTEXT_PROFILE_MASK_ARB , GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
-#if GL_DEBUG_MODE
+#if !SHIP_MODE
           GLX_CONTEXT_FLAGS_ARB        , GLX_CONTEXT_DEBUG_BIT_ARB,
 #endif
           None
         };
 
+        meta_log_char("Creating GL 2.1 context\n");
         glx_context = glXCreateContextAttribsARB(linux_platform_state.display, chosen_glxfb_config, 0, True, context_attributes);
       }
 
+      // NOTE(antonio): sync to ensure any errors generated are processed
+      XSync(linux_platform_state.display, False);
+
+      if (glx_context_error || !glx_context)
+      {
+        return(EXIT_FAILURE);
+      }
+
+      XSync(linux_platform_state.display, False);
+
+      // glXIsDirect??
+      // vsync??
+
+      // NOTE(antonio): load GL functions here
+#define GL_FUNC(f,R,P) GLXLOAD(f)
+#include "linux_opengl_functions.h"
+
+#define GL_FUNC(N,R,P)                                             \
+if ((N) == NULL)                                                   \
+{                                                                  \
+  fprintf(stderr, "Could not load OpenGL function #N, exiting\n"); \
+  return(EXIT_FAILURE);                                            \
+}
+#include "linux_opengl_functions.h"
+
 #undef GLXLOAD
+
     }
   }
 

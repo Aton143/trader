@@ -51,7 +51,7 @@ int main(int arg_count, char *arg_values[])
     Display *x11_display = XOpenDisplay(0);
     if (x11_display == NULL)
     {
-    meta_log_char("Could not create an X11 display\n");
+      meta_log_char("Could not create an X11 display\n");
       return(EXIT_FAILURE);
     }
 
@@ -251,11 +251,11 @@ int main(int arg_count, char *arg_values[])
     XMapWindow(linux_platform_state.display, linux_platform_state.window_handle);
 
     {
-typedef GLXContext (glXCreateContextAttribsARB_Function)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
-typedef void       (glXSwapIntervalEXT_Function)        (Display *dpy, GLXDrawable drawable, int interval);
-typedef int        (glXSwapIntervalMESA_Function)       (unsigned int interval);
-typedef int        (glXGetSwapIntervalMESA_Function)    (void);
-typedef int        (glXSwapIntervalSGI_Function)        (int interval);
+      typedef GLXContext (glXCreateContextAttribsARB_Function)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
+      typedef void       (glXSwapIntervalEXT_Function)        (Display *dpy, GLXDrawable drawable, int interval);
+      typedef int        (glXSwapIntervalMESA_Function)       (unsigned int interval);
+      typedef int        (glXGetSwapIntervalMESA_Function)    (void);
+      typedef int        (glXSwapIntervalSGI_Function)        (int interval);
 
       const char *glx_exts =
         glXQueryExtensionsString(linux_platform_state.display,
@@ -316,15 +316,118 @@ typedef int        (glXSwapIntervalSGI_Function)        (int interval);
 #include "linux_opengl_functions.h"
 
 #define GL_FUNC(N,R,P)                                             \
-if ((N) == NULL)                                                   \
-{                                                                  \
-  fprintf(stderr, "Could not load OpenGL function #N, exiting\n"); \
-  return(EXIT_FAILURE);                                            \
-}
+      if ((N) == NULL)                                                   \
+      {                                                                  \
+        fprintf(stderr, "Could not load OpenGL function #N, exiting\n"); \
+        return(EXIT_FAILURE);                                            \
+      }
 #include "linux_opengl_functions.h"
 
 #undef GLXLOAD
+    }
 
+    XRaiseWindow(linux_platform_state.display, linux_platform_state.window_handle);
+
+    XSync(linux_platform_state.display, False);
+
+    Atom window_manager_protocols[] =
+    {
+      linux_platform_state.atom_WM_DELETE_WINDOW,
+      linux_platform_state.atom__NET_WM_PING
+    };
+
+    XSetWMProtocols(linux_platform_state.display,
+                    linux_platform_state.window_handle,
+                    window_manager_protocols, array_count(window_manager_protocols));
+
+    // NOTE(antonio): (inso) XFixes for clipboard notification
+    {
+      i32 xfixes_version, xfixes_error;
+      Bool has_xfixes = XQueryExtension(linux_platform_state.display,
+                                        "XFIXES",
+                                        &xfixes_version,
+                                        &linux_platform_state.xfixes_selection_event,
+                                        &xfixes_error);
+      linux_platform_state.has_xfixes = (has_xfixes == True);
+
+      if (has_xfixes)
+      {
+        XFixesSelectSelectionInput(linux_platform_state.display,
+                                   linux_platform_state.window_handle,
+                                   linux_platform_state.atom_CLIPBOARD,
+                                   XFixesSetSelectionOwnerNotifyMask);
+      }
+    } 
+
+    // NOTE(antonio): setting locale based on ENV
+    setlocale(LC_ALL, "");
+    XSetLocaleModifiers("");
+    b32 supports_chosen_locale = XSupportsLocale();
+
+    if (!supports_chosen_locale)
+    {
+      // NOTE(antonio): "minimum" locale
+      setlocale(LC_ALL, "C");
+    }
+
+    linux_platform_state.x11_input_method =
+      XOpenIM(linux_platform_state.display, NULL, NULL, NULL);
+
+    if (!linux_platform_state.x11_input_method)
+    {
+      XSetLocaleModifiers("@im=none");
+      linux_platform_state.x11_input_method = 
+        XOpenIM(linux_platform_state.display, NULL, NULL, NULL);
+    }
+
+    if (!linux_platform_state.x11_input_method)
+    {
+      meta_log_char("Failed to initialize X11 inputs");
+      return(EXIT_FAILURE);
+    }
+
+    XIMStyles      *obtained_styles = NULL;
+    const XIMStyle  desired_style   = (XIMPreeditNothing | XIMStatusNothing);
+    b32             found_style     = false;
+
+    if (!XGetIMValues(linux_platform_state.x11_input_method,
+                      XNQueryInputStyle,
+                      &obtained_styles,
+                      NULL) &&
+        obtained_styles)
+    {
+      for (i32 style_index = 0;
+           style_index < obtained_styles->count_styles;
+           ++style_index)
+      {
+        XIMStyle cur_style = obtained_styles->supported_styles[style_index];
+        if (cur_style == desired_style)
+        {
+          found_style = true;
+          break;
+        }
+      }
+    }
+
+    if (!found_style)
+    {
+      meta_log_char("Failed to find supported X11 input style\n");
+      return(EXIT_FAILURE);
+    }
+
+    XFree(obtained_styles);
+
+    linux_platform_state.x11_input_context = 
+      XCreateIC(linux_platform_state.x11_input_method,
+                XNInputStyle,   desired_style,
+                XNClientWindow, linux_platform_state.window_handle,
+                XNFocusWindow,  linux_platform_state.window_handle,
+                NULL);
+
+    if (!linux_platform_state.x11_input_context)
+    {
+      meta_log_char("Failed to create X11 input context\n");
+      return(EXIT_FAILURE);
     }
   }
 

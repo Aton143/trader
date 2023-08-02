@@ -3,6 +3,8 @@
 #include <errno.h>
 #include <time.h>
 #include <unistd.h>
+#include <locale.h>
+
 #include <sys/mman.h>
 
 #include "../trader_platform.h"
@@ -38,6 +40,12 @@ struct Global_Platform_State
   Atom            atom__NET_WM_WINDOW_TYPE_NORMAL;
   Atom            atom__NET_WM_PID;
   Atom            atom_WM_DELETE_WINDOW;
+
+  b32             has_xfixes;
+  i32             xfixes_selection_event;
+
+  XIM             x11_input_method;
+  XIC             x11_input_context;
 };
 
 Global_Platform_State linux_platform_state;

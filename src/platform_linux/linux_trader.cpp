@@ -429,6 +429,96 @@ int main(int arg_count, char *arg_values[])
       meta_log_char("Failed to create X11 input context\n");
       return(EXIT_FAILURE);
     }
+
+    i32   x11_input_method_event_mask;
+    char *unset_values = XGetICValues(linux_platform_state.x11_input_context,
+                                      XNFilterEvents,
+                                      &x11_input_method_event_mask,
+                                      NULL);
+    if (unset_values != NULL)
+    {
+      x11_input_method_event_mask = 0;
+    }
+
+    u32 event_mask =
+      ExposureMask         |
+      KeyPressMask         |
+      KeyReleaseMask       |
+      ButtonPressMask      |
+      ButtonReleaseMask    |
+      EnterWindowMask      |
+      LeaveWindowMask      |
+      PointerMotionMask    |
+      FocusChangeMask      |
+      StructureNotifyMask  |
+      ExposureMask         |
+      VisibilityChangeMask |
+      x11_input_method_event_mask;
+
+    XSelectInput(linux_platform_state.display, linux_platform_state.window_handle, event_mask);
+
+    if (!XkbQueryExtension(linux_platform_state.display,
+                           0, &linux_platform_state.xkb_event, 0, 0, 0))
+    {
+      meta_log_char("XKB Extension not available\n");
+      return(EXIT_FAILURE);
+    }
+
+    XkbSelectEvents(linux_platform_state.display,
+                    XkbUseCoreKbd,
+                    XkbAllEventsMask,
+                    XkbAllEventsMask);
+
+    linux_platform_state.xkb =
+      XkbGetMap(linux_platform_state.display, XkbKeyTypesMask | XkbKeySymsMask, XkbUseCoreKbd);
+    if (linux_platform_state.xkb == NULL)
+    {
+      meta_log_char("Could not get XKB keyboard map\n");
+      return(EXIT_FAILURE);
+    }
+
+    if (XkbGetNames(linux_platform_state.display,
+                    XkbKeyNamesMask,
+                    linux_platform_state.xkb) != Success)
+    {
+      meta_log_char("Error getting XKB key names\n");
+      return(EXIT_FAILURE);
+    }
+
+    // NOTE(antonio): (inso) closer to windows behavior 
+    // (holding key doesn't generate release events)
+    XkbSetDetectableAutoRepeat(linux_platform_state.display, True, NULL);
+
+    {
+      cursors[cursor_kind_pointer]._handle =
+        XCreateFontCursor(linux_platform_state.display, XC_left_ptr);
+
+      cursors[cursor_kind_finger_pointer]._handle =
+        XCreateFontCursor(linux_platform_state.display, XC_hand2);
+
+      cursors[cursor_kind_text_selection]._handle =
+        XCreateFontCursor(linux_platform_state.display, XC_xterm);
+
+      cursors[cursor_kind_left_right_direction]._handle =
+        XCreateFontCursor(linux_platform_state.display, XC_sb_h_double_arrow);
+
+      cursors[cursor_kind_up_down_direction]._handle =
+        XCreateFontCursor(linux_platform_state.display, XC_sb_v_double_arrow);
+    }
+
+    // NOTE(antonio): (inso) sneaky invisible cursor
+    {
+      char   data = 0;
+      XColor c    = {};
+      Pixmap p    = XCreateBitmapFromData(linux_platform_state.display,
+                                          linux_platform_state.window_handle,
+                                          &data, 1, 1);
+
+      cursors[cursor_kind_hidden]._handle =
+        XCreatePixmapCursor(linux_platform_state.display, p, p, &c, &c, 0, 0);
+
+      XFreePixmap(linux_platform_state.display, p);
+    }
   }
 
   return(0);

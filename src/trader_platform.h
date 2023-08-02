@@ -16,6 +16,8 @@ enum
 
   cursor_kind_text_selection,
 
+  cursor_kind_hidden,
+
   cursor_kind_count,
 };
 

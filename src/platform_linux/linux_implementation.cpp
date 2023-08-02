@@ -12,6 +12,12 @@
 #include "../trader_render.h"
 #include "../trader_network.h"
 
+struct Cursor_Handle
+{
+  Cursor _handle;
+};
+Cursor_Handle cursors[cursor_kind_count];
+
 struct Render_Context
 {
   Common_Render_Context  common_context;
@@ -46,6 +52,9 @@ struct Global_Platform_State
 
   XIM             x11_input_method;
   XIC             x11_input_context;
+
+  i32             xkb_event;
+  XkbDescPtr      xkb;
 };
 
 Global_Platform_State linux_platform_state;

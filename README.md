@@ -1,5 +1,5 @@
 # trader
-A multiplatform, performant trading client and GUI with very few dependencies.
+A multiplatform, performant trading client and GUI with very few dependencies. Handmade?
 
 ## What trader can do
 This project is still in its early stages, so to say. Right now, it supports HTTPS using a blocking- and sockets-based architecture sockets on Windows and has a Direct3D 11 rendering backend, running at 60fps with ease. We're (I am ) using OpenGL for the rendering backend on Linux (work can be found on the linux-bootstrap branch). It has the infrastructure to do hot-reloads using efficient methods (a.k.a. [I/O Completion Ports](https://learn.microsoft.com/en-us/windows/win32/fileio/i-o-completion-ports)), instrumented profiling, logging asserts, frame buffer captures, visual debugging, plots, text editing, and more! One might say it's awesome!

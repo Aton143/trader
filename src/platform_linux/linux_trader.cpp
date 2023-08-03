@@ -36,6 +36,11 @@ internal int glx_error_handler(Display* display, XErrorEvent* error_event)
   return(0);
 }
 
+internal void x11_handle_events()
+{
+  // TODO(antonio): :(
+}
+
 int main(int arg_count, char *arg_values[])
 {
   unused(arg_count);
@@ -530,7 +535,7 @@ int main(int arg_count, char *arg_values[])
   {
     if (XEventsQueued(linux_platform_state.display, QueuedAlready))
     {
-      // NOTE(antonio): handle events
+      x11_handle_events();
     }
 
     if (first_step)

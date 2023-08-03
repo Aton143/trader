@@ -58,8 +58,6 @@ struct Global_Platform_State
 };
 
 global Global_Platform_State linux_platform_state;
-global Key_Event             keycode_lookup_table_physical[256];
-global Key_Event             keycode_lookup_table_language[256];
 
 internal void platform_debug_printf(char *format, ...)
 {
@@ -398,4 +396,15 @@ internal inline u64 platform_get_microseconds_time(void)
 
   microseconds = linux_microseconds_from_timespec(time);
   return(microseconds);
+}
+
+internal f64 platform_get_seconds_time(void)
+{
+  f64 seconds;
+
+  timespec time;
+  clock_gettime(CLOCK_MONOTONIC, &time);
+
+  seconds = (time.tv_nsec / ((f64) 1e9)) + ((f64) time.tv_sec);
+  return(seconds);
 }

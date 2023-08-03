@@ -522,10 +522,8 @@ int main(int arg_count, char *arg_values[])
 
   }
 
-  {
-    zero_memory_block(keycode_lookup_table_physical, sizeof(keycode_lookup_table_physical));
-    zero_memory_block(keycode_lookup_table_language, sizeof(keycode_lookup_table_language));
-  }
+  f64 last_frame_time = platform_get_seconds_time();
+  b32 first_step      = true;
 
   global_running = true;
   while (global_running)
@@ -535,7 +533,19 @@ int main(int arg_count, char *arg_values[])
       // NOTE(antonio): handle events
     }
 
+    if (first_step)
+    {
+      XConvertSelection(linux_platform_state.display,
+                        linux_platform_state.atom_CLIPBOARD,
+                        linux_platform_state.atom_UTF8_STRING,
+                        linux_platform_state.atom_CLIPBOARD,
+                        linux_platform_state.window_handle,
+                        CurrentTime);
+      first_step = false;
+    }
+
     glXSwapBuffers(linux_platform_state.display, linux_platform_state.window_handle);
+    last_frame_time = platform_get_seconds_time();
   }
 
   return(0);

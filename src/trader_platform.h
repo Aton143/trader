@@ -60,8 +60,7 @@ internal String_Const_utf8 platform_get_file_name_from_path(String_Const_utf8 *p
 
 internal u64 platform_get_high_precision_time(void);
 internal u64 platform_get_microseconds_time(void);
-
-internal double platform_convert_high_precision_time_to_seconds(u64 high_precision_time);
+internal f64 platform_get_seconds_time(void);
 
 internal Key_Event platform_convert_key_to_our_key(u64 key_value);
 

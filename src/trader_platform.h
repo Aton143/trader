@@ -58,7 +58,8 @@ internal void platform_collect_notifications(void);
 internal b32 platform_did_file_change(utf8 *file_name, u64 file_name_length);
 internal String_Const_utf8 platform_get_file_name_from_path(String_Const_utf8 *path);
 
-internal u64 platform_get_high_precision_timer(void);
+internal u64 platform_get_high_precision_time(void);
+internal u64 platform_get_microseconds_time(void);
 
 internal double platform_convert_high_precision_time_to_seconds(u64 high_precision_time);
 

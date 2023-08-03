@@ -92,7 +92,7 @@ internal b32 platform_open_file_for_appending(utf8 *file_path, u64 file_path_siz
   return(false);
 }
 
-internal inline u64 platform_get_high_precision_timer(void)
+internal inline u64 platform_get_high_precision_time(void)
 {
   timespec _ts;
   u64 ts;
@@ -368,6 +368,34 @@ internal Key_Event platform_convert_key_to_our_key(u64 key_value)
     case XK_x: case XK_X: return key_event_x;
     case XK_y: case XK_Y: return key_event_y;
     case XK_z: case XK_Z: return key_event_z;
-    default:                  return key_event_none;
+    case XK_grave:        return key_event_grave_accent;
+    case XK_minus:        return key_event_minus;
+    case XK_equal:        return key_event_equal;
+    case XK_bracketleft:  return key_event_left_bracket;
+    case XK_bracketright: return key_event_right_bracket;
+    case XK_semicolon:    return key_event_semicolon;
+    case XK_apostrophe:   return key_event_apostrophe;
+    case XK_comma:        return key_event_comma;
+    case XK_period:       return key_event_period;
+    case XK_slash:        return key_event_slash;
+    case XK_backslash:    return key_event_backslash;
+    default:              return key_event_none;
     }
+ }
+
+internal inline u64 linux_microseconds_from_timespec(timespec ts)
+{
+  u64 microseconds = (ts.tv_nsec / thousand(1)) + (million(1) * ts.tv_sec);
+  return(microseconds);
+}
+
+internal inline u64 platform_get_microseconds_time(void)
+{
+  u64 microseconds;
+
+  timespec time;
+  clock_gettime(CLOCK_MONOTONIC, &time);
+
+  microseconds = linux_microseconds_from_timespec(time);
+  return(microseconds);
 }

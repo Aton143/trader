@@ -16,7 +16,6 @@
 
 #include <GL/glx.h>
 #include <GL/glext.h>
-
 #include <GL/gl.h>
 #include "linux_opengl_defines.h"
 
@@ -26,6 +25,7 @@
 #include "../trader.h"
 
 global b32 glx_context_error = false;
+global b32 global_running    = false;
 
 internal int glx_error_handler(Display* display, XErrorEvent* error_event)
 {
@@ -519,6 +519,23 @@ int main(int arg_count, char *arg_values[])
 
       XFreePixmap(linux_platform_state.display, p);
     }
+
+  }
+
+  {
+    zero_memory_block(keycode_lookup_table_physical, sizeof(keycode_lookup_table_physical));
+    zero_memory_block(keycode_lookup_table_language, sizeof(keycode_lookup_table_language));
+  }
+
+  global_running = true;
+  while (global_running)
+  {
+    if (XEventsQueued(linux_platform_state.display, QueuedAlready))
+    {
+      // NOTE(antonio): handle events
+    }
+
+    glXSwapBuffers(linux_platform_state.display, linux_platform_state.window_handle);
   }
 
   return(0);

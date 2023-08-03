@@ -57,7 +57,9 @@ struct Global_Platform_State
   XkbDescPtr      xkb;
 };
 
-Global_Platform_State linux_platform_state;
+global Global_Platform_State linux_platform_state;
+global Key_Event             keycode_lookup_table_physical[256];
+global Key_Event             keycode_lookup_table_language[256];
 
 internal void platform_debug_printf(char *format, ...)
 {
@@ -265,4 +267,120 @@ internal void meta_init(void)
 
   temp_arena->used += copy_string_lit(&temp_arena->start[temp_arena->used], (utf8 *) ".log");
   temp_arena->used -= 1;
+}
+
+
+
+internal Key_Event platform_convert_key_to_our_key(u64 key_value)
+{
+    switch (key_value)
+    {
+    case XK_Tab:         return key_event_tab;
+    case XK_Escape:      return key_event_escape;
+    case XK_Pause:       return key_event_pause;
+    case XK_Up:          return key_event_up_arrow;
+    case XK_Down:        return key_event_down_arrow;
+    case XK_Left:        return key_event_left_arrow;
+    case XK_Right:       return key_event_right_arrow;
+    case XK_BackSpace:   return key_event_backspace;
+    case XK_Return:      return key_event_enter;
+    case XK_Delete:      return key_event_delete;
+    case XK_Insert:      return key_event_insert;
+    case XK_space:       return key_event_space;
+    case XK_Home:        return key_event_home;
+    case XK_End:         return key_event_end;
+    case XK_Page_Up:     return key_event_page_up;
+    case XK_Page_Down:   return key_event_page_down;
+    case XK_Caps_Lock:   return key_event_caps_lock;
+    case XK_Num_Lock:    return key_event_num_lock;
+    case XK_Scroll_Lock: return key_event_scroll_lock;
+    case XK_Menu:        return key_event_menu;
+    case XK_Shift_L:     return key_event_left_shift;
+    case XK_Shift_R:     return key_event_right_shift;
+    case XK_Control_L:   return key_event_left_ctrl;
+    case XK_Control_R:   return key_event_right_ctrl;
+    case XK_Alt_L:       return key_event_left_alt;
+    case XK_Alt_R:       return key_event_right_alt;
+    case XK_Super_L:     return key_mod_event_super;
+    case XK_Super_R:     return key_mod_event_super;
+                         /*
+                            case                      return key_event_num_lock;
+                            case                      return key_event_print_screen;
+                            case                      return key_event_pause;
+                            case                      return key_event_keypad_0;
+                            case                      return key_event_keypad_1;
+                            case                      return key_event_keypad_2;
+                            case                      return key_event_keypad_3;
+                            case                      return key_event_keypad_4;
+                            case                      return key_event_keypad_5;
+                            case                      return key_event_keypad_6;
+                            case                      return key_event_keypad_7;
+                            case                      return key_event_keypad_8;
+                            case                      return key_event_keypad_9;
+                            case                      return key_event_keypad_decimal;
+                            case                      return key_event_keypad_divide;
+                            case                      return key_event_keypad_multiply;
+                            case                      return key_event_keypad_subtract;
+                            case                      return key_event_keypad_add;
+                            case                      return key_event_keypad_enter;
+                            case                      return key_event_left_shift;
+                            case                      return key_event_left_ctrl;
+                            case                      return key_event_left_alt;
+                            case                      return key_event_left_super;
+                            case                      return key_event_right_shift;
+                            case                      return key_event_right_ctrl;
+                            case                      return key_event_right_alt;
+                            case                      return key_event_right_super;
+                            case                      return key_event_menu;
+                            case                      return key_event_0;
+                            case                      return key_event_1;
+                            case                      return key_event_2;
+                            case                      return key_event_3;
+                            case                      return key_event_4;
+                            case                      return key_event_5;
+                            case                      return key_event_6;
+                            case                      return key_event_7;
+                            case                      return key_event_8;
+                            case                      return key_event_9;
+                            case                      return key_event_a;
+                            case                      return key_event_b;
+                            case                      return key_event_c;
+                            case                      return key_event_d;
+                            case                      return key_event_e;
+                            case                      return key_event_f;
+                            case                      return key_event_g;
+                            case                      return key_event_h;
+                            case                      return key_event_i;
+                            case                      return key_event_j;
+                            case                      return key_event_k;
+                            case                      return key_event_l;
+                            case                      return key_event_m;
+                            case                      return key_event_n;
+                            case                      return key_event_o;
+                            case                      return key_event_p;
+                            case                      return key_event_q;
+                            case                      return key_event_r;
+                            case                      return key_event_s;
+                            case                      return key_event_t;
+                            case                      return key_event_u;
+                            case                      return key_event_v;
+                            case                      return key_event_w;
+                            case                      return key_event_x;
+                            case                      return key_event_y;
+                            case                      return key_event_z;
+                            case                      return key_event_f1;
+                            case                      return key_event_f2;
+                            case                      return key_event_f3;
+                            case                      return key_event_f4;
+                            case                      return key_event_f5;
+                            case                      return key_event_f6;
+                         case                      return key_event_f7;
+                         case                      return key_event_f8;
+                         case                      return key_event_f9;
+                         case                      return key_event_f10;
+                         case                      return key_event_f11;
+                         case                      return key_event_f12;
+                         */
+    default:                  return key_event_none;
+    }
 }

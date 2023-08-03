@@ -1,5 +1,7 @@
 #ifndef TRADER_PLATFORM_H
-struct Handle; struct Cursor_Handle;
+struct Handle;
+struct Cursor_Handle;
+
 typedef u32 Cursor_Kind;
 
 enum

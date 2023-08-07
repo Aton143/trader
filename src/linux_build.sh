@@ -15,6 +15,8 @@ SOURCES="$SRC_DIR/platform_linux/linux_trader.cpp"
 
 DEBUG_FLAGS="-Wall -Werror -Wextra -Wdouble-promotion -Wformat -Wformat-overflow -Wno-unused-function -Wno-unused-variable -Wno-missing-field-initializers -Wunused -Wuninitialized -Wno-type-limits -Wno-implicit-fallthrough -Wno-unused-but-set-variable"
 
+ASM_FLAVOR="-masm=intel"
+
 if [ ! -d "$BUILD_DIR" ]; then
   mkdir $BUILD_DIR
 fi

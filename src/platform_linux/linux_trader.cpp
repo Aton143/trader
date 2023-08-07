@@ -22,6 +22,10 @@
 #define GL_FUNC(N,R,P) typedef R (N##_Function)P; N##_Function *N = 0;
 #include "linux_opengl_functions.h"
 
+#include <signal.h>      // NOTE(antonio): definition of SIG* constants
+#include <sys/syscall.h> // NOTE(antonio): definition of SYS_* constants
+#include <unistd.h>
+
 #include "../trader.h"
 
 global b32 glx_context_error = false;
@@ -34,6 +38,23 @@ internal int glx_error_handler(Display* display, XErrorEvent* error_event)
 
   glx_context_error = true;
   return(0);
+}
+
+void APIENTRY gl__error_handler(GLenum        source,
+                                GLenum        type,
+                                GLuint        id,
+                                GLenum        severity,
+                                GLsizei       length,
+                                const GLchar *message,
+                                const void   *user_param)
+{
+unused(source);
+unused(type);
+unused(id);
+unused(severity);
+unused(length);
+unused(message);
+unused(user_param);
 }
 
 internal void x11_handle_events()
@@ -70,6 +91,7 @@ internal void x11_handle_events()
         {
           global_running = false;
         }
+        /*
         else if (atom == linux_platform_state.atom__NET_WM_PING)
         {
           // Notify WM that we're still responding (don't grey our window out).
@@ -80,6 +102,7 @@ internal void x11_handle_events()
                      SubstructureRedirectMask | SubstructureNotifyMask,
                      &event);
         }
+        */
       } break;
 
       default:
@@ -596,6 +619,44 @@ int main(int arg_count, char *arg_values[])
                         linux_platform_state.window_handle,
                         CurrentTime);
       first_step = false;
+    }
+
+    i64   syscall_type = SYS_tkill;
+    pid_t tid          = syscall(__NR_gettid);
+    i64   sigint       = SIGINT;
+
+    __asm__ volatile
+    (
+     "movq %0, %%rax;"
+     "mov  %1, %%edi;"
+     "movq %2, %%rsi;"
+
+     "syscall"
+     :
+     : "r" (syscall_type), "r" (tid), "r" (sigint)
+    );
+
+    {
+#if !SHIP_MODE
+      glEnable(GL_DEBUG_OUTPUT);
+      glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+      if (glDebugMessageControl)
+      {
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION,
+                              0, 0, false);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_LOW, 0, 0, false);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_MEDIUM, 0, 0, true);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_HIGH, 0, 0, true);
+      }
+
+      if (glDebugMessageCallback)
+      {
+        glDebugMessageCallback(gl__error_handler, 0);
+      }
+#endif
+
+      glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+      glClear(GL_COLOR_BUFFER_BIT);
     }
 
     glXSwapBuffers(linux_platform_state.display, linux_platform_state.window_handle);

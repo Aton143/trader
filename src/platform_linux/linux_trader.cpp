@@ -621,21 +621,6 @@ int main(int arg_count, char *arg_values[])
       first_step = false;
     }
 
-    i64   syscall_type = SYS_tkill;
-    pid_t tid          = syscall(__NR_gettid);
-    i64   sigint       = SIGINT;
-
-    __asm__ volatile
-    (
-     "movq %0, %%rax;"
-     "mov  %1, %%edi;"
-     "movq %2, %%rsi;"
-
-     "syscall"
-     :
-     : "r" (syscall_type), "r" (tid), "r" (sigint)
-    );
-
     {
 #if !SHIP_MODE
       glEnable(GL_DEBUG_OUTPUT);

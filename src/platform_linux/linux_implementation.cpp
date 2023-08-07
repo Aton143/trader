@@ -57,6 +57,19 @@ struct Global_Platform_State
   XkbDescPtr      xkb;
 };
 
+#define __debugbreak()              \
+pid_t __tid = syscall(__NR_gettid); \
+__asm__ volatile                    \
+(                                   \
+ "movq $200, %%rax;"                \
+ "mov  %0,   %%edi;"                \
+ "movq $2,   %%rsi;"                \
+ "syscall"                          \
+ :                                  \
+ : "r" (__tid)                      \
+ : "%rax", "%edi", "%rsi"           \
+)
+
 global Global_Platform_State linux_platform_state;
 
 internal void platform_debug_printf(char *format, ...)

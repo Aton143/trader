@@ -39,6 +39,55 @@ internal int glx_error_handler(Display* display, XErrorEvent* error_event)
 internal void x11_handle_events()
 {
   // TODO(antonio): :(
+  while (XPending(linux_platform_state.display))
+  {
+    XEvent event;
+    XNextEvent(linux_platform_state.display, &event);
+
+    b32 filtered = false;
+    if (XFilterEvent(&event, None) == True)
+    {
+      filtered = true;
+      if((event.type != KeyPress) && (event.type != KeyRelease)) {
+        continue;
+      }
+    }
+
+    u64 event_id = ((u64) (event.xkey.serial << 32)) | ((u64) event.xkey.time);
+    switch (event.type)
+    {
+      case KeyPress:
+      {
+
+      } break;
+
+      case ClientMessage:
+      {
+        Atom atom = event.xclient.data.l[0];
+
+        // NOTE(antonio): (inso) Window X button clicked
+        if (atom == linux_platform_state.atom_WM_DELETE_WINDOW)
+        {
+          global_running = false;
+        }
+        else if (atom == linux_platform_state.atom__NET_WM_PING)
+        {
+          // Notify WM that we're still responding (don't grey our window out).
+          event.xclient.window = DefaultRootWindow(linux_platform_state.display);
+          XSendEvent(linux_platform_state.display,
+                     event.xclient.window,
+                     False,
+                     SubstructureRedirectMask | SubstructureNotifyMask,
+                     &event);
+        }
+      } break;
+
+      default:
+      {
+        // TODO(antonio): keyboard refresh
+      } break;
+    }
+  }
 }
 
 int main(int arg_count, char *arg_values[])

@@ -6,8 +6,6 @@ layout debug
 set disassembly-flavor intel
 
 define hook-next
-info args
-info locals
 refresh
 end
 

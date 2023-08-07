@@ -1,6 +1,8 @@
 // NOTE(antonio): Ripped straight from 4coder
 // https://github.com/Dion-Systems/4coder
 
+#define _FILE_OFFSET_BITS 64
+
 #undef function
 #undef internal
 
@@ -24,13 +26,16 @@
 
 #include <signal.h>      // NOTE(antonio): definition of SIG* constants
 #include <sys/syscall.h> // NOTE(antonio): definition of SYS_* constants
+#include <fcntl.h> // NOTE(antonio): definition of SYS_* constants
+
+#include <sys/stat.h>
 
 #include "../trader.h"
 
 global b32 glx_context_error = false;
 global b32 global_running    = false;
 
-internal int glx_error_handler(Display* display, XErrorEvent* error_event)
+internal int glx_handle_errors(Display* display, XErrorEvent* error_event)
 {
   unused(display);
   unused(error_event);
@@ -40,7 +45,7 @@ internal int glx_error_handler(Display* display, XErrorEvent* error_event)
   return(0);
 }
 
-void APIENTRY gl__error_handler(GLenum        source,
+void APIENTRY gl__handle_errors(GLenum        source,
                                 GLenum        type,
                                 GLuint        id,
                                 GLenum        severity,
@@ -70,7 +75,8 @@ internal void x11_handle_events()
     if (XFilterEvent(&event, None) == True)
     {
       filtered = true;
-      if((event.type != KeyPress) && (event.type != KeyRelease)) {
+      if ((event.type != KeyPress) && (event.type != KeyRelease))
+      {
         continue;
       }
     }
@@ -80,11 +86,12 @@ internal void x11_handle_events()
     {
       case KeyPress:
       {
-
+        __debugbreak();
       } break;
 
       case ClientMessage:
       {
+        __debugbreak();
         Atom atom = event.xclient.data.l[0];
 
         // NOTE(antonio): (inso) Window X button clicked
@@ -92,7 +99,6 @@ internal void x11_handle_events()
         {
           global_running = false;
         }
-        /*
         else if (atom == linux_platform_state.atom__NET_WM_PING)
         {
           // Notify WM that we're still responding (don't grey our window out).
@@ -103,7 +109,6 @@ internal void x11_handle_events()
                      SubstructureRedirectMask | SubstructureNotifyMask,
                      &event);
         }
-        */
       } break;
 
       default:
@@ -119,6 +124,52 @@ int main(int arg_count, char *arg_values[])
   unused(arg_count);
   unused(arg_values);
 
+  u64 native_total_time, f_total_time, start, end;
+  i32 i;
+
+  char memory[1 << 20];
+
+  for (int j = 0; j < 3; ++j)
+  {
+    start = get_processor_time_stamp();
+    for (i = 0; i < (1 << 20); ++i)
+    {
+      volatile i32 file_handle = open("../src/trader_ui.cpp", O_RDONLY);
+
+      volatile struct stat64 stat;
+      stat64("../src/trader_ui.cpp", (struct stat64 *) &stat);
+
+      volatile ssize_t file_read = read(file_handle, memory, stat.st_size);
+
+      close((i32) file_handle);
+    }
+    end = get_processor_time_stamp();
+    native_total_time = end - start;
+
+    double native_avg = (double) native_total_time / (double) i;
+    printf("average time for \"native\": %f\n", native_avg);
+
+    start = get_processor_time_stamp();
+    for (i = 0; i < (1 << 20); ++i)
+    {
+      volatile FILE *file_handle = (volatile FILE *) fopen("../src/trader_ui.cpp", "r");
+      volatile struct stat64 stat;
+      stat64("../src/trader_ui.cpp", (struct stat64 *) &stat);
+
+      volatile size_t file_read = fread(memory, stat.st_size, 1, (FILE *) file_handle);
+
+      fclose((FILE *) file_handle);
+    }
+    end = get_processor_time_stamp();
+    f_total_time = end - start;
+
+    double f_avg = (double) f_total_time / (double) i;
+    printf("average time for \"f\": %f\n", f_avg);
+
+    printf("f:native: %f\n", f_avg / native_avg);
+  }
+
+  /*
   if (!platform_common_init())
   {
     meta_log_char("Could not initialize the project\n");
@@ -353,7 +404,7 @@ int main(int arg_count, char *arg_values[])
 
       GLXContext glx_context = NULL;
 
-      int (*old_handler)(Display*, XErrorEvent*) = XSetErrorHandler(&glx_error_handler);
+      int (*old_handler)(Display*, XErrorEvent*) = XSetErrorHandler(&glx_handle_errors);
       unused(old_handler);
 
       if (glXCreateContextAttribsARB == NULL)
@@ -388,8 +439,26 @@ int main(int arg_count, char *arg_values[])
 
       XSync(linux_platform_state.display, False);
 
-      // glXIsDirect??
+      if (!glXIsDirect(linux_platform_state.display, glx_context))
+      {
+        meta_log_char("Indirect GLX rendering context obtained\n");
+      }
+      else
+      {
+        meta_log_char("Direct GLX rendering context obtained\n");
+      }
+
       // vsync??
+
+      Bool gl_attached = glXMakeCurrent(linux_platform_state.display,
+                                        linux_platform_state.window_handle,
+                                        glx_context);
+
+      if (!gl_attached)
+      {
+        meta_log_char("Failed to attach GL context to window\n");
+        return(EXIT_FAILURE);
+      }
 
       // NOTE(antonio): load GL functions here
 #define GL_FUNC(f,R,P) GLXLOAD(f)
@@ -645,7 +714,7 @@ int main(int arg_count, char *arg_values[])
 
       if (glDebugMessageCallback)
       {
-        glDebugMessageCallback(gl__error_handler, 0);
+        glDebugMessageCallback(gl__handle_errors, 0);
       }
 #endif
 
@@ -656,6 +725,7 @@ int main(int arg_count, char *arg_values[])
     glXSwapBuffers(linux_platform_state.display, linux_platform_state.window_handle);
     last_frame_time = platform_get_seconds_time();
   }
+  */
 
   return(0);
 }

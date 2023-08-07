@@ -57,6 +57,7 @@ struct Global_Platform_State
   XkbDescPtr      xkb;
 };
 
+
 #define __debugbreak()              \
 pid_t __tid = syscall(__NR_gettid); \
 __asm__ volatile                    \

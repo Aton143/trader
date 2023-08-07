@@ -24,7 +24,6 @@
 
 #include <signal.h>      // NOTE(antonio): definition of SIG* constants
 #include <sys/syscall.h> // NOTE(antonio): definition of SYS_* constants
-#include <unistd.h>
 
 #include "../trader.h"
 
@@ -36,6 +35,7 @@ internal int glx_error_handler(Display* display, XErrorEvent* error_event)
   unused(display);
   unused(error_event);
 
+  __debugbreak();
   glx_context_error = true;
   return(0);
 }
@@ -48,13 +48,14 @@ void APIENTRY gl__error_handler(GLenum        source,
                                 const GLchar *message,
                                 const void   *user_param)
 {
-unused(source);
-unused(type);
-unused(id);
-unused(severity);
-unused(length);
-unused(message);
-unused(user_param);
+  __debugbreak();
+  unused(source);
+  unused(type);
+  unused(id);
+  unused(severity);
+  unused(length);
+  unused(message);
+  unused(user_param);
 }
 
 internal void x11_handle_events()
@@ -124,8 +125,9 @@ int main(int arg_count, char *arg_values[])
     return(EXIT_FAILURE);
   }
 
+  const Rect_f32 default_client_rect = {0, 0, 800.0f, 600.0f};
   {
-    Display *x11_display = XOpenDisplay(0);
+    Display *x11_display = XOpenDisplay(NULL);
     if (x11_display == NULL)
     {
       meta_log_char("Could not create an X11 display\n");
@@ -219,7 +221,6 @@ int main(int arg_count, char *arg_values[])
       XFree(x11_visual_info_from_config);
     }
 
-    const Rect_f32 default_client_rect = {0, 0, 800.0f, 600.0f};
     render_set_client_rect(default_client_rect);
 
     Colormap x11_window_colormap = XCreateColormap(linux_platform_state.display,
@@ -230,10 +231,12 @@ int main(int arg_count, char *arg_values[])
 
     XSetWindowAttributes x11_window_attributes_to_set = {};
 
-    x11_window_attributes_to_set.backing_store = WhenMapped;
-    x11_window_attributes_to_set.event_mask    = StructureNotifyMask;
-    x11_window_attributes_to_set.bit_gravity   = NorthWestGravity;
-    x11_window_attributes_to_set.colormap      = x11_window_colormap;
+    x11_window_attributes_to_set.background_pixmap = None;
+    x11_window_attributes_to_set.border_pixel      = 0;
+    x11_window_attributes_to_set.backing_store     = WhenMapped;
+    x11_window_attributes_to_set.event_mask        = StructureNotifyMask;
+    x11_window_attributes_to_set.bit_gravity       = NorthWestGravity;
+    x11_window_attributes_to_set.colormap          = x11_window_colormap;
 
     u32 x11_attributes_to_set_flags =
       CWBackingStore | CWBitGravity | CWBackPixel | CWBorderPixel | CWColormap | CWEventMask;
@@ -362,8 +365,8 @@ int main(int arg_count, char *arg_values[])
       {
         global_const int context_attributes[] =
         {
-          GLX_CONTEXT_MAJOR_VERSION_ARB, 2,
-          GLX_CONTEXT_MINOR_VERSION_ARB, 1,
+          GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
+          GLX_CONTEXT_MINOR_VERSION_ARB, 3,
           GLX_CONTEXT_PROFILE_MASK_ARB , GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
 #if !SHIP_MODE
           GLX_CONTEXT_FLAGS_ARB        , GLX_CONTEXT_DEBUG_BIT_ARB,
@@ -596,11 +599,17 @@ int main(int arg_count, char *arg_values[])
 
       XFreePixmap(linux_platform_state.display, p);
     }
-
   }
 
   f64 last_frame_time = platform_get_seconds_time();
   b32 first_step      = true;
+
+  {
+    glViewport(0,
+               0,
+               (i32) rect_get_width(&default_client_rect),
+               (i32) rect_get_height(&default_client_rect)) ;
+  }
 
   global_running = true;
   while (global_running)

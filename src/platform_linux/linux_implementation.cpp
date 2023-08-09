@@ -85,7 +85,9 @@ internal void platform_debug_printf(char *format, ...)
   va_end(args);
 }
 
-internal b32 platform_open_file(utf8 *file_name, u64 file_name_length, Handle *out_handle)
+internal b32 platform_open_file(utf8   *file_name,
+                                u64     file_name_length,
+                                Handle *out_handle)
 {
   expect(file_name  != NULL);
   expect(out_handle != NULL);
@@ -114,12 +116,90 @@ internal b32 platform_open_file(utf8 *file_name, u64 file_name_length, Handle *o
   return(result);
 }
 
-internal b32 platform_open_file_for_appending(utf8 *file_path, u64 file_path_size, Handle *out_handle)
+internal b32 platform_open_file_for_appending(utf8   *file_path,
+                                              u64     file_path_size,
+                                              Handle *out_handle)
 {
-  unused(file_path);
-  unused(file_path_size);
-  unused(out_handle);
-  return(false);
+  b32 result = platform_open_file(file_path, file_path_size, out_handle);
+
+  if (result)
+  {
+    if (fcntl(F_SETFD, O_RDONLY) < 0)
+    {
+      platform_debug_print_system_error();
+      result = false;
+    }
+
+    if (result && fcntl(F_SETFL, O_APPEND) < 0)
+    {
+      platform_debug_print_system_error();
+      result = false;
+    }
+  }
+
+  return(result);
+}
+
+internal File_Buffer platform_read_entire_file(Arena *arena, Handle *handle)
+{
+  expect(handle != NULL);
+  expect(arena  != NULL);
+
+  File_Buffer result = {};
+
+  struct stat64 file_data;
+  if (fstat64(handle->file_handle.__handle, &file_data) >= 0)
+  {
+    i64  file_size = (i64) file_data.st_size;
+    u8  *to_put    = (u8 *) arena_push(arena, file_size);
+
+    i64 bytes_left = file_size;
+    i64 bytes_read;
+
+    while (bytes_left > 0)
+    {
+      bytes_read  = (i64) read(handle->file_handle.__handle, to_put, bytes_left);
+      bytes_left -= bytes_read;
+
+      if (bytes_read < 0)
+      {
+        platform_debug_print_system_error();
+        arena_pop(arena, file_size);
+        break;
+      }
+    }
+
+    if (bytes_left == 0)
+    {
+      result.data = to_put;
+      result.size = file_size;
+      result.used = file_size;
+
+      handle->generation++;
+    }
+  }
+  else
+  {
+    platform_debug_print_system_error();
+  }
+
+  return(result);
+}
+
+internal File_Buffer platform_open_and_read_entire_file(Arena *arena,
+                                                        utf8  *file_path,
+                                                        u64    file_path_size)
+{
+  File_Buffer result = {};
+
+  Handle file_handle = {};
+  if (platform_open_file(file_path, file_path_size, &file_handle))
+  {
+    result = platform_read_entire_file(arena, &file_handle);
+    close(file_handle.file_handle.__handle);
+  }
+
+  return(result);
 }
 
 internal inline u64 platform_get_high_precision_time(void)

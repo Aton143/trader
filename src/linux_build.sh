@@ -24,7 +24,7 @@ if [ ! -d "$BUILD_DIR" ]; then
 fi
 
 pushd $BUILD_DIR
-g++ $OPTIMIZED_FLAGS -fdiagnostics-show-caret -g -ggdb -gdwarf -g3 -p -fno-exceptions -fno-stack-protector -fno-rtti -save-temps $INCLUDES -nostdinc++ -D_GNU_SOURCE $SOURCES -o $BIN_NAME $LIBRARY_PATHS $LIBRARIES
+g++ $DEBUG_FLAGS -fdiagnostics-show-caret -g -ggdb -gdwarf -g3 -p -fno-exceptions -fno-stack-protector -fno-rtti -save-temps $INCLUDES -nostdinc++ -D_GNU_SOURCE $SOURCES -o $BIN_NAME $LIBRARY_PATHS $LIBRARIES
 
   chmod +x $BIN_NAME
   cp ../utils/.gdbinit .gdbinit

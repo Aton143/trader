@@ -58,18 +58,18 @@ struct Global_Platform_State
 };
 
 
-#define __debugbreak()              \
-pid_t __tid = syscall(__NR_gettid); \
-__asm__ volatile                    \
-(                                   \
- "movq $200, %%rax;"                \
- "mov  %0,   %%edi;"                \
- "movq $2,   %%rsi;"                \
- "syscall"                          \
- :                                  \
- : "r" (__tid)                      \
- : "%rax", "%edi", "%rsi"           \
-)
+#define __debugbreak()                \
+{ pid_t __tid = syscall(__NR_gettid); \
+__asm__ volatile                      \
+(                                     \
+ "movq $200, %%rax;"                  \
+ "mov  %0,   %%edi;"                  \
+ "movq $2,   %%rsi;"                  \
+ "syscall"                            \
+ :                                    \
+ : "r" (__tid)                        \
+ : "%rax", "%edi", "%rsi"             \
+);}
 
 global Global_Platform_State linux_platform_state;
 
@@ -87,11 +87,29 @@ internal void platform_debug_printf(char *format, ...)
 
 internal b32 platform_open_file(utf8 *file_name, u64 file_name_length, Handle *out_handle)
 {
-  b32 result = false;
+  expect(file_name  != NULL);
+  expect(out_handle != NULL);
 
-  unused(file_name);
-  unused(file_name_length);
-  unused(out_handle);
+  if (file_name_length == 0)
+  {
+    file_name_length = c_string_length(file_name);
+  }
+
+  b32 result = true;
+
+  i32 file_descriptor = open((char *) file_name, O_RDWR);
+  if (file_descriptor < 0)
+  {
+    platform_debug_print_system_error();
+  }
+  else
+  {
+    out_handle->generation           = 0;
+    out_handle->kind                 = Handle_Kind_File;
+    out_handle->file_handle.__handle = file_descriptor;
+
+    copy_memory_block(&out_handle->id, file_name, min(file_name_length, sizeof(out_handle->id)));
+  }
 
   return(result);
 }
@@ -196,7 +214,7 @@ internal inline Render_Context *render_get_context()
 
 internal void platform_debug_print(char *message)
 {
-  fputs(message, stdout);
+  fputs(message, stderr);
 }
 
 global_const u8 platform_path_separator = '\\';

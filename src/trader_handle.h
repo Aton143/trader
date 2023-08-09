@@ -7,7 +7,7 @@
 #if OS_LINUX
 struct OS_Handle
 {
-  FILE __file_handle;
+  i32 __handle;
 };
 #endif
 

@@ -45,22 +45,23 @@ internal int glx_handle_errors(Display* display, XErrorEvent* error_event)
   return(0);
 }
 
-void APIENTRY gl__handle_errors(GLenum        source,
-                                GLenum        type,
-                                GLuint        id,
-                                GLenum        severity,
-                                GLsizei       length,
-                                const GLchar *message,
-                                const void   *user_param)
+internal void GLAPIENTRY gl__handle_errors(GLenum        source,
+                                           GLenum        type,
+                                           GLuint        id,
+                                           GLenum        severity,
+                                           GLsizei       length,
+                                           const GLchar *message,
+                                           const void   *user_param)
 {
-  __debugbreak();
   unused(source);
-  unused(type);
   unused(id);
-  unused(severity);
   unused(length);
-  unused(message);
   unused(user_param);
+
+  __debugbreak();
+  meta_log_charf("GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+                 (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
+                 type, severity, message);
 }
 
 internal void x11_handle_events()
@@ -121,55 +122,6 @@ internal void x11_handle_events()
 
 int main(int arg_count, char *arg_values[])
 {
-  unused(arg_count);
-  unused(arg_values);
-
-  u64 native_total_time, f_total_time, start, end;
-  i32 i;
-
-  char memory[1 << 20];
-
-  for (int j = 0; j < 3; ++j)
-  {
-    start = get_processor_time_stamp();
-    for (i = 0; i < (1 << 20); ++i)
-    {
-      volatile i32 file_handle = open("../src/trader_ui.cpp", O_RDONLY);
-
-      volatile struct stat64 stat;
-      stat64("../src/trader_ui.cpp", (struct stat64 *) &stat);
-
-      volatile ssize_t file_read = read(file_handle, memory, stat.st_size);
-
-      close((i32) file_handle);
-    }
-    end = get_processor_time_stamp();
-    native_total_time = end - start;
-
-    double native_avg = (double) native_total_time / (double) i;
-    printf("average time for \"native\": %f\n", native_avg);
-
-    start = get_processor_time_stamp();
-    for (i = 0; i < (1 << 20); ++i)
-    {
-      volatile FILE *file_handle = (volatile FILE *) fopen("../src/trader_ui.cpp", "r");
-      volatile struct stat64 stat;
-      stat64("../src/trader_ui.cpp", (struct stat64 *) &stat);
-
-      volatile size_t file_read = fread(memory, stat.st_size, 1, (FILE *) file_handle);
-
-      fclose((FILE *) file_handle);
-    }
-    end = get_processor_time_stamp();
-    f_total_time = end - start;
-
-    double f_avg = (double) f_total_time / (double) i;
-    printf("average time for \"f\": %f\n", f_avg);
-
-    printf("f:native: %f\n", f_avg / native_avg);
-  }
-
-  /*
   if (!platform_common_init())
   {
     meta_log_char("Could not initialize the project\n");
@@ -670,15 +622,44 @@ int main(int arg_count, char *arg_values[])
     }
   }
 
+#if !SHIP_MODE
+  glEnable(GL_DEBUG_OUTPUT);
+  glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+  if (glDebugMessageControl)
+  {
+    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION,
+                          0, 0, false);
+    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_LOW, 0, 0, false);
+    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_MEDIUM, 0, 0, true);
+    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_HIGH, 0, 0, true);
+  }
+
+  if (glDebugMessageCallback)
+  {
+    glDebugMessageCallback(gl__handle_errors, 0);
+  }
+#endif
+
+
+  u32 vertex_buffer = 0;
+  {
+    glGenBuffers(1, &vertex_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer); 
+  }
+
+  f32 triangle_vertices[] = 
+  {
+    -0.5f, -0.5f,  0.0f,
+     0.5f, -0.5f,  0.0f,
+     0.0f,  0.5f,  0.0f,
+  };
+
+  glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), triangle_vertices, GL_DYNAMIC_DRAW);
+
   f64 last_frame_time = platform_get_seconds_time();
   b32 first_step      = true;
 
-  {
-    glViewport(0,
-               0,
-               (i32) rect_get_width(&default_client_rect),
-               (i32) rect_get_height(&default_client_rect)) ;
-  }
+  glViewport(0, 0, (i32) rect_get_width(&default_client_rect), (i32) rect_get_height(&default_client_rect));
 
   global_running = true;
   while (global_running)
@@ -700,24 +681,6 @@ int main(int arg_count, char *arg_values[])
     }
 
     {
-#if !SHIP_MODE
-      glEnable(GL_DEBUG_OUTPUT);
-      glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-      if (glDebugMessageControl)
-      {
-        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION,
-                              0, 0, false);
-        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_LOW, 0, 0, false);
-        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_MEDIUM, 0, 0, true);
-        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_HIGH, 0, 0, true);
-      }
-
-      if (glDebugMessageCallback)
-      {
-        glDebugMessageCallback(gl__handle_errors, 0);
-      }
-#endif
-
       glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT);
     }
@@ -725,7 +688,6 @@ int main(int arg_count, char *arg_values[])
     glXSwapBuffers(linux_platform_state.display, linux_platform_state.window_handle);
     last_frame_time = platform_get_seconds_time();
   }
-  */
 
   return(0);
 }

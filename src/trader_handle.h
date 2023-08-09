@@ -62,9 +62,12 @@ global Asset_Pool global_asset_pool;
 typedef Handle Asset_Handle;
 global_const Handle nil_handle = {0, 0, Handle_Kind_None, 0};
 
-internal b32 is_nil(Handle *handle);
+internal b32  is_nil(Handle *handle);
+internal void make_nil(Handle *handle);
 
-internal Handle *make_handle(String_Const_utf8 id, Handle_Kind kind, Handle *previous_handle = NULL);
+internal Handle *make_handle(String_Const_utf8  id,
+                             Handle_Kind        kind,
+                             Handle            *previous_handle = NULL);
 internal u64     handle_node_count(Handle *handle);
 
 #define TRADER_HANDLE_H

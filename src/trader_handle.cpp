@@ -8,6 +8,11 @@ internal b32 is_nil(Handle *handle)
   return(result);
 }
 
+internal void make_nil(Handle *handle)
+{
+  copy_struct(handle, (Handle *) &nil_handle);
+}
+
 internal Handle *make_handle(String_Const_utf8 id, Handle_Kind kind, Handle *previous_handle)
 {
   Handle *result = NULL;
@@ -25,7 +30,9 @@ internal Handle *make_handle(String_Const_utf8 id, Handle_Kind kind, Handle *pre
       if (platform_open_file(id.str, id.size, result))
       {
         String_Const_utf8 file_name = platform_get_file_name_from_path(&id);
-        copy_memory_block(result->id, file_name.str, min(file_name.size, array_count(result->id)));
+        copy_memory_block(result->id,
+                          file_name.str,
+                          min(file_name.size, array_count(result->id)));
 
         result->kind = kind;
 
@@ -37,7 +44,9 @@ internal Handle *make_handle(String_Const_utf8 id, Handle_Kind kind, Handle *pre
   else
   {
     expect(previous_handle->kind == kind);
-    expect(!copy_memory_block(previous_handle->id, id.str, min(id.size, array_count(result->id))));
+    expect(!copy_memory_block(previous_handle->id,
+                              id.str,
+                              min(id.size, array_count(result->id))));
 
     result = previous_handle;
   }

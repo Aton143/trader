@@ -116,6 +116,29 @@ internal b32 platform_open_file(utf8   *file_name,
   return(result);
 }
 
+internal b32 platform_close_file(Handle *handle)
+{
+  expect(handle != NULL);
+
+  b32 result = false;
+
+  if (!is_nil(handle) && (handle->file_handle.__handle > 0))
+  {
+    i32 close_result = close(handle->file_handle.__handle);
+    if (close_result > -1)
+    {
+      make_nil(handle);
+      result = true;
+    }
+    else
+    {
+      platform_debug_print_system_error();
+    }
+  }
+
+  return(result);
+}
+
 internal b32 platform_open_file_for_appending(utf8   *file_path,
                                               u64     file_path_size,
                                               Handle *out_handle)

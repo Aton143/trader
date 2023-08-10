@@ -370,9 +370,9 @@ int main(int arg_count, char *arg_values[])
         {
           GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
           GLX_CONTEXT_MINOR_VERSION_ARB, 3,
-          GLX_CONTEXT_PROFILE_MASK_ARB , GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
+          GLX_CONTEXT_PROFILE_MASK_ARB,  GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
 #if !SHIP_MODE
-          GLX_CONTEXT_FLAGS_ARB        , GLX_CONTEXT_DEBUG_BIT_ARB,
+          GLX_CONTEXT_FLAGS_ARB,         GLX_CONTEXT_DEBUG_BIT_ARB,
 #endif
           None
         };
@@ -656,19 +656,22 @@ int main(int arg_count, char *arg_values[])
 
   glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), triangle_vertices, GL_DYNAMIC_DRAW);
 
+  __debugbreak();
   u32 vertex_shader;
   {
     String_Const_utf8 vertex_shader_path =
       string_literal_init_type("../src/platform_linux/shader.vert", utf8);
-    File_Buffer shader_buffer = platform_open_and_read_entire_file(get_temp_arena(),
-                                                                   vertex_shader_path.str,
-                                                                   vertex_shader_path.size);
+    Handle *vertex_shader_handle = make_handle(vertex_shader_path, Handle_Kind_File);
+
+    File_Buffer temp_shader_source =
+      platform_read_entire_file(get_temp_arena(),
+                                vertex_shader_handle);
 
     vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertex_shader,
                    1,
-                   (GLchar **) &shader_buffer.data,
-                   (GLint *)   &shader_buffer.size);
+                   (GLchar **) &temp_shader_source.data,
+                   (GLint *)   &temp_shader_source.size);
     glCompileShader(vertex_shader);
 
     {

@@ -927,7 +927,7 @@ internal void render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shad
   {
     safe_release(shader->shader);
 
-    // TODO(antonio): will have to read file twice
+    // TODO(antonio): will have to read file twice: once for vertex, again for pixel
     File_Buffer temp_shader_source = platform_read_entire_file(shader_handle);
     {
       ID3DBlob *pixel_shader_blob          = NULL;

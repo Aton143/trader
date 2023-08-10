@@ -100,17 +100,16 @@ internal b32 platform_open_file(utf8   *file_name,
   b32 result = true;
 
   i32 file_descriptor = open((char *) file_name, O_RDWR);
-  if (file_descriptor < 0)
+  if (file_descriptor > -1)
   {
-    platform_debug_print_system_error();
+    out_handle->generation++;
+    out_handle->kind                 = Handle_Kind_File;
+    out_handle->file_handle.__handle = file_descriptor;
+    out_handle->id                   = scu8(file_name, file_name_length); 
   }
   else
   {
-    out_handle->generation           = 0;
-    out_handle->kind                 = Handle_Kind_File;
-    out_handle->file_handle.__handle = file_descriptor;
-
-    copy_memory_block(&out_handle->id, file_name, min(file_name_length, sizeof(out_handle->id)));
+    platform_debug_print_system_error();
   }
 
   return(result);

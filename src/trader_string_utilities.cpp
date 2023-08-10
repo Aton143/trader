@@ -248,6 +248,12 @@ internal inline u64 get_last_char_pos(String_utf8 string)
   return(last_char_pos);
 }
 
+internal inline String_Const_utf8 scu8(utf8 *string, u64 string_length)
+{
+  String_Const_utf8 result = {string, string_length};
+  return(result);
+}
+
 internal inline String_utf8 su8(String_Const_utf8 string)
 {
   String_utf8 res;

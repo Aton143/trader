@@ -33,6 +33,7 @@ internal inline String_Const_utf8 copy_str(Arena *arena, Buffer buf);
 internal inline String_Const_utf8 copy_str(Arena *arena, String_Const_utf8 str);
 internal inline String_Const_utf8 concat_str(Arena *arena, String_Const_utf8 a, String_Const_utf8 b, u64 size);
 
+internal inline String_Const_utf8 scu8(utf8 *string, u64 string_length);
 internal inline String_Const_utf8 scu8f(Arena *arena, char *format, ...);
 internal inline String_Const_utf8 scu8f(Arena *arena, i32 limit, char *format, ...);
 

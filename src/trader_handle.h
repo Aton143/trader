@@ -22,9 +22,9 @@ struct Asset_Node;
 struct OS_Handle;
 
 struct Handle {
-  u64         generation;
-  Handle_Kind kind;
-  utf8        id[32];
+  u64               generation;
+  Handle_Kind       kind;
+  String_Const_utf8 id;
 
   union
   {
@@ -60,7 +60,7 @@ struct Asset_Pool
 global Asset_Pool global_asset_pool;
 
 typedef Handle Asset_Handle;
-global_const Handle nil_handle = {0, 0, Handle_Kind_None, 0};
+global_const Handle nil_handle = {};
 
 internal b32  is_nil(Handle *handle);
 internal void make_nil(Handle *handle);

@@ -644,6 +644,9 @@ int main(int arg_count, char *arg_values[])
   }
 #endif
 
+  int max_vertex_attributes;
+  glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attributes);
+
   u32 vertex_buffer;
   u32 vertex_buffer_reader;
 
@@ -657,9 +660,14 @@ int main(int arg_count, char *arg_values[])
 
   f32 triangle_vertices[] = 
   {
-    -0.5f, -0.5f,  0.0f,
-     0.5f, -0.5f,  0.0f,
-     0.0f,  0.5f,  0.0f,
+    // first triangle
+     0.5f,  0.5f,  0.0f,  // top right
+     0.5f, -0.5f,  0.0f,  // bottom right
+    -0.5f,  0.5f,  0.0f,  // top left 
+    // second triangle
+     0.5f, -0.5f,  0.0f,  // bottom right
+    -0.5f, -0.5f,  0.0f,  // bottom left
+    -0.5f,  0.5f,  0.0f   // top left
   };
 
   glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), triangle_vertices, GL_DYNAMIC_DRAW);
@@ -751,6 +759,9 @@ int main(int arg_count, char *arg_values[])
 
   glViewport(0, 0, (i32) rect_get_width(&default_client_rect), (i32) rect_get_height(&default_client_rect));
 
+  f32 acc_time = 0.0f;
+  f32 dir      = 1.0f;
+
   global_running = true;
   while (global_running)
   {
@@ -774,13 +785,32 @@ int main(int arg_count, char *arg_values[])
       glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT);
 
+      f32 green_value = (sinf(lerpf(-half_pi_f32, acc_time, half_pi_f32)) / 2.0f) + 0.5f;
+      f32 red_value = (cosf(lerpf(-half_pi_f32, acc_time, half_pi_f32)) / 2.0f) + 0.5f;
+
+      i32 vertex_color_location = glGetUniformLocation(shader_program, "uniform_color");
+
       glUseProgram(shader_program);
+      glUniform4f(vertex_color_location, red_value, green_value, 0.0f, 1.0f);
+
       glBindVertexArray(vertex_buffer_reader);
-      glDrawArrays(GL_TRIANGLES, 0, 3);
+      glDrawArrays(GL_TRIANGLES, 0, sizeof(triangle_vertices) / 6);
     }
 
     glXSwapBuffers(linux_platform_state.display, linux_platform_state.window_handle);
     last_frame_time = platform_get_seconds_time();
+
+    acc_time += dir * (1.0f / 60.f);
+    if (acc_time > 1.0f)
+    {
+      acc_time =  1.0f;
+      dir      = -1.0f;
+    }
+    else if (acc_time < 0.0f)
+    {
+      acc_time = 0.0f;
+      dir      = 1.0f;
+    }
   }
 
   return(0);

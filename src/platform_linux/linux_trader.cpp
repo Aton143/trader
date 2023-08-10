@@ -62,6 +62,10 @@ internal void GLAPIENTRY gl__handle_errors(GLenum        source,
   meta_log_charf("GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
                  (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
                  type, severity, message);
+
+  printf("GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+         (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
+         type, severity, message);
 }
 
 internal void x11_handle_events()
@@ -656,12 +660,14 @@ int main(int arg_count, char *arg_values[])
 
   glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), triangle_vertices, GL_DYNAMIC_DRAW);
 
+  __debugbreak();
+
+  String_Const_utf8 vertex_shader_path =
+    string_literal_init_type("../src/platform_linux/shader.vert", utf8);
+  Handle *vertex_shader_handle = make_handle(vertex_shader_path, Handle_Kind_File);
+
   u32 vertex_shader;
   {
-    String_Const_utf8 vertex_shader_path =
-      string_literal_init_type("../src/platform_linux/shader.vert", utf8);
-    Handle *vertex_shader_handle = make_handle(vertex_shader_path, Handle_Kind_File);
-
     File_Buffer temp_shader_source =
       platform_read_entire_file(get_temp_arena(),
                                 vertex_shader_handle);
@@ -672,7 +678,28 @@ int main(int arg_count, char *arg_values[])
                    (GLchar **) &temp_shader_source.data,
                    (GLint *)   &temp_shader_source.size);
     glCompileShader(vertex_shader);
+
     render_debug_print_compile_errors(&vertex_shader);
+  }
+
+  String_Const_utf8 fragment_shader_path =
+    string_literal_init_type("../src/platform_linux/shader.frag", utf8);
+  Handle *fragment_shader_handle = make_handle(fragment_shader_path, Handle_Kind_File);
+
+  u32 fragment_shader;
+  {
+    File_Buffer temp_shader_source =
+      platform_read_entire_file(get_temp_arena(),
+                                fragment_shader_handle);
+
+    fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragment_shader,
+                   1,
+                   (GLchar **) &temp_shader_source.data,
+                   (GLint *)   &temp_shader_source.size);
+    glCompileShader(fragment_shader);
+
+    render_debug_print_compile_errors(&fragment_shader);
   }
 
   f64 last_frame_time = platform_get_seconds_time();

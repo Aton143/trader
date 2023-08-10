@@ -61,6 +61,15 @@ struct Texture_Atlas
   Rect_i16          solid_color_rect;
 };
 
+typedef u32 Shader_Kind;
+enum
+{
+  Shader_Kind_None,
+  Shader_Kind_Vertex,
+  Shader_Kind_Pixel,
+  Shader_Kind_Count,
+};
+
 struct Vertex_Shader;
 struct Pixel_Shader;
 

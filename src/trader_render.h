@@ -89,8 +89,13 @@ internal void                   render_set_client_rect(Rect_f32 new_rect);
 internal Rect_f32               render_get_client_rect(void);
 internal Rect_f32               render_get_solid_color_rect(void);
 
-internal void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *shader, b32 force = false);
-internal void  render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shader, b32 force = false);
+internal void *render_load_vertex_shader(Handle *shader_handle,
+                                         Vertex_Shader *shader,
+                                         b32 force = false);
+internal void  render_load_pixel_shader(Handle *shader_handle,
+                                        Pixel_Shader *shader,
+                                        b32 force = false);
+internal void  render_debug_print_compile_errors(void *data);
 
 internal void  render_push_line_instance(V2_f32 line_start, f32 length, f32 dir_x, f32 dir_y,
                                          RGBA_f32 color = rgba_white); 

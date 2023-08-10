@@ -542,3 +542,20 @@ internal f64 platform_get_seconds_time(void)
   seconds = (time.tv_nsec / ((f64) 1e9)) + ((f64) time.tv_sec);
   return(seconds);
 }
+
+internal void render_debug_print_compile_errors(void *data)
+{
+  i32 *gl_shader = (i32 *) data;
+
+  utf8 *info_log = (utf8 *) stack_alloc(512);
+  zero_memory_block(info_log, 512);
+
+  i32  success;
+  glGetShaderiv(*gl_shader, GL_COMPILE_STATUS, &success);
+
+  if (!success)
+  {
+    glGetShaderInfoLog(*gl_shader, sizeof(info_log), NULL, (GLchar *) info_log);
+    meta_log(info_log);
+  }
+}

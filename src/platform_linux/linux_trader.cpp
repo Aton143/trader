@@ -656,7 +656,6 @@ int main(int arg_count, char *arg_values[])
 
   glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), triangle_vertices, GL_DYNAMIC_DRAW);
 
-  __debugbreak();
   u32 vertex_shader;
   {
     String_Const_utf8 vertex_shader_path =
@@ -673,18 +672,7 @@ int main(int arg_count, char *arg_values[])
                    (GLchar **) &temp_shader_source.data,
                    (GLint *)   &temp_shader_source.size);
     glCompileShader(vertex_shader);
-
-    {
-      i32  success;
-      utf8 info_log[512];
-      glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
-
-      if (!success)
-      {
-        glGetShaderInfoLog(vertex_shader, sizeof(info_log), NULL, (GLchar *) info_log);
-        meta_log(info_log);
-      }
-    }
+    render_debug_print_compile_errors(&vertex_shader);
   }
 
   f64 last_frame_time = platform_get_seconds_time();

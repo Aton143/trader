@@ -644,9 +644,13 @@ int main(int arg_count, char *arg_values[])
   }
 #endif
 
+  u32 vertex_buffer;
+  u32 vertex_buffer_reader;
 
-  u32 vertex_buffer = 0;
   {
+    glGenVertexArrays(1, &vertex_buffer_reader);
+    glBindVertexArray(vertex_buffer_reader);
+
     glGenBuffers(1, &vertex_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer); 
   }
@@ -660,7 +664,17 @@ int main(int arg_count, char *arg_values[])
 
   glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), triangle_vertices, GL_DYNAMIC_DRAW);
 
-  __debugbreak();
+  u32 vertex_buffer_index = 0;
+  {
+    glVertexAttribPointer(vertex_buffer_index,
+                          3,
+                          GL_FLOAT,
+                          GL_FALSE,
+                          3 * sizeof(float),
+                          (void *) 0);
+
+    glEnableVertexAttribArray(vertex_buffer_index);  
+  }
 
   String_Const_utf8 vertex_shader_path =
     string_literal_init_type("../src/platform_linux/shader.vert", utf8);
@@ -722,8 +736,6 @@ int main(int arg_count, char *arg_values[])
         meta_log(info_log);
       }
     }
-
-    glUseProgram(shader_program);
   }
 
   {
@@ -761,6 +773,10 @@ int main(int arg_count, char *arg_values[])
     {
       glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT);
+
+      glUseProgram(shader_program);
+      glBindVertexArray(vertex_buffer_reader);
+      glDrawArrays(GL_TRIANGLES, 0, 3);
     }
 
     glXSwapBuffers(linux_platform_state.display, linux_platform_state.window_handle);

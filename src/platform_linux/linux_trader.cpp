@@ -702,6 +702,38 @@ int main(int arg_count, char *arg_values[])
     render_debug_print_compile_errors(&fragment_shader);
   }
 
+  u32 shader_program;
+  {
+    shader_program = glCreateProgram();
+    glAttachShader(shader_program, vertex_shader);
+    glAttachShader(shader_program, fragment_shader);
+    glLinkProgram(shader_program);
+
+    {
+      utf8 *info_log = (utf8 *) stack_alloc(512);
+      zero_memory_block(info_log, 512);
+
+      i32 success;
+      glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
+
+      if (!success)
+      {
+        glGetShaderInfoLog(shader_program, sizeof(info_log), NULL, (GLchar *) info_log);
+        meta_log(info_log);
+      }
+    }
+
+    glUseProgram(shader_program);
+  }
+
+  {
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader);
+
+    vertex_shader = -1;
+    fragment_shader = -1;
+  }
+
   f64 last_frame_time = platform_get_seconds_time();
   b32 first_step      = true;
 

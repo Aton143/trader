@@ -124,21 +124,6 @@ internal void x11_handle_events()
   }
 }
 
-internal void *thread_routine(void *args)
-{
-  unused(args);
-
-  f64 start_time = platform_get_time_in_seconds();
-  f64 cur_time = start_time;
-
-  while ((cur_time - start_time) <= 1.0)
-  {
-    cur_time = platform_get_time_in_seconds();
-  }
-  
-  return(NULL);
-}
-
 int main(int arg_count, char *arg_values[])
 {
   if (!platform_common_init())
@@ -146,12 +131,6 @@ int main(int arg_count, char *arg_values[])
     meta_log_char("Could not initialize the project\n");
     return(EXIT_FAILURE);
   }
-
-  pthread_t thread_id;
-  i32 thread_result = pthread_create(&thread_id,
-                                     NULL,
-                                     thread_routine,
-                                     NULL);
 
   const Rect_f32 default_client_rect = {0, 0, 800.0f, 600.0f};
   {
@@ -666,8 +645,21 @@ int main(int arg_count, char *arg_values[])
   }
 #endif
 
-  int max_vertex_attributes;
-  glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attributes);
+  // NOTE(antonio): OpenGL fuckery
+  __debugbreak();
+  {
+    i32 max_vertex_attributes;
+    glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attributes);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+    const RGBA_f32 border_color = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (f32 *) &border_color);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  }
 
   u32 vertex_buffer;
   u32 vertex_buffer_reader;
@@ -680,12 +672,54 @@ int main(int arg_count, char *arg_values[])
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer); 
   }
 
+  i32 width, height, channels;
+  u8 *image_data = stbi_load("../../assets/wall.jpg", &width, &height, &channels, 4);
+  expect(image_data != NULL);
+
+  u32 texture;
+  {
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexImage2D(GL_TEXTURE_2D, 0,
+                 GL_RGBA, width, height, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    stbi_image_free(image_data);
+    image_data = NULL;
+  }
+
+  /*
+   * NOTE(antonio): OpenGL NDC
+   * (-1, 1) (1, 1)
+   *  +--------+
+   *  |        |
+   *  |        |
+   *  |        |
+   *  |        |
+   *  +--------+
+   * (-1,-1) (1,-1)
+   */
+
+  /*
+   * NOTE(antonio): OpenGL uvs
+   * (0, 1)  (1, 1)
+   *  +--------+
+   *  |        |
+   *  |        |
+   *  |        |
+   *  |        |
+   *  +--------+
+   * (0,0)   (1, 0)
+   */
+
   f32 triangle_vertices[] = 
   {
-     // vertices         // colors
-     0.5f, -0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, // top right
-    -0.5f, -0.5f,  0.0f, 0.0f, 1.0f, 0.0f, 1.0f, // bottom right
-     0.0f,  0.5f,  0.0f, 0.0f, 0.0f, 1.0f, 1.0f, // top left 
+     // vertices         // colors               // uvs
+     0.5f, -0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, // bottom right
+    -0.5f, -0.5f,  0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, //  bottom left
+     0.5f,  0.5f,  0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, // top right
   };
 
   glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), triangle_vertices, GL_STATIC_DRAW);
@@ -696,7 +730,7 @@ int main(int arg_count, char *arg_values[])
                           3,
                           GL_FLOAT,
                           GL_FALSE,
-                          7 * sizeof(f32),
+                          9 * sizeof(f32),
                           (void *) 0);
 
     glEnableVertexAttribArray(vertex_buffer_index);  
@@ -706,8 +740,18 @@ int main(int arg_count, char *arg_values[])
                           4,
                           GL_FLOAT,
                           GL_FALSE,
-                          7 * sizeof(f32),
+                          9 * sizeof(f32),
                           (void *) (3 * sizeof(f32)));
+
+    glEnableVertexAttribArray(vertex_buffer_index);  
+
+    vertex_buffer_index++;
+    glVertexAttribPointer(vertex_buffer_index,
+                          2,
+                          GL_FLOAT,
+                          GL_FALSE,
+                          9 * sizeof(f32),
+                          (void *) (7 * sizeof(f32)));
 
     glEnableVertexAttribArray(vertex_buffer_index);  
   }

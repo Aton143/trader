@@ -68,4 +68,6 @@ GL_FUNC(glBlitFramebuffer, void, (GLint srcX0, GLint srcY0, GLint srcX1, GLint s
 
 GL_FUNC(glTexImage2DMultisample, void, (GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations))
 
+GL_FUNC(glGenerateMipmap, void, (GLenum target))
+
 #undef GL_FUNC

@@ -124,7 +124,6 @@ internal void x11_handle_events()
   }
 }
 
-/*
 internal void *thread_routine(void *args)
 {
   unused(args);
@@ -136,12 +135,9 @@ internal void *thread_routine(void *args)
   {
     cur_time = platform_get_time_in_seconds();
   }
-
-  __debugbreak();
   
   return(NULL);
 }
-*/
 
 int main(int arg_count, char *arg_values[])
 {
@@ -151,13 +147,11 @@ int main(int arg_count, char *arg_values[])
     return(EXIT_FAILURE);
   }
 
-  /*
   pthread_t thread_id;
   i32 thread_result = pthread_create(&thread_id,
                                      NULL,
                                      thread_routine,
                                      NULL);
-                                     */
 
   const Rect_f32 default_client_rect = {0, 0, 800.0f, 600.0f};
   {
@@ -820,6 +814,9 @@ int main(int arg_count, char *arg_values[])
     {
       glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT);
+
+      i32 vertex_color_location = glGetUniformLocation(shader_program, "uniform_scale");
+      glUniform1f(vertex_color_location, acc_time);
 
       glBindVertexArray(vertex_buffer_reader);
       glDrawArrays(GL_TRIANGLES, 0, 3);

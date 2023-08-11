@@ -57,19 +57,18 @@ struct Global_Platform_State
   XkbDescPtr      xkb;
 };
 
-
-#define __debugbreak()                \
-{ pid_t __tid = syscall(__NR_gettid); \
-__asm__ volatile                      \
-(                                     \
- "movq $200, %%rax;"                  \
- "mov  %0,   %%edi;"                  \
- "movq $2,   %%rsi;"                  \
- "syscall"                            \
- :                                    \
- : "r" (__tid)                        \
- : "%rax", "%edi", "%rsi"             \
-);}
+#define __debugbreak()                  \
+do {pid_t __tid = syscall(__NR_gettid); \
+__asm__ volatile                        \
+(                                       \
+ "movq $200, %%rax;"                    \
+ "mov  %0,   %%edi;"                    \
+ "movq $2,   %%rsi;"                    \
+ "syscall"                              \
+ :                                      \
+ : "r" (__tid)                          \
+ : "%rax", "%edi", "%rsi"               \
+);} while(0)
 
 global Global_Platform_State linux_platform_state;
 
@@ -521,7 +520,7 @@ internal inline u64 linux_microseconds_from_timespec(timespec ts)
   return(microseconds);
 }
 
-internal inline u64 platform_get_microseconds_time(void)
+internal inline u64 platform_get_time_in_microseconds(void)
 {
   u64 microseconds;
 
@@ -532,7 +531,7 @@ internal inline u64 platform_get_microseconds_time(void)
   return(microseconds);
 }
 
-internal f64 platform_get_seconds_time(void)
+internal f64 platform_get_time_in_seconds(void)
 {
   f64 seconds;
 

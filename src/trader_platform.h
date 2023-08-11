@@ -61,8 +61,8 @@ internal b32 platform_did_file_change(utf8 *file_name, u64 file_name_length);
 internal String_Const_utf8 platform_get_file_name_from_path(String_Const_utf8 *path);
 
 internal u64 platform_get_high_precision_time(void);
-internal u64 platform_get_microseconds_time(void);
-internal f64 platform_get_seconds_time(void);
+internal u64 platform_get_time_in_microseconds(void);
+internal f64 platform_get_time_in_seconds(void);
 
 internal Key_Event platform_convert_key_to_our_key(u64 key_value);
 

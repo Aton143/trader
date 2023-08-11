@@ -91,12 +91,12 @@ internal void x11_handle_events()
     {
       case KeyPress:
       {
-        __debugbreak();
+        // __debugbreak();
       } break;
 
       case ClientMessage:
       {
-        __debugbreak();
+        // __debugbreak();
         Atom atom = event.xclient.data.l[0];
 
         // NOTE(antonio): (inso) Window X button clicked
@@ -124,6 +124,25 @@ internal void x11_handle_events()
   }
 }
 
+/*
+internal void *thread_routine(void *args)
+{
+  unused(args);
+
+  f64 start_time = platform_get_time_in_seconds();
+  f64 cur_time = start_time;
+
+  while ((cur_time - start_time) <= 1.0)
+  {
+    cur_time = platform_get_time_in_seconds();
+  }
+
+  __debugbreak();
+  
+  return(NULL);
+}
+*/
+
 int main(int arg_count, char *arg_values[])
 {
   if (!platform_common_init())
@@ -131,6 +150,14 @@ int main(int arg_count, char *arg_values[])
     meta_log_char("Could not initialize the project\n");
     return(EXIT_FAILURE);
   }
+
+  /*
+  pthread_t thread_id;
+  i32 thread_result = pthread_create(&thread_id,
+                                     NULL,
+                                     thread_routine,
+                                     NULL);
+                                     */
 
   const Rect_f32 default_client_rect = {0, 0, 800.0f, 600.0f};
   {
@@ -378,10 +405,11 @@ int main(int arg_count, char *arg_values[])
 #if !SHIP_MODE
           GLX_CONTEXT_FLAGS_ARB,         GLX_CONTEXT_DEBUG_BIT_ARB,
 #endif
+          GLX_CONTEXT_PROFILE_MASK_ARB,  GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
           None
         };
 
-        meta_log_char("Creating GL 2.1 context\n");
+        meta_log_char("Creating GL 3.3 core context\n");
         glx_context = glXCreateContextAttribsARB(linux_platform_state.display, chosen_glxfb_config, 0, True, context_attributes);
       }
 
@@ -652,25 +680,21 @@ int main(int arg_count, char *arg_values[])
 
   {
     glGenVertexArrays(1, &vertex_buffer_reader);
-    glBindVertexArray(vertex_buffer_reader);
-
     glGenBuffers(1, &vertex_buffer);
+
+    glBindVertexArray(vertex_buffer_reader);
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer); 
   }
 
   f32 triangle_vertices[] = 
   {
-    // first triangle
-     0.5f,  0.5f,  0.0f,  // top right
-     0.5f, -0.5f,  0.0f,  // bottom right
-    -0.5f,  0.5f,  0.0f,  // top left 
-    // second triangle
-     0.5f, -0.5f,  0.0f,  // bottom right
-    -0.5f, -0.5f,  0.0f,  // bottom left
-    -0.5f,  0.5f,  0.0f   // top left
+     // vertices         // colors
+     0.5f, -0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, // top right
+    -0.5f, -0.5f,  0.0f, 0.0f, 1.0f, 0.0f, 1.0f, // bottom right
+     0.0f,  0.5f,  0.0f, 0.0f, 0.0f, 1.0f, 1.0f, // top left 
   };
 
-  glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), triangle_vertices, GL_DYNAMIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), triangle_vertices, GL_STATIC_DRAW);
 
   u32 vertex_buffer_index = 0;
   {
@@ -678,8 +702,18 @@ int main(int arg_count, char *arg_values[])
                           3,
                           GL_FLOAT,
                           GL_FALSE,
-                          3 * sizeof(float),
+                          7 * sizeof(f32),
                           (void *) 0);
+
+    glEnableVertexAttribArray(vertex_buffer_index);  
+
+    vertex_buffer_index++;
+    glVertexAttribPointer(vertex_buffer_index,
+                          4,
+                          GL_FLOAT,
+                          GL_FALSE,
+                          7 * sizeof(f32),
+                          (void *) (3 * sizeof(f32)));
 
     glEnableVertexAttribArray(vertex_buffer_index);  
   }
@@ -750,11 +784,13 @@ int main(int arg_count, char *arg_values[])
     glDeleteShader(vertex_shader);
     glDeleteShader(fragment_shader);
 
-    vertex_shader = -1;
+    vertex_shader   = -1;
     fragment_shader = -1;
   }
 
-  f64 last_frame_time = platform_get_seconds_time();
+  glUseProgram(shader_program);
+
+  f64 last_frame_time = platform_get_time_in_seconds();
   b32 first_step      = true;
 
   glViewport(0, 0, (i32) rect_get_width(&default_client_rect), (i32) rect_get_height(&default_client_rect));
@@ -785,20 +821,12 @@ int main(int arg_count, char *arg_values[])
       glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT);
 
-      f32 green_value = (sinf(lerpf(-half_pi_f32, acc_time, half_pi_f32)) / 2.0f) + 0.5f;
-      f32 red_value = (cosf(lerpf(-half_pi_f32, acc_time, half_pi_f32)) / 2.0f) + 0.5f;
-
-      i32 vertex_color_location = glGetUniformLocation(shader_program, "uniform_color");
-
-      glUseProgram(shader_program);
-      glUniform4f(vertex_color_location, red_value, green_value, 0.0f, 1.0f);
-
       glBindVertexArray(vertex_buffer_reader);
-      glDrawArrays(GL_TRIANGLES, 0, sizeof(triangle_vertices) / 6);
+      glDrawArrays(GL_TRIANGLES, 0, 3);
     }
 
     glXSwapBuffers(linux_platform_state.display, linux_platform_state.window_handle);
-    last_frame_time = platform_get_seconds_time();
+    last_frame_time = platform_get_time_in_seconds();
 
     acc_time += dir * (1.0f / 60.f);
     if (acc_time > 1.0f)

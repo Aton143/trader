@@ -646,7 +646,6 @@ int main(int arg_count, char *arg_values[])
 #endif
 
   // NOTE(antonio): OpenGL fuckery
-  __debugbreak();
   {
     i32 max_vertex_attributes;
     glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attributes);
@@ -703,7 +702,7 @@ int main(int arg_count, char *arg_values[])
    */
 
   /*
-   * NOTE(antonio): OpenGL uvs
+   * NOTE(antonio): OpenGL UVs
    * (0, 1)  (1, 1)
    *  +--------+
    *  |        |
@@ -714,12 +713,25 @@ int main(int arg_count, char *arg_values[])
    * (0,0)   (1, 0)
    */
 
-  f32 triangle_vertices[] = 
+#pragma pack(push, 1)
+  struct Draw_Data
+  {
+    V3_f32   vertex;
+    RGBA_f32 color;
+    V2_f32   uv;
+  };
+#pragma pack(pop)
+
+  Draw_Data triangle_vertices[] = 
   {
      // vertices         // colors               // uvs
-     0.5f, -0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, // bottom right
-    -0.5f, -0.5f,  0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, //  bottom left
-     0.5f,  0.5f,  0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, // top right
+    {V3( 0.5f, -0.5f, 0.0f), rgba(1.0f, 0.0f, 0.0f, 1.0f), V2(1.0f, 0.0f)}, // bottom right
+    {V3(-0.5f, -0.5f, 0.0f), rgba(0.0f, 1.0f, 0.0f, 1.0f), V2(0.0f, 0.0f)}, // bottom left
+    {V3( 0.5f,  0.5f, 0.0f), rgba(0.0f, 0.0f, 1.0f, 1.0f), V2(1.0f, 1.0f)}, // top right
+
+    {V3(-0.5f,  0.5f, 0.0f), rgba(0.0f, 1.0f, 0.0f, 1.0f), V2(0.0f, 1.0f)}, // bottom left
+    {V3(-0.5f, -0.5f, 0.0f), rgba(1.0f, 0.0f, 0.0f, 1.0f), V2(1.0f, 0.0f)}, // top left
+    {V3( 0.5f,  0.5f, 0.0f), rgba(0.0f, 0.0f, 1.0f, 1.0f), V2(1.0f, 1.0f)}, // top right
   };
 
   glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), triangle_vertices, GL_STATIC_DRAW);
@@ -863,7 +875,7 @@ int main(int arg_count, char *arg_values[])
       glUniform1f(vertex_color_location, acc_time);
 
       glBindVertexArray(vertex_buffer_reader);
-      glDrawArrays(GL_TRIANGLES, 0, 3);
+      glDrawArrays(GL_TRIANGLES, 0, array_count(triangle_vertices));
     }
 
     glXSwapBuffers(linux_platform_state.display, linux_platform_state.window_handle);

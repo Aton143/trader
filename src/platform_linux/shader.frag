@@ -8,5 +8,5 @@ out vec4 out_color;
 
 void main()
 {
-  out_color = texture(texture_sampler, vs_uv) * vs_color;
+  out_color = texture(texture_sampler, vs_uv);
 } 

@@ -649,15 +649,6 @@ int main(int arg_count, char *arg_values[])
   {
     i32 max_vertex_attributes;
     glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attributes);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-
-    const RGBA_f32 border_color = rgba(1.0f, 1.0f, 1.0f, 1.0f);
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (f32 *) &border_color);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   }
 
   u32 vertex_buffer;
@@ -674,20 +665,6 @@ int main(int arg_count, char *arg_values[])
   i32 width, height, channels;
   u8 *image_data = stbi_load("../../assets/wall.jpg", &width, &height, &channels, 4);
   expect(image_data != NULL);
-
-  u32 texture;
-  {
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-
-    glTexImage2D(GL_TEXTURE_2D, 0,
-                 GL_RGBA, width, height, 0,
-                 GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    stbi_image_free(image_data);
-    image_data = NULL;
-  }
 
   /*
    * NOTE(antonio): OpenGL NDC
@@ -724,13 +701,12 @@ int main(int arg_count, char *arg_values[])
 
   Draw_Data triangle_vertices[] = 
   {
-     // vertices         // colors               // uvs
     {V3( 0.5f, -0.5f, 0.0f), rgba(1.0f, 0.0f, 0.0f, 1.0f), V2(1.0f, 0.0f)}, // bottom right
     {V3(-0.5f, -0.5f, 0.0f), rgba(0.0f, 1.0f, 0.0f, 1.0f), V2(0.0f, 0.0f)}, // bottom left
     {V3( 0.5f,  0.5f, 0.0f), rgba(0.0f, 0.0f, 1.0f, 1.0f), V2(1.0f, 1.0f)}, // top right
 
-    {V3(-0.5f,  0.5f, 0.0f), rgba(0.0f, 1.0f, 0.0f, 1.0f), V2(0.0f, 1.0f)}, // bottom left
-    {V3(-0.5f, -0.5f, 0.0f), rgba(1.0f, 0.0f, 0.0f, 1.0f), V2(1.0f, 0.0f)}, // top left
+    {V3(-0.5f, -0.5f, 0.0f), rgba(1.0f, 0.0f, 0.0f, 1.0f), V2(0.0f, 0.0f)}, // bottom left
+    {V3(-0.5f,  0.5f, 0.0f), rgba(0.0f, 1.0f, 0.0f, 1.0f), V2(0.0f, 1.0f)}, // top left
     {V3( 0.5f,  0.5f, 0.0f), rgba(0.0f, 0.0f, 1.0f, 1.0f), V2(1.0f, 1.0f)}, // top right
   };
 
@@ -739,7 +715,7 @@ int main(int arg_count, char *arg_values[])
   u32 vertex_buffer_index = 0;
   {
     glVertexAttribPointer(vertex_buffer_index,
-                          member_size(Draw_Data, vertex),
+                          3,
                           GL_FLOAT,
                           GL_FALSE,
                           sizeof(Draw_Data),
@@ -749,7 +725,7 @@ int main(int arg_count, char *arg_values[])
 
     vertex_buffer_index++;
     glVertexAttribPointer(vertex_buffer_index,
-                          member_size(Draw_Data, color),
+                          4,
                           GL_FLOAT,
                           GL_FALSE,
                           sizeof(Draw_Data),
@@ -759,13 +735,36 @@ int main(int arg_count, char *arg_values[])
 
     vertex_buffer_index++;
     glVertexAttribPointer(vertex_buffer_index,
-                          member_size(Draw_Data, uv),
+                          2,
                           GL_FLOAT,
                           GL_FALSE,
                           sizeof(Draw_Data),
                           (void *) member_offset(Draw_Data, uv));
 
     glEnableVertexAttribArray(vertex_buffer_index);  
+  }
+
+  u32 texture;
+  {
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+    const RGBA_f32 border_color = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (f32 *) &border_color);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glTexImage2D(GL_TEXTURE_2D, 0,
+                 GL_RGBA, width, height, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    stbi_image_free(image_data);
+    image_data = NULL;
   }
 
   String_Const_utf8 vertex_shader_path =
@@ -873,6 +872,8 @@ int main(int arg_count, char *arg_values[])
 
       i32 vertex_color_location = glGetUniformLocation(shader_program, "uniform_scale");
       glUniform1f(vertex_color_location, acc_time);
+
+      glBindTexture(GL_TEXTURE_2D, texture);
 
       glBindVertexArray(vertex_buffer_reader);
       glDrawArrays(GL_TRIANGLES, 0, array_count(triangle_vertices));

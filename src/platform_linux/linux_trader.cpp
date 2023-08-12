@@ -739,31 +739,31 @@ int main(int arg_count, char *arg_values[])
   u32 vertex_buffer_index = 0;
   {
     glVertexAttribPointer(vertex_buffer_index,
-                          3,
+                          member_size(Draw_Data, vertex),
                           GL_FLOAT,
                           GL_FALSE,
-                          9 * sizeof(f32),
-                          (void *) 0);
+                          sizeof(Draw_Data),
+                          (void *) member_offset(Draw_Data, vertex));
 
     glEnableVertexAttribArray(vertex_buffer_index);  
 
     vertex_buffer_index++;
     glVertexAttribPointer(vertex_buffer_index,
-                          4,
+                          member_size(Draw_Data, color),
                           GL_FLOAT,
                           GL_FALSE,
-                          9 * sizeof(f32),
-                          (void *) (3 * sizeof(f32)));
+                          sizeof(Draw_Data),
+                          (void *) member_offset(Draw_Data, color));
 
     glEnableVertexAttribArray(vertex_buffer_index);  
 
     vertex_buffer_index++;
     glVertexAttribPointer(vertex_buffer_index,
-                          2,
+                          member_size(Draw_Data, uv),
                           GL_FLOAT,
                           GL_FALSE,
-                          9 * sizeof(f32),
-                          (void *) (7 * sizeof(f32)));
+                          sizeof(Draw_Data),
+                          (void *) member_offset(Draw_Data, uv));
 
     glEnableVertexAttribArray(vertex_buffer_index);  
   }

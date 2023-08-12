@@ -662,10 +662,6 @@ int main(int arg_count, char *arg_values[])
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer); 
   }
 
-  i32 width, height, channels;
-  u8 *image_data = stbi_load("../../assets/wall.jpg", &width, &height, &channels, 4);
-  expect(image_data != NULL);
-
   /*
    * NOTE(antonio): OpenGL NDC
    * (-1, 1) (1, 1)
@@ -705,7 +701,7 @@ int main(int arg_count, char *arg_values[])
     {V3(-0.5f, -0.5f, 0.0f), rgba(0.0f, 1.0f, 0.0f, 1.0f), V2(0.0f, 0.0f)}, // bottom left
     {V3( 0.5f,  0.5f, 0.0f), rgba(0.0f, 0.0f, 1.0f, 1.0f), V2(1.0f, 1.0f)}, // top right
 
-    {V3(-0.5f, -0.5f, 0.0f), rgba(1.0f, 0.0f, 0.0f, 1.0f), V2(0.0f, 0.0f)}, // bottom left
+    {V3(-0.5f, -0.5f, 0.0f), rgba(0.0f, 1.0f, 0.0f, 1.0f), V2(0.0f, 0.0f)}, // bottom left
     {V3(-0.5f,  0.5f, 0.0f), rgba(0.0f, 1.0f, 0.0f, 1.0f), V2(0.0f, 1.0f)}, // top left
     {V3( 0.5f,  0.5f, 0.0f), rgba(0.0f, 0.0f, 1.0f, 1.0f), V2(1.0f, 1.0f)}, // top right
   };
@@ -744,15 +740,22 @@ int main(int arg_count, char *arg_values[])
     glEnableVertexAttribArray(vertex_buffer_index);  
   }
 
-  u32 texture;
+  i32 width, height, channels;
+  u8 *wall_image_data =
+    stbi_load("../../assets/wall.jpg", &width, &height, &channels, 4);
+  expect(wall_image_data != NULL);
+
+  u32 textures[2];
   {
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    glGenTextures(2, textures);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textures[0]);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
-    const RGBA_f32 border_color = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+    const RGBA_f32 border_color = rgba(0.0f, 0.0f, 0.0f, 0.0f);
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (f32 *) &border_color);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -760,11 +763,39 @@ int main(int arg_count, char *arg_values[])
 
     glTexImage2D(GL_TEXTURE_2D, 0,
                  GL_RGBA, width, height, 0,
-                 GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+                 GL_RGBA, GL_UNSIGNED_BYTE, wall_image_data);
     glGenerateMipmap(GL_TEXTURE_2D);
+  }
 
-    stbi_image_free(image_data);
-    image_data = NULL;
+  stbi_set_flip_vertically_on_load(true);
+
+  u8 *smile_image_data =
+    stbi_load("../../assets/awesomeface.png", &width, &height, &channels, 4);
+  expect(smile_image_data != NULL);
+  {
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, textures[1]);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+    const RGBA_f32 border_color = rgba(0.0f, 0.0f, 0.0f, 0.0f);
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (f32 *) &border_color);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glTexImage2D(GL_TEXTURE_2D, 0,
+                 GL_RGBA, width, height, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, smile_image_data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+  }
+
+  {
+    stbi_image_free(wall_image_data);
+    stbi_image_free(smile_image_data);
+    wall_image_data = NULL;
+    smile_image_data = NULL;
   }
 
   String_Const_utf8 vertex_shader_path =
@@ -847,6 +878,27 @@ int main(int arg_count, char *arg_values[])
   f32 acc_time = 0.0f;
   f32 dir      = 1.0f;
 
+  i32 vertex_color_location;
+  i32 mix_factor_location;
+  i32 wall_sampler_location;
+  i32 smile_sampler_location;
+
+  {
+    vertex_color_location  = glGetUniformLocation(shader_program, "uniform_scale");
+    mix_factor_location    = glGetUniformLocation(shader_program, "mix_factor");
+    wall_sampler_location  = glGetUniformLocation(shader_program, "wall_sampler");
+    smile_sampler_location = glGetUniformLocation(shader_program, "smile_sampler");
+  }
+
+  glUniform1i(wall_sampler_location, 0);
+  glUniform1i(smile_sampler_location, 1);
+
+  glEnable(GL_DEPTH_TEST);  
+  glDepthFunc(GL_LESS);
+
+  glEnable(GL_BLEND);
+  glBlendFuncSeparate(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ZERO);
+
   global_running = true;
   while (global_running)
   {
@@ -868,12 +920,16 @@ int main(int arg_count, char *arg_values[])
 
     {
       glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-      glClear(GL_COLOR_BUFFER_BIT);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-      i32 vertex_color_location = glGetUniformLocation(shader_program, "uniform_scale");
       glUniform1f(vertex_color_location, acc_time);
+      glUniform1f(mix_factor_location, acc_time);
 
-      glBindTexture(GL_TEXTURE_2D, texture);
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_2D, textures[0]);
+
+      glActiveTexture(GL_TEXTURE1);
+      glBindTexture(GL_TEXTURE_2D, textures[1]);
 
       glBindVertexArray(vertex_buffer_reader);
       glDrawArrays(GL_TRIANGLES, 0, array_count(triangle_vertices));

@@ -1,6 +1,20 @@
 #version 330 core
-in  vec4 vs_color;
-in  vec2 vs_uv;
+struct PS_Input
+{
+  vec4 vertex;
+  vec4 color;
+  vec2 uv;
+
+  vec2 dst_pos;
+  vec2 dst_center;
+  vec2 dst_half_size;
+
+  float  corner_radius;
+  float  edge_softness;
+  float  border_thickness;
+};
+
+in PS_Input vs_output;
 
 uniform sampler2D texture_sampler;
 

@@ -1,17 +1,61 @@
 #version 330 core
-layout (location = 0) in vec3 input_vertex;
-layout (location = 1) in vec4 input_color;
-layout (location = 2) in vec2 input_uv;
 
-uniform float uniform_scale;
-uniform mat4  uniform_transform;
+struct VS_Input
+{
+  vec2 top_left;
+  vec2 bottom_right;
 
-out vec4 vs_color;
-out vec2 vs_uv;
+  vec4 color[4];
+
+  vec3 position;
+
+  float  corner_radius;
+  float  edge_softness;
+  float  border_thickness;
+
+  vec2 texture_top_left;
+  vec2 texture_bottom_right;
+};
+
+struct PS_Input
+{
+  vec4 vertex;
+  vec4 color;
+  vec2 uv;
+
+  vec2 dst_pos;
+  vec2 dst_center;
+  vec2 dst_half_size;
+
+  float  corner_radius;
+  float  edge_softness;
+  float  border_thickness;
+};
+
+layout (location = 0) in VS_Input vs_input;
+
+out PS_Input vs_output;
+
+layout (location = 0) uniform float uniform_scale;
+layout (std140)       uniform global_data
+{
+  vec4 texture_dimensions;
+  vec2 resolution;
+};
+uniform mat4 transform;
 
 void main()
 {
-  gl_Position = uniform_transform * vec4(input_vertex, 1.0);
-  vs_color    = input_color * uniform_scale;
-  vs_uv       = input_uv;
+  // NOTE(antonio): static vertex array that we can index into with our vertex ID
+  static vec2 vertices[] =
+  {
+    // NOTE(antonio): Bottom Left
+    {-1.0f, -1.0f},
+    // NOTE(antonio): Top    Left
+    {-1.0f, +1.0f},
+    // NOTE(antonio): Bottom Right
+    {+1.0f, -1.0f},
+    // NOTE(antonio): Top    Right
+    {+1.0f, +1.0f},
+  };
 }

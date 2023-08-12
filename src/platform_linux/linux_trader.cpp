@@ -703,13 +703,13 @@ int main(int arg_count, char *arg_values[])
 
   Draw_Data triangle_vertices[] = 
   {
-    {V3( 0.5f, -0.5f, 0.0f), rgba(0.5f, 0.5f, 0.5f, 1.0f), V2(1.0f, 0.0f)}, // bottom right
-    {V3(-0.5f, -0.5f, 0.0f), rgba(0.5f, 0.5f, 0.5f, 1.0f), V2(0.0f, 0.0f)}, // bottom left
-    {V3( 0.5f,  0.5f, 0.0f), rgba(0.5f, 0.5f, 0.5f, 1.0f), V2(1.0f, 1.0f)}, // top right
+    {V3( 0.5f, -0.5f, 0.0f), rgba(1.0f, 0.0f, 0.0f, 1.0f), V2(1.0f, 0.0f)}, // bottom right
+    {V3(-0.5f, -0.5f, 0.0f), rgba(0.0f, 1.0f, 0.0f, 1.0f), V2(0.0f, 0.0f)}, // bottom left
+    {V3( 0.5f,  0.5f, 0.0f), rgba(0.0f, 0.0f, 1.0f, 1.0f), V2(1.0f, 1.0f)}, // top right
 
-    {V3(-0.5f, -0.5f, 0.0f), rgba(0.5f, 0.5f, 0.5f, 1.0f), V2(0.0f, 0.0f)}, // bottom left
-    {V3(-0.5f,  0.5f, 0.0f), rgba(0.5f, 0.5f, 0.5f, 1.0f), V2(0.0f, 1.0f)}, // top left
-    {V3( 0.5f,  0.5f, 0.0f), rgba(0.5f, 0.5f, 0.5f, 1.0f), V2(1.0f, 1.0f)}, // top right
+    {V3(-0.5f, -0.5f, 0.0f), rgba(0.0f, 1.0f, 0.0f, 1.0f), V2(0.0f, 0.0f)}, // bottom left
+    {V3(-0.5f,  0.5f, 0.0f), rgba(0.0f, 0.0f, 1.0f, 1.0f), V2(0.0f, 1.0f)}, // top left
+    {V3( 0.5f,  0.5f, 0.0f), rgba(1.0f, 0.0f, 0.0f, 1.0f), V2(1.0f, 1.0f)}, // top right
   };
 
   glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), triangle_vertices, GL_STATIC_DRAW);

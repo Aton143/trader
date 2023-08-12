@@ -71,6 +71,9 @@ __asm__ volatile                        \
 );} while(0)
 
 global Global_Platform_State linux_platform_state;
+global_const String_Const_utf8 default_font_path = 
+    string_literal_init_type("../assets/ubuntu_default_font/Ubuntu-Regular.ttf", utf8);
+global_const f32 default_font_heights[] = {24.0f};
 
 internal void platform_debug_printf(char *format, ...)
 {

@@ -80,13 +80,13 @@ struct Common_Render_Context
   Arena          triangle_render_data;
   V2_f32         vertex_render_dimensions;
   Rect_f32       client_rect;
+  File_Buffer    default_font;
 };
 
 #include "trader_platform.h"
 
 global_const u32 render_data_size          = mb(1);
 global_const u32 triangle_render_data_size = mb(1);
-global File_Buffer default_font = {};
 
 global_const utf32 starting_code_point = 32;  // ' '
 global_const utf32 ending_code_point   = 126; // '~'

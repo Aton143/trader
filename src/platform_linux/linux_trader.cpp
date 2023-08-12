@@ -138,32 +138,6 @@ int main(int arg_count, char *arg_values[])
   unused(ui);
   unused(render);
 
-  Arena *global_arena = platform_get_global_arena();
-
-  String_Const_utf8 default_font_path =
-    string_literal_init_type("../assets/ubuntu_default_font/Ubuntu-Regular.ttf", utf8);
-
-  default_font =
-    platform_open_and_read_entire_file(platform_get_global_arena(),
-                                       default_font_path.str,
-                                       default_font_path.size);
-  expect(default_font.used != 0);
-
-
-  File_Buffer ubuntu_font = 
-    platform_open_and_read_entire_file(platform_get_global_arena(),
-                                       default_font_path.str,
-                                       default_font_path.size);
-  expect(ubuntu_font.used != 0);
-
-  f32 default_font_heights[] = {24.0f};
-  render_atlas_initialize(platform_get_global_arena(),
-                          render->atlas,
-                          &ubuntu_font,
-                          default_font_heights,
-                          array_count(default_font_heights),
-                          512, 512);
-
   const Rect_f32 default_client_rect = {0, 0, 800.0f, 600.0f};
   {
     Display *x11_display = XOpenDisplay(NULL);

@@ -14,6 +14,8 @@ internal b32 render_atlas_initialize(Arena         *arena,
          ((0 < font_height_count) &&
           (font_height_count <= member_array_count(Texture_Atlas, heights))));
 
+  Common_Render_Context *common_render = render_get_common_context();
+
   i32 font_count = stbtt_GetNumberOfFonts(font_data->data);
   if (font_count > 0) 
   {
@@ -23,9 +25,10 @@ internal b32 render_atlas_initialize(Arena         *arena,
     // NOTE(antonio): fallback font
     if (!stbtt_InitFont(&font_info, font_data->data, font_offset))
     {
-      expect_message(default_font.data != NULL, "expected a default font at least...");
+      expect_message(common_render->default_font.data != NULL,
+                     "expected a default font at least...");
 
-      font_data = &default_font;
+      font_data = &common_render->default_font;
       stbtt_InitFont(&font_info, font_data->data, 0);
     }
 

@@ -484,8 +484,6 @@ WinMain(HINSTANCE instance,
   platform_push_notify_dir(notify_dir.str, notify_dir.size);
   platform_start_collect_notifications();
 
-  String_Const_utf8 default_font_path = string_literal_init_type("C:/windows/fonts/arial.ttf", utf8);
-
   File_Buffer arial_font = platform_open_and_read_entire_file(global_arena, default_font_path.str, default_font_path.size);
 
   // NOTE(antonio): default font on Windows is Arial

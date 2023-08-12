@@ -48,5 +48,18 @@ internal b32 platform_common_init(void)
   common_render->render_data          = render_data;
   common_render->triangle_render_data = triangle_render_data;
 
+  common_render->default_font =
+    platform_open_and_read_entire_file(global_arena,
+                                       default_font_path.str,
+                                       default_font_path.size);
+  expect(common_render->default_font.used != 0);
+
+  render_atlas_initialize(global_arena,
+                          common_render->atlas,
+                          &common_render->default_font,
+                          (f32 *) default_font_heights,
+                          array_count(default_font_heights),
+                          512, 512);
+
   return(result);
 }

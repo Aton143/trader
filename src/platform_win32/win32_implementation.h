@@ -28,11 +28,12 @@ struct Render_Context
   {
     struct
     {
-      Texture_Atlas       *atlas;
-      Arena                render_data;
-      Arena                triangle_render_data;
-      V2_f32               vertex_render_dimensions;
-      Rect_f32             client_rect;
+      Texture_Atlas *atlas;
+      Arena          render_data;
+      Arena          triangle_render_data;
+      V2_f32         vertex_render_dimensions;
+      Rect_f32       client_rect;
+      File_Buffer    default_font;
     };
     Common_Render_Context common_context;
   };
@@ -91,7 +92,9 @@ struct Global_Platform_State
 };
 #pragma pack(pop)
 
-global Global_Platform_State win32_global_state = {};
+global Global_Platform_State win32_global_state  = {};
+global_const String_Const_utf8 default_font_path =
+  string_literal_init_type("C:/windows/fonts/arial.ttf", utf8);
 
 internal Render_Context *render_get_context(void)
 {

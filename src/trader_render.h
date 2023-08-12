@@ -2,8 +2,8 @@
 #pragma pack(push, 4)
 struct Constant_Buffer
 {
-  f32 atlas_width,  atlas_height;
-  f32 res0,  res1;
+  f32 atlas_width, atlas_height;
+  f32 res0, res1;
 
   union {
     // NOTE(antonio): for instance-based rendering

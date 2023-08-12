@@ -132,6 +132,38 @@ int main(int arg_count, char *arg_values[])
     return(EXIT_FAILURE);
   }
 
+  UI_Context            *ui     = ui_get_context();
+  Common_Render_Context *render = render_get_common_context();
+
+  unused(ui);
+  unused(render);
+
+  Arena *global_arena = platform_get_global_arena();
+
+  String_Const_utf8 default_font_path =
+    string_literal_init_type("../assets/ubuntu_default_font/Ubuntu-Regular.ttf", utf8);
+
+  default_font =
+    platform_open_and_read_entire_file(platform_get_global_arena(),
+                                       default_font_path.str,
+                                       default_font_path.size);
+  expect(default_font.used != 0);
+
+
+  File_Buffer ubuntu_font = 
+    platform_open_and_read_entire_file(platform_get_global_arena(),
+                                       default_font_path.str,
+                                       default_font_path.size);
+  expect(ubuntu_font.used != 0);
+
+  f32 default_font_heights[] = {24.0f};
+  render_atlas_initialize(platform_get_global_arena(),
+                          render->atlas,
+                          &ubuntu_font,
+                          default_font_heights,
+                          array_count(default_font_heights),
+                          512, 512);
+
   const Rect_f32 default_client_rect = {0, 0, 800.0f, 600.0f};
   {
     Display *x11_display = XOpenDisplay(NULL);
@@ -740,17 +772,12 @@ int main(int arg_count, char *arg_values[])
     glEnableVertexAttribArray(vertex_buffer_index);  
   }
 
-  i32 width, height, channels;
-  u8 *wall_image_data =
-    stbi_load("../../assets/wall.jpg", &width, &height, &channels, 4);
-  expect(wall_image_data != NULL);
-
-  u32 textures[2];
+  u32 font_atlas_texture;
   {
-    glGenTextures(2, textures);
+    glGenTextures(1, &font_atlas_texture);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, textures[0]);
+    glBindTexture(GL_TEXTURE_2D, font_atlas_texture);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
@@ -762,40 +789,9 @@ int main(int arg_count, char *arg_values[])
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     glTexImage2D(GL_TEXTURE_2D, 0,
-                 GL_RGBA, width, height, 0,
-                 GL_RGBA, GL_UNSIGNED_BYTE, wall_image_data);
+                 GL_RED, render->atlas->bitmap.width, render->atlas->bitmap.height, 0,
+                 GL_RED, GL_UNSIGNED_BYTE, render->atlas->bitmap.alpha);
     glGenerateMipmap(GL_TEXTURE_2D);
-  }
-
-  stbi_set_flip_vertically_on_load(true);
-
-  u8 *smile_image_data =
-    stbi_load("../../assets/awesomeface.png", &width, &height, &channels, 4);
-  expect(smile_image_data != NULL);
-  {
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, textures[1]);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-
-    const RGBA_f32 border_color = rgba(0.0f, 0.0f, 0.0f, 0.0f);
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (f32 *) &border_color);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glTexImage2D(GL_TEXTURE_2D, 0,
-                 GL_RGBA, width, height, 0,
-                 GL_RGBA, GL_UNSIGNED_BYTE, smile_image_data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-  }
-
-  {
-    stbi_image_free(wall_image_data);
-    stbi_image_free(smile_image_data);
-    wall_image_data = NULL;
-    smile_image_data = NULL;
   }
 
   String_Const_utf8 vertex_shader_path =
@@ -879,19 +875,14 @@ int main(int arg_count, char *arg_values[])
   f32 dir      = 1.0f;
 
   i32 vertex_color_location;
-  i32 mix_factor_location;
-  i32 wall_sampler_location;
-  i32 smile_sampler_location;
+  i32 texture_sampler_location;
 
   {
-    vertex_color_location  = glGetUniformLocation(shader_program, "uniform_scale");
-    mix_factor_location    = glGetUniformLocation(shader_program, "mix_factor");
-    wall_sampler_location  = glGetUniformLocation(shader_program, "wall_sampler");
-    smile_sampler_location = glGetUniformLocation(shader_program, "smile_sampler");
+    vertex_color_location    = glGetUniformLocation(shader_program, "uniform_scale");
+    texture_sampler_location = glGetUniformLocation(shader_program, "texture_sampler");
   }
 
-  glUniform1i(wall_sampler_location, 0);
-  glUniform1i(smile_sampler_location, 1);
+  glUniform1i(texture_sampler_location, 0);
 
   glEnable(GL_DEPTH_TEST);  
   glDepthFunc(GL_LESS);
@@ -923,13 +914,9 @@ int main(int arg_count, char *arg_values[])
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
       glUniform1f(vertex_color_location, acc_time);
-      glUniform1f(mix_factor_location, acc_time);
 
       glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D, textures[0]);
-
-      glActiveTexture(GL_TEXTURE1);
-      glBindTexture(GL_TEXTURE_2D, textures[1]);
+      glBindTexture(GL_TEXTURE_2D, font_atlas_texture);
 
       glBindVertexArray(vertex_buffer_reader);
       glDrawArrays(GL_TRIANGLES, 0, array_count(triangle_vertices));

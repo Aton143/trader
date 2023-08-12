@@ -38,7 +38,7 @@ internal b32 platform_common_init(void)
 
   ui_initialize(ui_get_context());
 
-  f32 default_font_heights[] = {24.0f};
+  // f32 default_font_heights[] = {24.0f};
 
   Common_Render_Context *common_render = render_get_common_context();
   common_render->atlas = push_struct_zero(global_arena, Texture_Atlas);

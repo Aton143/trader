@@ -703,13 +703,13 @@ int main(int arg_count, char *arg_values[])
 
   Draw_Data triangle_vertices[] = 
   {
-    {V3( 0.5f, -0.5f, 0.0f), rgba(1.0f, 0.0f, 0.0f, 1.0f), V2(1.0f, 0.0f)}, // bottom right
-    {V3(-0.5f, -0.5f, 0.0f), rgba(0.0f, 1.0f, 0.0f, 1.0f), V2(0.0f, 0.0f)}, // bottom left
-    {V3( 0.5f,  0.5f, 0.0f), rgba(0.0f, 0.0f, 1.0f, 1.0f), V2(1.0f, 1.0f)}, // top right
+    {V3( 0.5f, -0.5f, 0.0f), rgba(0.5f, 0.5f, 0.5f, 1.0f), V2(1.0f, 0.0f)}, // bottom right
+    {V3(-0.5f, -0.5f, 0.0f), rgba(0.5f, 0.5f, 0.5f, 1.0f), V2(0.0f, 0.0f)}, // bottom left
+    {V3( 0.5f,  0.5f, 0.0f), rgba(0.5f, 0.5f, 0.5f, 1.0f), V2(1.0f, 1.0f)}, // top right
 
-    {V3(-0.5f, -0.5f, 0.0f), rgba(0.0f, 1.0f, 0.0f, 1.0f), V2(0.0f, 0.0f)}, // bottom left
-    {V3(-0.5f,  0.5f, 0.0f), rgba(0.0f, 1.0f, 0.0f, 1.0f), V2(0.0f, 1.0f)}, // top left
-    {V3( 0.5f,  0.5f, 0.0f), rgba(0.0f, 0.0f, 1.0f, 1.0f), V2(1.0f, 1.0f)}, // top right
+    {V3(-0.5f, -0.5f, 0.0f), rgba(0.5f, 0.5f, 0.5f, 1.0f), V2(0.0f, 0.0f)}, // bottom left
+    {V3(-0.5f,  0.5f, 0.0f), rgba(0.5f, 0.5f, 0.5f, 1.0f), V2(0.0f, 1.0f)}, // top left
+    {V3( 0.5f,  0.5f, 0.0f), rgba(0.5f, 0.5f, 0.5f, 1.0f), V2(1.0f, 1.0f)}, // top right
   };
 
   glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), triangle_vertices, GL_STATIC_DRAW);
@@ -845,18 +845,26 @@ int main(int arg_count, char *arg_values[])
 
   glViewport(0, 0, (i32) rect_get_width(&default_client_rect), (i32) rect_get_height(&default_client_rect));
 
-  f32 acc_time = 0.0f;
-  f32 dir      = 1.0f;
+  f32 acc_time =  1.0f;
+  f32 dir      = -1.0f;
 
   i32 vertex_color_location;
   i32 texture_sampler_location;
+  i32 transform_location;
 
   {
     vertex_color_location    = glGetUniformLocation(shader_program, "uniform_scale");
     texture_sampler_location = glGetUniformLocation(shader_program, "texture_sampler");
+    transform_location       = glGetUniformLocation(shader_program, "uniform_transform");
   }
 
   glUniform1i(texture_sampler_location, 0);
+
+  Matrix_f32_4x4 transform = matrix4x4_from_rows(V4(1.0f,  0.0f, 0.0f, 0.0f),
+                                                 V4(0.0f, -1.0f, 0.0f, 0.0f),
+                                                 V4(0.0f,  0.0f, 1.0f, 0.0f),
+                                                 V4(0.0f,  0.0f, 0.0f, 1.0f));
+  glUniformMatrix4fv(transform_location, 1, GL_TRUE, transform.values);
 
   glEnable(GL_DEPTH_TEST);  
   glDepthFunc(GL_LESS);

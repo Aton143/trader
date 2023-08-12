@@ -94,7 +94,7 @@ internal b32 render_atlas_initialize(Arena         *arena,
                                                            rects);
       result = (b32) stb_result;
 
-      // render the rest
+      // render the rest - solid color
       bitmap_data[(residue_rect->y * bitmap_width) + residue_rect->x] = 0xff;
 
       pop_array(arena, stbrp_rect, rect_count);
@@ -106,15 +106,7 @@ internal b32 render_atlas_initialize(Arena         *arena,
 
         copy_struct(&atlas->font_info, &font_info);
 
-        for (u64 packed_char_index = 0;
-             packed_char_index < packed_char_count;
-             ++packed_char_index)
-        {
-          // stbtt_packedchar *packed_char = packed_chars + packed_char_index;
-          // packed_char->yoff *= -1.0f;
-        }
         atlas->char_data = packed_chars;
-
 
         copy_array(atlas->heights, font_heights, font_height_count);
 

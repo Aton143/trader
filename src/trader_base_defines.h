@@ -756,6 +756,7 @@ union Matrix_f32_4x4 {
   {
     V4_f32 rows[4];
   };
+  f32 values[16];
 };
 
 struct Array_i8 {

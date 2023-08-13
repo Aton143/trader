@@ -833,6 +833,9 @@ int main(int arg_count, char *arg_values[])
   f32 acc_time =  1.0f;
   f32 dir      = -1.0f;
 
+  f32 panel_floats[16]  = {0.20f, 0.45f, 0.05f, 0.30f};
+  u32 panel_float_index = 0;
+
   i32 vertex_color_location;
   i32 texture_sampler_location;
   i32 transform_location;
@@ -879,6 +882,13 @@ int main(int arg_count, char *arg_values[])
     Rect_f32 render_rect = render_get_client_rect();
 
     ui_initialize_frame();
+
+    panel_float_index = 0;
+
+    ui_make_panel(axis_split_vertical,
+                  &panel_floats[panel_float_index++],
+                  string_literal_init_type("first", utf8));
+
     ui_do_formatted_string("I am what? %s", "OpenGL");
     ui_prepare_render_from_panels(ui_get_sentinel_panel(), render_rect);
     ui_flatten_draw_layers();

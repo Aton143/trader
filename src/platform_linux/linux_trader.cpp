@@ -772,7 +772,6 @@ int main(int arg_count, char *arg_values[])
     string_literal_init_type("../src/platform_linux/shader.vert", utf8);
   Handle *vertex_shader_handle = make_handle(vertex_shader_path, Handle_Kind_File);
 
-  __debugbreak();
   u32 vertex_shader;
   {
     File_Buffer temp_shader_source =
@@ -844,8 +843,6 @@ int main(int arg_count, char *arg_values[])
   f64 last_frame_time = platform_get_time_in_seconds();
   b32 first_step      = true;
 
-  glViewport(0, 0, (i32) rect_get_width(&default_client_rect), (i32) rect_get_height(&default_client_rect));
-
   f32 acc_time =  1.0f;
   f32 dir      = -1.0f;
 
@@ -892,7 +889,15 @@ int main(int arg_count, char *arg_values[])
       first_step = false;
     }
 
+    ui_initialize_frame();
+    ui_do_formatted_string("I am what? %s", "OpenGL");
+    ui_prepare_render_from_panels(ui_get_sentinel_panel(), render_rect);
+    ui_flatten_draw_layers();
+
     {
+      Rect_f32 render_rect = renger_get_client_rect();
+      glViewport(0, 0, (i32) rect_get_width(&render_rect), (i32) rect_get_height(&render_rect));
+
       glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

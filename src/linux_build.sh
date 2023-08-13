@@ -13,7 +13,7 @@ LIBRARIES="-lX11 -lXfixes -lssl -lcrypto -lGL"
 
 SOURCES="$SRC_DIR/platform_linux/linux_trader.cpp"
 
-DEBUG_FLAGS="-Wall -Werror -Wextra -Wdouble-promotion -Wformat -Wformat-overflow -Wno-unused-function -Wno-unused-variable -Wno-missing-field-initializers -Wunused -Wuninitialized -Wno-type-limits -Wno-implicit-fallthrough -Wno-unused-but-set-variable -Og -O0"
+DEBUG_FLAGS="-Wall -Werror -Wextra -Wdouble-promotion -Wformat -Wformat-overflow -Wno-unused-function -Wno-unused-variable -Wno-missing-field-initializers -Wunused -Wuninitialized -Wno-type-limits -Wno-implicit-fallthrough -Wno-unused-but-set-variable -Wno-sizeof-array-div -Wno-write-strings -Og -O0"
 
 OPTIMIZED_FLAGS="-O2"
 

@@ -692,58 +692,27 @@ int main(int arg_count, char *arg_values[])
    * (0,0)   (1, 0)
    */
 
-#pragma pack(push, 1)
-  struct Draw_Data
+  Instance_Buffer_Element triangle_vertices[1024] = {};
+  glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), triangle_vertices, GL_DYNAMIC_DRAW);
+
+  u32 vertex_buffer_index = -1;
   {
-    V3_f32   vertex;
-    RGBA_f32 color;
-    V2_f32   uv;
-  };
-#pragma pack(pop)
+#define IBE_ELEMENT(member, div_type, gl_type) \
+    vertex_buffer_index++; \
+    glVertexAttribPointer(vertex_buffer_index, \
+                          member_size(Instance_Buffer_Element, member) / sizeof(div_type), \
+                          gl_type, GL_FALSE, sizeof(Instance_Buffer_Element), \
+                          (void *) member_offset(Instance_Buffer_Element, member)); \
+    glEnableVertexAttribArray(vertex_buffer_index)
 
-  Draw_Data triangle_vertices[] = 
-  {
-    {V3( 0.5f, -0.5f, 0.0f), rgba(1.0f, 0.0f, 0.0f, 1.0f), V2(1.0f, 0.0f)}, // bottom right
-    {V3(-0.5f, -0.5f, 0.0f), rgba(0.0f, 1.0f, 0.0f, 1.0f), V2(0.0f, 0.0f)}, // bottom left
-    {V3( 0.5f,  0.5f, 0.0f), rgba(0.0f, 0.0f, 1.0f, 1.0f), V2(1.0f, 1.0f)}, // top right
-
-    {V3(-0.5f, -0.5f, 0.0f), rgba(0.0f, 1.0f, 0.0f, 1.0f), V2(0.0f, 0.0f)}, // bottom left
-    {V3(-0.5f,  0.5f, 0.0f), rgba(0.0f, 0.0f, 1.0f, 1.0f), V2(0.0f, 1.0f)}, // top left
-    {V3( 0.5f,  0.5f, 0.0f), rgba(1.0f, 0.0f, 0.0f, 1.0f), V2(1.0f, 1.0f)}, // top right
-  };
-
-  glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), triangle_vertices, GL_STATIC_DRAW);
-
-  u32 vertex_buffer_index = 0;
-  {
-    glVertexAttribPointer(vertex_buffer_index,
-                          3,
-                          GL_FLOAT,
-                          GL_FALSE,
-                          sizeof(Draw_Data),
-                          (void *) member_offset(Draw_Data, vertex));
-
-    glEnableVertexAttribArray(vertex_buffer_index);  
-
-    vertex_buffer_index++;
-    glVertexAttribPointer(vertex_buffer_index,
-                          4,
-                          GL_FLOAT,
-                          GL_FALSE,
-                          sizeof(Draw_Data),
-                          (void *) member_offset(Draw_Data, color));
-
-    glEnableVertexAttribArray(vertex_buffer_index);  
-
-    vertex_buffer_index++;
-    glVertexAttribPointer(vertex_buffer_index,
-                          2,
-                          GL_FLOAT,
-                          GL_FALSE,
-                          sizeof(Draw_Data),
-                          (void *) member_offset(Draw_Data, uv));
-
-    glEnableVertexAttribArray(vertex_buffer_index);  
+    IBE_ELEMENT(size,             f32, GL_FLOAT);
+    IBE_ELEMENT(color,            f32, GL_FLOAT);
+    IBE_ELEMENT(pos,              f32, GL_FLOAT);
+    IBE_ELEMENT(corner_radius,    f32, GL_FLOAT);
+    IBE_ELEMENT(edge_softness,    f32, GL_FLOAT);
+    IBE_ELEMENT(border_thickness, f32, GL_FLOAT);
+    IBE_ELEMENT(uv,               f32, GL_FLOAT);
+#undef IBE_ELEMENT
   }
 
   u32 font_atlas_texture;
@@ -889,13 +858,14 @@ int main(int arg_count, char *arg_values[])
       first_step = false;
     }
 
+    Rect_f32 render_rect = render_get_client_rect();
+
     ui_initialize_frame();
     ui_do_formatted_string("I am what? %s", "OpenGL");
     ui_prepare_render_from_panels(ui_get_sentinel_panel(), render_rect);
     ui_flatten_draw_layers();
 
     {
-      Rect_f32 render_rect = renger_get_client_rect();
       glViewport(0, 0, (i32) rect_get_width(&render_rect), (i32) rect_get_height(&render_rect));
 
       glClearColor(0.2f, 0.3f, 0.3f, 1.0f);

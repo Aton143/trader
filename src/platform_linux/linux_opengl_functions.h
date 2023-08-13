@@ -70,5 +70,6 @@ GL_FUNC(glTexImage2DMultisample, void, (GLenum target, GLsizei samples, GLenum i
 
 GL_FUNC(glGenerateMipmap, void, (GLenum target))
 GL_FUNC(glBlendFuncSeparate, void, (GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha))
+GL_FUNC(glDrawArraysInstanced, void, (GLenum mode, GLint first, GLint count, GLsizei instancecount))
 
 #undef GL_FUNC

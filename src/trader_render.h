@@ -22,7 +22,17 @@ struct Constant_Buffer
 struct Instance_Buffer_Element
 {
   Rect_f32  size;
-  RGBA_f32  color[4];
+  union
+  {
+    RGBA_f32 color[4];
+    struct
+    {
+      RGBA_f32 color_top_left;
+      RGBA_f32 color_top_right;
+      RGBA_f32 color_bottom_left;
+      RGBA_f32 color_bottom_right;
+    };
+  };
   V3_f32    pos;
   f32       corner_radius;
   f32       edge_softness;

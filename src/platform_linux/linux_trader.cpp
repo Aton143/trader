@@ -666,6 +666,18 @@ int main(int arg_count, char *arg_values[])
 
     glBindVertexArray(vertex_buffer_reader);
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer); 
+
+    for (u32 draw_layer_index = 0;
+         draw_layer_index < array_count(ui->render_layers);
+         ++draw_layer_index)
+    {
+      u32 instance_count =
+        (u32) (ui->render_layers[draw_layer_index].used / sizeof(Instance_Buffer_Element));
+      glDrawArraysInstanced(GL_TRIANGLE_STRIP,
+                            ui->flattened_draw_layer_indices[draw_layer_index],
+                            4,
+                            instance_count);
+    }
   }
 
   /*
@@ -692,12 +704,11 @@ int main(int arg_count, char *arg_values[])
    * (0,0)   (1, 0)
    */
 
-  Instance_Buffer_Element triangle_vertices[1024] = {};
-  glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), triangle_vertices, GL_DYNAMIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, 0, render->render_data.start, GL_DYNAMIC_DRAW);
 
   u32 vertex_buffer_index = -1;
   {
-#define IBE_ELEMENT(member, div_type, gl_type) \
+#define REGISTER_IBE_MEMBER(member, div_type, gl_type) \
     vertex_buffer_index++; \
     glVertexAttribPointer(vertex_buffer_index, \
                           member_size(Instance_Buffer_Element, member) / sizeof(div_type), \
@@ -705,14 +716,21 @@ int main(int arg_count, char *arg_values[])
                           (void *) member_offset(Instance_Buffer_Element, member)); \
     glEnableVertexAttribArray(vertex_buffer_index)
 
-    IBE_ELEMENT(size,             f32, GL_FLOAT);
-    IBE_ELEMENT(color,            f32, GL_FLOAT);
-    IBE_ELEMENT(pos,              f32, GL_FLOAT);
-    IBE_ELEMENT(corner_radius,    f32, GL_FLOAT);
-    IBE_ELEMENT(edge_softness,    f32, GL_FLOAT);
-    IBE_ELEMENT(border_thickness, f32, GL_FLOAT);
-    IBE_ELEMENT(uv,               f32, GL_FLOAT);
-#undef IBE_ELEMENT
+    REGISTER_IBE_MEMBER(size,               f32, GL_FLOAT);
+
+    // NOTE(antonio): this is to avoid dealing with calculating > 1 layout changes
+    REGISTER_IBE_MEMBER(color_top_left,     f32, GL_FLOAT);
+    REGISTER_IBE_MEMBER(color_top_right,    f32, GL_FLOAT);
+    REGISTER_IBE_MEMBER(color_bottom_left,  f32, GL_FLOAT);
+    REGISTER_IBE_MEMBER(color_bottom_right, f32, GL_FLOAT);
+
+    REGISTER_IBE_MEMBER(pos,                f32, GL_FLOAT);
+    REGISTER_IBE_MEMBER(corner_radius,      f32, GL_FLOAT);
+    REGISTER_IBE_MEMBER(edge_softness,      f32, GL_FLOAT);
+    REGISTER_IBE_MEMBER(border_thickness,   f32, GL_FLOAT);
+    REGISTER_IBE_MEMBER(uv,                 f32, GL_FLOAT);
+
+#undef REGISTER_IBE_MEMBER
   }
 
   u32 font_atlas_texture;
@@ -877,7 +895,7 @@ int main(int arg_count, char *arg_values[])
       glBindTexture(GL_TEXTURE_2D, font_atlas_texture);
 
       glBindVertexArray(vertex_buffer_reader);
-      glDrawArrays(GL_TRIANGLES, 0, array_count(triangle_vertices));
+      // glDrawArrays(GL_TRIANGLES, 0, array_count(triangle_vertices));
     }
 
     glXSwapBuffers(linux_platform_state.display, linux_platform_state.window_handle);

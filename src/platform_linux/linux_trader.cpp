@@ -666,7 +666,9 @@ int main(int arg_count, char *arg_values[])
 
     glBindVertexArray(vertex_buffer_reader);
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer); 
+    glBufferData(GL_ARRAY_BUFFER, render->render_data.size, NULL, GL_DYNAMIC_DRAW);
   }
+
 
   /*
    * NOTE(antonio): OpenGL NDC
@@ -869,16 +871,33 @@ int main(int arg_count, char *arg_values[])
 
     ui_initialize_frame();
 
+    /*
     panel_float_index = 0;
     ui_make_panel(axis_split_vertical,
                   &panel_floats[panel_float_index++],
                   string_literal_init_type("first", utf8));
 
     ui_push_text_color(1.0f, 1.0f, 1.0f, 1.0f);
-    ui_do_formatted_string("I am what? %s", "OpenGL");
+
+    ui_do_formatted_string("What am I: %s", "OpenGL");
 
     ui_prepare_render_from_panels(ui_get_sentinel_panel(), render_rect);
     ui_flatten_draw_layers();
+    */
+
+    {
+      Instance_Buffer_Element *draw = push_struct_zero(&render->render_data,
+                                                       Instance_Buffer_Element);
+
+      draw->size.p1  = V2(100.0f, 100.0f);
+
+      draw->color[0] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+      draw->color[1] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+      draw->color[2] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+      draw->color[3] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+
+      draw->uv       = render_get_solid_color_rect();
+    }
 
     Constant_Buffer constant_buffer_items = {};
     {
@@ -902,13 +921,17 @@ int main(int arg_count, char *arg_values[])
       glBindTexture(GL_TEXTURE_2D, font_atlas_texture);
 
       glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-      glBufferData(GL_ARRAY_BUFFER,
-                   render->render_data.used,
-                   render->render_data.start,
-                   GL_DYNAMIC_DRAW);
+
+      __debugbreak();
+      void *mapped_data = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+      copy_memory_block(mapped_data, render->render_data.start, render->render_data.used);
+      glUnmapBuffer(GL_ARRAY_BUFFER);
 
       glBindVertexArray(vertex_buffer_reader);
 
+      glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 1);
+
+      /*
       for (u32 draw_layer_index = 0;
            draw_layer_index < array_count(ui->render_layers);
            ++draw_layer_index)
@@ -920,6 +943,7 @@ int main(int arg_count, char *arg_values[])
                               4,
                               instance_count);
       }
+      */
     }
 
     glXSwapBuffers(linux_platform_state.display, linux_platform_state.window_handle);

@@ -21,7 +21,16 @@ struct Constant_Buffer
 
 struct Instance_Buffer_Element
 {
-  Rect_f32  size;
+  union
+  {
+    Rect_f32  size;
+    struct
+    {
+      V2_f32  size_top_left;
+      V2_f32  size_bottom_right;
+    };
+  };
+
   union
   {
     RGBA_f32 color[4];
@@ -33,11 +42,21 @@ struct Instance_Buffer_Element
       RGBA_f32 color_bottom_right;
     };
   };
+
   V3_f32    pos;
   f32       corner_radius;
   f32       edge_softness;
   f32       border_thickness;
-  Rect_f32  uv;
+
+  union
+  {
+    Rect_f32  uv;
+    struct
+    {
+      V2_f32  uv_top_left;
+      V2_f32  uv_bottom_right;
+    };
+  };
 };
 #pragma pack(pop)
 

@@ -25,11 +25,8 @@ layout (location = 11) in vec2  texture_bottom_right;
 
 out PS_Input vs_output;
 
-layout (std140) uniform global_data
-{
-  vec4 texture_dimensions;
-  vec2 resolution;
-};
+uniform vec4 texture_dimensions;
+uniform vec2 resolution;
 uniform mat4 transform;
 
 // NOTE(antonio): OpenGL NDC coordinates:
@@ -49,12 +46,11 @@ void main()
 {
   // NOTE(antonio): static vertex array that we can index into with our vertex ID
   const vec2 vertices[4] =
-  vec2[4](
-    vec2(-1.0f, -1.0f), // Bottom Left
-    vec2(-1.0f, +1.0f), // Top Left
-    vec2(+1.0f, -1.0f), // Bottom Right
-    vec2(+1.0f, +1.0f)  // Top Right
-  );
+    vec2[4](vec2(-1.0f, -1.0f), // Bottom Left
+            vec2(-1.0f, +1.0f), // Top Left
+            vec2(+1.0f, -1.0f), // Bottom Right
+            vec2(+1.0f, +1.0f)  // Top Right
+    );
 
   vec2 dst_half_size = (bottom_right - top_left)     / 2.0f;
   vec2 dst_center    = (top_left     + bottom_right) / 2.0f;
@@ -69,10 +65,12 @@ void main()
   float texture_width  = texture_dimensions.x;
   float texture_height = texture_dimensions.y;
 
-  gl_Position = vec4((2 * dst_position.x / resolution.x) - 1,
-                     1 - (2 * dst_position.y / resolution.y),
-                     position.z,
-                     1);
+  vec4 pretransformed_pos =
+    vec4((2 * dst_position.x / resolution.x) - 1,
+         (2 * dst_position.y / resolution.y) - 1,
+         position.z,
+         1);
+  gl_Position = transform * pretransformed_pos;
 
   vs_output.uv = vec2(unnorm_uv_position.x / texture_width,
                       unnorm_uv_position.y / texture_height);

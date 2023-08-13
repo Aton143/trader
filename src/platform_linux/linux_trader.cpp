@@ -702,7 +702,8 @@ int main(int arg_count, char *arg_values[])
                           (void *) member_offset(Instance_Buffer_Element, member)); \
     glEnableVertexAttribArray(vertex_buffer_index)
 
-    REGISTER_IBE_MEMBER(size,               f32, GL_FLOAT);
+    REGISTER_IBE_MEMBER(size_top_left,      f32, GL_FLOAT);
+    REGISTER_IBE_MEMBER(size_bottom_right,  f32, GL_FLOAT);
 
     // NOTE(antonio): this is to avoid dealing with calculating > 1 layout changes
     REGISTER_IBE_MEMBER(color_top_left,     f32, GL_FLOAT);
@@ -714,7 +715,8 @@ int main(int arg_count, char *arg_values[])
     REGISTER_IBE_MEMBER(corner_radius,      f32, GL_FLOAT);
     REGISTER_IBE_MEMBER(edge_softness,      f32, GL_FLOAT);
     REGISTER_IBE_MEMBER(border_thickness,   f32, GL_FLOAT);
-    REGISTER_IBE_MEMBER(uv,                 f32, GL_FLOAT);
+    REGISTER_IBE_MEMBER(uv_top_left,        f32, GL_FLOAT);
+    REGISTER_IBE_MEMBER(uv_bottom_right,    f32, GL_FLOAT);
 
 #undef REGISTER_IBE_MEMBER
   }
@@ -868,11 +870,11 @@ int main(int arg_count, char *arg_values[])
     ui_initialize_frame();
 
     panel_float_index = 0;
-
     ui_make_panel(axis_split_vertical,
                   &panel_floats[panel_float_index++],
                   string_literal_init_type("first", utf8));
 
+    ui_push_text_color(1.0f, 1.0f, 1.0f, 1.0f);
     ui_do_formatted_string("I am what? %s", "OpenGL");
 
     ui_prepare_render_from_panels(ui_get_sentinel_panel(), render_rect);

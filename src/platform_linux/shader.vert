@@ -25,13 +25,25 @@ layout (location = 11) in vec2  texture_bottom_right;
 
 out PS_Input vs_output;
 
-uniform float uniform_scale;
 layout (std140) uniform global_data
 {
   vec4 texture_dimensions;
   vec2 resolution;
 };
 uniform mat4 transform;
+
+// NOTE(antonio): OpenGL NDC coordinates:
+// 
+//  (-1,  1)        (1,  1)
+//     +-------------+z
+//     |             |
+//     |             |
+//     |             |
+//     |             |
+//     |             |
+//     |             |
+//     +-------------+
+//  (-1, -1)        (1, -1)
 
 void main()
 {
@@ -63,7 +75,7 @@ void main()
                      1);
 
   vs_output.uv = vec2(unnorm_uv_position.x / texture_width,
-                   unnorm_uv_position.y / texture_height);
+                      unnorm_uv_position.y / texture_height);
 
   vs_output.color = color[gl_InstanceID];
 
@@ -73,5 +85,6 @@ void main()
 
   vs_output.border_thickness = border_thickness;
   vs_output.corner_radius    = corner_radius;
+
   vs_output.edge_softness    = edge_softness;
 }

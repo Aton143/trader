@@ -18,19 +18,6 @@ uniform sampler2D texture_sampler;
 
 out vec4 out_color;
 
-// NOTE(antonio): ndc coordinates:
-// 
-//  (-1,  1)        (1,  1)
-//     +-------------+z
-//     |             |
-//     |             |
-//     |             |
-//     |             |
-//     |             |
-//     |             |
-//     +-------------+
-//  (-1, -1)        (1, -1)
-
 // > 0 if outside
 // 0 if inside
 float sdf_rounded_rect(in vec2  sample_pos,

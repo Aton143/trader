@@ -666,18 +666,6 @@ int main(int arg_count, char *arg_values[])
 
     glBindVertexArray(vertex_buffer_reader);
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer); 
-
-    for (u32 draw_layer_index = 0;
-         draw_layer_index < array_count(ui->render_layers);
-         ++draw_layer_index)
-    {
-      u32 instance_count =
-        (u32) (ui->render_layers[draw_layer_index].used / sizeof(Instance_Buffer_Element));
-      glDrawArraysInstanced(GL_TRIANGLE_STRIP,
-                            ui->flattened_draw_layer_indices[draw_layer_index],
-                            4,
-                            instance_count);
-    }
   }
 
   /*
@@ -703,8 +691,6 @@ int main(int arg_count, char *arg_values[])
    *  +--------+
    * (0,0)   (1, 0)
    */
-
-  glBufferData(GL_ARRAY_BUFFER, 0, render->render_data.start, GL_DYNAMIC_DRAW);
 
   u32 vertex_buffer_index = -1;
   {
@@ -836,17 +822,15 @@ int main(int arg_count, char *arg_values[])
   f32 panel_floats[16]  = {0.20f, 0.45f, 0.05f, 0.30f};
   u32 panel_float_index = 0;
 
-  i32 vertex_color_location;
-  i32 texture_sampler_location;
-  i32 transform_location;
+  i32 texture_dimensions_location = glGetUniformLocation(shader_program, "texture_dimensions");
+  i32 resolution_location         = glGetUniformLocation(shader_program, "resolution");
+
+  i32 texture_sampler_location    = glGetUniformLocation(shader_program, "texture_sampler");
+  i32 transform_location          = glGetUniformLocation(shader_program, "transform");
 
   {
-    vertex_color_location    = glGetUniformLocation(shader_program, "uniform_scale");
-    texture_sampler_location = glGetUniformLocation(shader_program, "texture_sampler");
-    transform_location       = glGetUniformLocation(shader_program, "uniform_transform");
+    glUniform1i(texture_sampler_location, 0);
   }
-
-  glUniform1i(texture_sampler_location, 0);
 
   Matrix_f32_4x4 transform = matrix4x4_from_rows(V4(1.0f,  0.0f, 0.0f, 0.0f),
                                                  V4(0.0f, -1.0f, 0.0f, 0.0f),
@@ -890,8 +874,21 @@ int main(int arg_count, char *arg_values[])
                   string_literal_init_type("first", utf8));
 
     ui_do_formatted_string("I am what? %s", "OpenGL");
+
     ui_prepare_render_from_panels(ui_get_sentinel_panel(), render_rect);
     ui_flatten_draw_layers();
+
+    Constant_Buffer constant_buffer_items = {};
+    {
+      constant_buffer_items.client_width = rect_get_width(&render_rect);
+      constant_buffer_items.client_height = rect_get_height(&render_rect);
+
+      constant_buffer_items.atlas_width  = (f32) render->atlas->bitmap.width;
+      constant_buffer_items.atlas_height = (f32) render->atlas->bitmap.height;
+    }
+
+    glUniform4fv(texture_dimensions_location, 1, (f32 *) &constant_buffer_items);
+    glUniform2fv(resolution_location, 1, (f32 *) &constant_buffer_items.client_width);
 
     {
       glViewport(0, 0, (i32) rect_get_width(&render_rect), (i32) rect_get_height(&render_rect));
@@ -899,29 +896,68 @@ int main(int arg_count, char *arg_values[])
       glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-      glUniform1f(vertex_color_location, acc_time);
-
       glActiveTexture(GL_TEXTURE0);
       glBindTexture(GL_TEXTURE_2D, font_atlas_texture);
 
+      glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+      glBufferData(GL_ARRAY_BUFFER,
+                   render->render_data.used,
+                   render->render_data.start,
+                   GL_DYNAMIC_DRAW);
+
       glBindVertexArray(vertex_buffer_reader);
-      // glDrawArrays(GL_TRIANGLES, 0, array_count(triangle_vertices));
+
+      for (u32 draw_layer_index = 0;
+           draw_layer_index < array_count(ui->render_layers);
+           ++draw_layer_index)
+      {
+        u32 instance_count =
+          (u32) (ui->render_layers[draw_layer_index].used / sizeof(Instance_Buffer_Element));
+        glDrawArraysInstanced(GL_TRIANGLE_STRIP,
+                              ui->flattened_draw_layer_indices[draw_layer_index],
+                              4,
+                              instance_count);
+      }
     }
 
     glXSwapBuffers(linux_platform_state.display, linux_platform_state.window_handle);
-    last_frame_time = platform_get_time_in_seconds();
 
-    acc_time += dir * (1.0f / 60.f);
-    if (acc_time > 1.0f)
     {
-      acc_time =  1.0f;
-      dir      = -1.0f;
+      arena_reset(&render->render_data);
+      arena_reset(&render->triangle_render_data);
+
+      ui->mouse_delta            = {0.0f, 0.0f};
+      ui->mouse_wheel_delta      = {0.0f, 0.0f};
+      ui->prev_frame_mouse_event = ui->cur_frame_mouse_event;
+
+      for (u32 interaction_index = 0;
+           interaction_index < array_count(ui->interactions);
+           ++interaction_index) 
+      {
+        UI_Interaction *cur_int = &ui->interactions[interaction_index];
+        cur_int->frames_left--;
+
+        if (cur_int->frames_left < 0)
+        {
+          ui->interactions[interaction_index] = {};
+        }
+      }
+
+      acc_time += dir * (1.0f / 60.f);
+      if (acc_time > 1.0f)
+      {
+        acc_time =  1.0f;
+        dir      = -1.0f;
+      }
+      else if (acc_time < 0.0f)
+      {
+        acc_time = 0.0f;
+        dir      = 1.0f;
+      }
     }
-    else if (acc_time < 0.0f)
-    {
-      acc_time = 0.0f;
-      dir      = 1.0f;
-    }
+
+    // meta_collate_timing_records();
+    last_frame_time = platform_get_time_in_seconds();
   }
 
   return(0);

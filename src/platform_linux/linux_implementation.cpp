@@ -57,19 +57,6 @@ struct Global_Platform_State
   XkbDescPtr      xkb;
 };
 
-#define __debugbreak()                  \
-do {pid_t __tid = syscall(__NR_gettid); \
-__asm__ volatile                        \
-(                                       \
- "movq $200, %%rax;"                    \
- "mov  %0,   %%edi;"                    \
- "movq $2,   %%rsi;"                    \
- "syscall"                              \
- :                                      \
- : "r" (__tid)                          \
- : "%rax", "%edi", "%rsi"               \
-);} while(0)
-
 global Global_Platform_State linux_platform_state;
 global_const String_Const_utf8 default_font_path = 
     string_literal_init_type("../assets/ubuntu_default_font/Ubuntu-Regular.ttf", utf8);

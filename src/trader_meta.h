@@ -4,10 +4,7 @@
 #if OS_WINDOWS
 #elif COMPILER_GCC
 # if ARCH_X64
-internal inline void __debugbreak()
-{
-  asm volatile("int3");
-}
+#define __debugbreak() __asm__ volatile("int3")
 # endif
 #endif
 

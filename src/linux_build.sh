@@ -17,8 +17,6 @@ DEBUG_FLAGS="-Wall -Werror -Wextra -Wdouble-promotion -Wformat -Wformat-overflow
 
 OPTIMIZED_FLAGS="-O2"
 
-ASM_FLAVOR="-masm=intel"
-
 if [ ! -d "$BUILD_DIR" ]; then
   mkdir $BUILD_DIR
 fi

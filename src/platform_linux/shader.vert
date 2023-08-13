@@ -1,5 +1,4 @@
 #version 330 core
-
 struct PS_Input
 {
   vec4  color;
@@ -39,14 +38,10 @@ void main()
   // NOTE(antonio): static vertex array that we can index into with our vertex ID
   const vec2 vertices[4] =
   vec2[4](
-    // NOTE(antonio): Bottom Left
-    vec2(-1.0f, -1.0f),
-    // NOTE(antonio): Top    Left
-    vec2(-1.0f, +1.0f),
-    // NOTE(antonio): Bottom Right
-    vec2(+1.0f, -1.0f),
-    // NOTE(antonio): Top    Right
-    vec2(+1.0f, +1.0f)
+    vec2(-1.0f, -1.0f), // Bottom Left
+    vec2(-1.0f, +1.0f), // Top Left
+    vec2(+1.0f, -1.0f), // Bottom Right
+    vec2(+1.0f, +1.0f)  // Top Right
   );
 
   vec2 dst_half_size = (bottom_right - top_left)     / 2.0f;

@@ -772,6 +772,7 @@ int main(int arg_count, char *arg_values[])
     string_literal_init_type("../src/platform_linux/shader.vert", utf8);
   Handle *vertex_shader_handle = make_handle(vertex_shader_path, Handle_Kind_File);
 
+  __debugbreak();
   u32 vertex_shader;
   {
     File_Buffer temp_shader_source =
@@ -824,7 +825,7 @@ int main(int arg_count, char *arg_values[])
 
       if (!success)
       {
-        glGetShaderInfoLog(shader_program, sizeof(info_log), NULL, (GLchar *) info_log);
+        glGetProgramInfoLog(shader_program, sizeof(info_log), NULL, (GLchar *) info_log);
         meta_log(info_log);
       }
     }

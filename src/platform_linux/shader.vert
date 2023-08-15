@@ -15,7 +15,7 @@ struct PS_Input
 
 layout (location =  0) in vec2  top_left;
 layout (location =  1) in vec2  bottom_right;
-layout (location =  2) in vec4  color[4];
+layout (location =  2) in mat4  color;
 layout (location =  6) in vec3  position;
 layout (location =  7) in float corner_radius;
 layout (location =  8) in float edge_softness;
@@ -46,10 +46,10 @@ void main()
 {
   // NOTE(antonio): static vertex array that we can index into with our vertex ID
   const vec2 vertices[4] =
-    vec2[4](vec2(-1.0f, +1.0f),  // Bottom Left
-            vec2(-1.0f, -1.0f),  // Top Left
-            vec2(+1.0f, +1.0f),  // Bottom Right
-            vec2(+1.0f, -1.0f)); // Top Right
+    vec2[4](vec2(-1.0f, -1.0f),  // Bottom Left
+            vec2(-1.0f, +1.0f),  // Top Left
+            vec2(+1.0f, -1.0f),  // Bottom Right
+            vec2(+1.0f, +1.0f)); // Top Right
 
   vec2 dst_half_size = (bottom_right - top_left)     / 2.0f;
   vec2 dst_center    = (top_left     + bottom_right) / 2.0f;
@@ -66,32 +66,26 @@ void main()
 
   vec4 pretransformed_pos =
     vec4((2 * dst_position.x / resolution.x) - 1,
-         1 - (2 * dst_position.y / resolution.y),
+         (2 * dst_position.y / resolution.y) - 1,
          position.z,
          1);
 
-//  if (gl_VertexID == 0)
-//  {
-//    gl_Position = /*transform * */ pretransformed_pos;
-//  }
-//  else
-//  {
-    gl_Position = (transform * vec4(vertices[gl_VertexID] * 0.5, 0.0f, 1.0f));
-//  }
+  gl_Position = pretransformed_pos;
+  /*
+  if (gl_VertexID < 2)
+  {
+    gl_Position = transform * pretransformed_pos;
+  }
+  else
+  {
+     gl_Position = (vec4(vertices[gl_VertexID] * 0.5, 0.0f, 1.0f));
+  }
+  */
 
   vs_output.uv = vec2(unnorm_uv_position.x / texture_width,
                       unnorm_uv_position.y / texture_height);
 
-  // vs_output.color = color[gl_VertexID];
-
-  if (gl_VertexID == 3)
-  {
-    vs_output.color = vec4(1.0f, 0.0f, 0.0f, 1.0f);
-  }
-  else
-  {
-    vs_output.color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
-  }
+  vs_output.color = color[gl_VertexID];
 
   vs_output.dst_pos       = dst_position;
   vs_output.dst_center    = dst_center + position.xy;

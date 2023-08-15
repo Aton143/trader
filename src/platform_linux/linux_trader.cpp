@@ -696,22 +696,23 @@ int main(int arg_count, char *arg_values[])
 
   u32 vertex_buffer_index = -1;
   {
-#define REGISTER_IBE_MEMBER(member, div_type, gl_type) \
-    vertex_buffer_index++; \
+#define REGISTER_IBE_MEMBER_FULL(member, div_type, gl_type, inc) \
+    vertex_buffer_index += (inc); \
     glVertexAttribPointer(vertex_buffer_index, \
                           member_size(Instance_Buffer_Element, member) / sizeof(div_type), \
                           gl_type, GL_FALSE, sizeof(Instance_Buffer_Element), \
                           (void *) member_offset(Instance_Buffer_Element, member)); \
     glEnableVertexAttribArray(vertex_buffer_index)
+#define REGISTER_IBE_MEMBER(member, div_type, gl_type) \
+  REGISTER_IBE_MEMBER_FULL(member, div_type, gl_type, 1) 
 
     REGISTER_IBE_MEMBER(size_top_left,      f32, GL_FLOAT);
     REGISTER_IBE_MEMBER(size_bottom_right,  f32, GL_FLOAT);
 
-    // NOTE(antonio): this is to avoid dealing > 1 layout changes
-    REGISTER_IBE_MEMBER(color_top_left,     f32, GL_FLOAT);
-    REGISTER_IBE_MEMBER(color_top_right,    f32, GL_FLOAT);
-    REGISTER_IBE_MEMBER(color_bottom_left,  f32, GL_FLOAT);
-    REGISTER_IBE_MEMBER(color_bottom_right, f32, GL_FLOAT);
+    REGISTER_IBE_MEMBER(color[0], f32, GL_FLOAT);
+    REGISTER_IBE_MEMBER(color[1], f32, GL_FLOAT);
+    REGISTER_IBE_MEMBER(color[2], f32, GL_FLOAT);
+    REGISTER_IBE_MEMBER(color[3], f32, GL_FLOAT);
 
     REGISTER_IBE_MEMBER(pos,                f32, GL_FLOAT);
     REGISTER_IBE_MEMBER(corner_radius,      f32, GL_FLOAT);

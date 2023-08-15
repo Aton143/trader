@@ -70,16 +70,8 @@ void main()
          position.z,
          1);
 
-  // gl_Position = pretransformed_pos;
-  /*
-  if (gl_VertexID < 2)
-  {
-    gl_Position = transform * pretransformed_pos;
-  }
-  else
-  {
-  }
-  */
+  gl_Position = pretransformed_pos;
+  // gl_Position = (vec4(vertices[gl_VertexID] * 0.9f, 0.1f, 1.0f));
 
   vs_output.uv = vec2(unnorm_uv_position.x / texture_width,
                       unnorm_uv_position.y / texture_height);
@@ -94,6 +86,4 @@ void main()
   vs_output.corner_radius    = corner_radius;
 
   vs_output.edge_softness    = edge_softness;
-
-  gl_Position = (vec4(vertices[gl_VertexID] * 0.9f, 0.1f, 1.0f));
 }

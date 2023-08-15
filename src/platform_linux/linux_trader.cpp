@@ -873,7 +873,6 @@ int main(int arg_count, char *arg_values[])
 
     ui_initialize_frame();
 
-    /*
     panel_float_index = 0;
     ui_make_panel(axis_split_vertical,
                   &panel_floats[panel_float_index++],
@@ -885,8 +884,8 @@ int main(int arg_count, char *arg_values[])
 
     ui_prepare_render_from_panels(ui_get_sentinel_panel(), render_rect);
     ui_flatten_draw_layers();
-    */
 
+    /*
     {
       Instance_Buffer_Element *draw = push_struct_zero(&render->render_data,
                                                        Instance_Buffer_Element);
@@ -900,6 +899,7 @@ int main(int arg_count, char *arg_values[])
 
       draw->uv       = render_get_solid_color_rect();
     }
+    */
 
     Constant_Buffer constant_buffer_items = {};
     {
@@ -932,8 +932,6 @@ int main(int arg_count, char *arg_values[])
         glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
         glBindVertexArray(vertex_buffer_reader);
 
-        expect(render->render_data.used == (sizeof(Instance_Buffer_Element)));
-
         void *mapped_data = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
 
         if (mapped_data != NULL)
@@ -948,21 +946,17 @@ int main(int arg_count, char *arg_values[])
         glUnmapBuffer(GL_ARRAY_BUFFER);
       }
 
-      glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 1);
-
-      /*
       for (u32 draw_layer_index = 0;
-           draw_layer_index < array_count(ui->render_layers);
+           draw_layer_index < 1;// array_count(ui->render_layers);
            ++draw_layer_index)
       {
         u32 instance_count =
           (u32) (ui->render_layers[draw_layer_index].used / sizeof(Instance_Buffer_Element));
         glDrawArraysInstanced(GL_TRIANGLE_STRIP,
-                              ui->flattened_draw_layer_indices[draw_layer_index],
+                              0,
                               4,
                               instance_count);
       }
-      */
     }
 
     glXSwapBuffers(linux_platform_state.display, linux_platform_state.window_handle);

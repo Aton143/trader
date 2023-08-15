@@ -31,7 +31,7 @@ float sdf_rounded_rect(in vec2  sample_pos,
 
 void main()
 {
-  /*
+  float alpha_sample = texture(texture_sampler, vs_output.uv).r;
 
   float border_factor = 1.0f;
   if (vs_output.border_thickness != 0.0f)
@@ -71,8 +71,4 @@ void main()
   vec3  combined         = vec3(vs_output.color.rgb) * multiplied_alpha;
 
   out_color = vec4(combined, multiplied_alpha);
-  */
-  float alpha_sample = texture(texture_sampler, vs_output.uv).r;
-  out_color = vs_output.color * alpha_sample;
-  //out_color = vec4(1.0f, 1.0f, 1.0f, 1.0f) * alpha_sample;
 } 

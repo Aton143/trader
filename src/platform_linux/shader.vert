@@ -46,36 +46,52 @@ void main()
 {
   // NOTE(antonio): static vertex array that we can index into with our vertex ID
   const vec2 vertices[4] =
-    vec2[4](vec2(-1.0f, -1.0f), // Bottom Left
-            vec2(-1.0f, +1.0f), // Top Left
-            vec2(+1.0f, -1.0f), // Bottom Right
-            vec2(+1.0f, +1.0f)  // Top Right
-    );
+    vec2[4](vec2(-1.0f, +1.0f),  // Bottom Left
+            vec2(-1.0f, -1.0f),  // Top Left
+            vec2(+1.0f, +1.0f),  // Bottom Right
+            vec2(+1.0f, -1.0f)); // Top Right
 
   vec2 dst_half_size = (bottom_right - top_left)     / 2.0f;
   vec2 dst_center    = (top_left     + bottom_right) / 2.0f;
-  vec2 dst_position  = (vertices[gl_InstanceID] * dst_half_size) + dst_center;
+  vec2 dst_position  = (vertices[gl_VertexID] * dst_half_size) + dst_center;
 
   dst_position.xy += position.xy;
 
   vec2 unnorm_uv_half_size = (texture_bottom_right - texture_top_left)     / 2;
   vec2 unnorm_uv_center    = (texture_top_left     + texture_bottom_right) / 2;
-  vec2 unnorm_uv_position  = ((vertices[gl_InstanceID] * unnorm_uv_half_size) + unnorm_uv_center);
+  vec2 unnorm_uv_position  = ((vertices[gl_VertexID] * unnorm_uv_half_size) + unnorm_uv_center);
 
   float texture_width  = texture_dimensions.x;
   float texture_height = texture_dimensions.y;
 
   vec4 pretransformed_pos =
     vec4((2 * dst_position.x / resolution.x) - 1,
-         (2 * dst_position.y / resolution.y) - 1,
+         1 - (2 * dst_position.y / resolution.y),
          position.z,
          1);
-  gl_Position = transform * pretransformed_pos;
+
+//  if (gl_VertexID == 0)
+//  {
+//    gl_Position = /*transform * */ pretransformed_pos;
+//  }
+//  else
+//  {
+    gl_Position = (transform * vec4(vertices[gl_VertexID] * 0.5, 0.0f, 1.0f));
+//  }
 
   vs_output.uv = vec2(unnorm_uv_position.x / texture_width,
                       unnorm_uv_position.y / texture_height);
 
-  vs_output.color = color[gl_InstanceID];
+  // vs_output.color = color[gl_VertexID];
+
+  if (gl_VertexID == 3)
+  {
+    vs_output.color = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+  }
+  else
+  {
+    vs_output.color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+  }
 
   vs_output.dst_pos       = dst_position;
   vs_output.dst_center    = dst_center + position.xy;

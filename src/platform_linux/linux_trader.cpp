@@ -707,7 +707,7 @@ int main(int arg_count, char *arg_values[])
     REGISTER_IBE_MEMBER(size_top_left,      f32, GL_FLOAT);
     REGISTER_IBE_MEMBER(size_bottom_right,  f32, GL_FLOAT);
 
-    // NOTE(antonio): this is to avoid dealing with calculating > 1 layout changes
+    // NOTE(antonio): this is to avoid dealing > 1 layout changes
     REGISTER_IBE_MEMBER(color_top_left,     f32, GL_FLOAT);
     REGISTER_IBE_MEMBER(color_top_right,    f32, GL_FLOAT);
     REGISTER_IBE_MEMBER(color_bottom_left,  f32, GL_FLOAT);
@@ -828,9 +828,9 @@ int main(int arg_count, char *arg_values[])
 
   i32 texture_dimensions_location = glGetUniformLocation(shader_program, "texture_dimensions");
   i32 resolution_location         = glGetUniformLocation(shader_program, "resolution");
+  i32 transform_location          = glGetUniformLocation(shader_program, "transform");
 
   i32 texture_sampler_location    = glGetUniformLocation(shader_program, "texture_sampler");
-  i32 transform_location          = glGetUniformLocation(shader_program, "transform");
 
   {
     glUniform1i(texture_sampler_location, 0);
@@ -840,7 +840,6 @@ int main(int arg_count, char *arg_values[])
                                                  V4(0.0f, -1.0f, 0.0f, 0.0f),
                                                  V4(0.0f,  0.0f, 1.0f, 0.0f),
                                                  V4(0.0f,  0.0f, 0.0f, 1.0f));
-  glUniformMatrix4fv(transform_location, 1, GL_TRUE, transform.values);
 
   glEnable(GL_DEPTH_TEST);  
   glDepthFunc(GL_LESS);
@@ -889,11 +888,11 @@ int main(int arg_count, char *arg_values[])
       Instance_Buffer_Element *draw = push_struct_zero(&render->render_data,
                                                        Instance_Buffer_Element);
 
-      draw->size.p1  = V2(100.0f, 100.0f);
+      draw->size.p1  = V2(100.0f * acc_time , 200.0f * acc_time);
 
-      draw->color[0] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+      draw->color[0] = rgba(1.0f, 0.0f, 0.0f, 1.0f);
       draw->color[1] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
-      draw->color[2] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
+      draw->color[2] = rgba(0.0f, 0.0f, 1.0f, 1.0f);
       draw->color[3] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
 
       draw->uv       = render_get_solid_color_rect();
@@ -901,15 +900,21 @@ int main(int arg_count, char *arg_values[])
 
     Constant_Buffer constant_buffer_items = {};
     {
-      constant_buffer_items.client_width = rect_get_width(&render_rect);
-      constant_buffer_items.client_height = rect_get_height(&render_rect);
+      constant_buffer_items.atlas_width   = (f32) render->atlas->bitmap.width;
+      constant_buffer_items.atlas_height  = (f32) render->atlas->bitmap.height;
 
-      constant_buffer_items.atlas_width  = (f32) render->atlas->bitmap.width;
-      constant_buffer_items.atlas_height = (f32) render->atlas->bitmap.height;
+      constant_buffer_items.client_width  = rect_get_width(&render_rect);
+      constant_buffer_items.client_height = rect_get_height(&render_rect);
     }
 
-    glUniform4fv(texture_dimensions_location, 1, (f32 *) &constant_buffer_items);
-    glUniform2fv(resolution_location, 1, (f32 *) &constant_buffer_items.client_width);
+    glUniform4f(texture_dimensions_location,
+                constant_buffer_items.atlas_width,
+                constant_buffer_items.atlas_height,
+                0.0f, 0.0f);
+    glUniform2f(resolution_location,
+                constant_buffer_items.client_width,
+                constant_buffer_items.client_height);
+    glUniformMatrix4fv(transform_location, 1, GL_TRUE, transform.values);
 
     {
       glViewport(0, 0, (i32) rect_get_width(&render_rect), (i32) rect_get_height(&render_rect));
@@ -920,14 +925,25 @@ int main(int arg_count, char *arg_values[])
       glActiveTexture(GL_TEXTURE0);
       glBindTexture(GL_TEXTURE_2D, font_atlas_texture);
 
-      glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+      {
+        glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+        glBindVertexArray(vertex_buffer_reader);
 
-      __debugbreak();
-      void *mapped_data = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-      copy_memory_block(mapped_data, render->render_data.start, render->render_data.used);
-      glUnmapBuffer(GL_ARRAY_BUFFER);
+        expect(render->render_data.used == (sizeof(Instance_Buffer_Element)));
 
-      glBindVertexArray(vertex_buffer_reader);
+        void *mapped_data = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+
+        if (mapped_data != NULL)
+        {
+          copy_memory_block(mapped_data, render->render_data.start, render->render_data.used);
+        }
+        else
+        {
+          meta_log_char("Failed to map UI instance buffer\n");
+        }
+
+        glUnmapBuffer(GL_ARRAY_BUFFER);
+      }
 
       glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 1);
 

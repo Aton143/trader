@@ -702,7 +702,9 @@ int main(int arg_count, char *arg_values[])
                           member_size(Instance_Buffer_Element, member) / sizeof(div_type), \
                           gl_type, GL_FALSE, sizeof(Instance_Buffer_Element), \
                           (void *) member_offset(Instance_Buffer_Element, member)); \
-    glEnableVertexAttribArray(vertex_buffer_index)
+    glEnableVertexAttribArray(vertex_buffer_index); \
+    glVertexAttribDivisor(vertex_buffer_index, 1)
+
 #define REGISTER_IBE_MEMBER(member, div_type, gl_type) \
   REGISTER_IBE_MEMBER_FULL(member, div_type, gl_type, 1) 
 

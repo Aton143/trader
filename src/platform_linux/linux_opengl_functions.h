@@ -73,5 +73,6 @@ GL_FUNC(glBlendFuncSeparate, void, (GLenum srcRGB, GLenum dstRGB, GLenum srcAlph
 GL_FUNC(glDrawArraysInstanced, void, (GLenum mode, GLint first, GLint count, GLsizei instancecount))
 GL_FUNC(glMapBuffer, void *, (GLenum target, GLenum access))
 GL_FUNC(glUnmapBuffer, GLboolean, (GLenum target))
+GL_FUNC(glVertexAttribDivisor, void, (GLuint index, GLuint divisor))
 
 #undef GL_FUNC

@@ -45,7 +45,7 @@ uniform mat4 transform;
 void main()
 {
   // NOTE(antonio): static vertex array that we can index into with our vertex ID
-  const vec2 vertices[4] =
+  const vec2 vertices[] =
     vec2[4](vec2(-1.0f, -1.0f),  // Bottom Left
             vec2(-1.0f, +1.0f),  // Top Left
             vec2(+1.0f, -1.0f),  // Bottom Right
@@ -70,7 +70,7 @@ void main()
          position.z,
          1);
 
-  gl_Position = pretransformed_pos;
+  // gl_Position = pretransformed_pos;
   /*
   if (gl_VertexID < 2)
   {
@@ -78,14 +78,13 @@ void main()
   }
   else
   {
-     gl_Position = (vec4(vertices[gl_VertexID] * 0.5, 0.0f, 1.0f));
   }
   */
 
   vs_output.uv = vec2(unnorm_uv_position.x / texture_width,
                       unnorm_uv_position.y / texture_height);
 
-  vs_output.color = color[gl_VertexID];
+  vs_output.color = color[gl_VertexID].xyzw;
 
   vs_output.dst_pos       = dst_position;
   vs_output.dst_center    = dst_center + position.xy;
@@ -95,4 +94,6 @@ void main()
   vs_output.corner_radius    = corner_radius;
 
   vs_output.edge_softness    = edge_softness;
+
+  gl_Position = (vec4(vertices[gl_VertexID] * 0.9f, 0.1f, 1.0f));
 }

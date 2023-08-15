@@ -74,5 +74,7 @@ GL_FUNC(glDrawArraysInstanced, void, (GLenum mode, GLint first, GLint count, GLs
 GL_FUNC(glMapBuffer, void *, (GLenum target, GLenum access))
 GL_FUNC(glUnmapBuffer, GLboolean, (GLenum target))
 GL_FUNC(glVertexAttribDivisor, void, (GLuint index, GLuint divisor))
+GL_FUNC(glDrawArraysInstancedBaseInstance, void, (GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance))
+ 
 
 #undef GL_FUNC

@@ -873,6 +873,7 @@ int main(int arg_count, char *arg_values[])
   glBlendFuncSeparate(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ZERO);
 
   u64 last_hpt = platform_get_high_precision_time();
+
   f64 last_frame_time = 0.0f;
   b32 first_step      = true;
 
@@ -1021,6 +1022,37 @@ int main(int arg_count, char *arg_values[])
     {
       u64 cur_hpt = platform_get_high_precision_time();
       last_frame_time = platform_convert_high_precision_time_to_seconds(cur_hpt - last_hpt);
+
+      /*
+#define LAST 0
+#define CUR  1
+
+      local_persist i64 hpt_history[128][2] = {};
+      local_persist u64 hpt_history_index   = 0;
+
+      if (hpt_history_index < (128))
+      {
+        hpt_history[hpt_history_index][LAST] = (i64) last_hpt;
+        hpt_history[hpt_history_index++][CUR]  = (i64) cur_hpt;
+      }
+      else
+      {
+        for (unsigned int i = 0; i < 128; ++i)
+        {
+          i64 last = hpt_history[i][LAST];
+          i64 cur  = hpt_history[i][CUR];
+
+          printf("[%3d]: last: %10lld, cur: %10lld",
+                 i, (long long int) last, (long long int) cur);
+          printf(", difference: %10lld, difference in secs: %f\n",
+                 (long long int) (cur - last),
+                 platform_convert_high_precision_time_to_seconds(cur - last));
+        }
+
+        // __debugbreak();
+      }
+      */
+
       last_hpt = cur_hpt;
     }
   }

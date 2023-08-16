@@ -6,21 +6,22 @@ This project is still in its early stages, so to say. Right now, it supports HTT
 
 ## Currently working on 
 - Linux build on linux-bootstrap branch
-- Reorganizing project for multiplatform builds
 - OpenGL renderer build-up and general rendering system cleanup
+- Getting user input on Linux
+- General feature parity with Windows
 
 ## Planned features
 - [ ] Linux! Oh, no..., but going
 - [ ] OpenGL backend for Linux
-- [ ] Linux-based networking backend
-- [ ] WebSockets and socket-based connections to APIs
-- [ ] Immediate Mode GUI with real-time data visualization and manipulation
 - [ ] Multi-threaded architecture
-- [ ] Embedded Python Interpreter to conduct trades
 
 ## To-Do
 - [ ] User-created UI "workspace"
 - [ ] JSON and HTTP response parsing
+
+## Difficult-to-implement-but-useful features which may require a library for the time being
+- [ ] HLSL -> GLSL parser
+- [ ] InputLayout/VAO generator from shader
 
 ## How to Compile
 This project depends on stb\_image\_write.h, stb\_rect\_pack.h, stb\_sprintf.h, stb\_truetype.h, and OpenSSL. I haven't configured it to be built by another person so mileage will definitely vary. I have still yet to create submodules and a great way for others to build this thing. Luckily, it shouldn't be hard since the stb stuff is easy to take care of and OpenSSL static and dynamic libraries can be [easily obtained](https://wiki.openssl.org/index.php/Binaries). I haven't even changed the build scripts for release binaries!
@@ -40,3 +41,5 @@ If you check out the linux-ubuntu-opengl-triangle branch, you can find how to in
 - [Kevin Moran](https://github.com/kevinmoran)
 - [Allen Webster](https://mr4th.com/)
 - [Eskil Steenberg](http://quelsolaar.com/about)
+- [Ignacio Castaño](http://www.ludicon.com/castano/blog/)
+- [Mike Acton](https://www.youtube.com/watch?v=4B00hV3wmMY)

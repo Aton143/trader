@@ -911,15 +911,17 @@ int main(int arg_count, char *arg_values[])
                        &baseline_y,
                        rgba_white,
                        render_rect,
-                       (utf8 *) "A");
-    }
+                       (utf8 *) "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 
-    Instance_Buffer_Element *a_instance = (Instance_Buffer_Element *) render->render_data.start;
-    printf("IBE: size (%f, %f); pos: (%f, %f)\n",
-           (double) rect_get_width(&a_instance->size),
-           (double) rect_get_height(&a_instance->size),
-           (double) a_instance->pos.x,
-           (double) a_instance->pos.y);
+      baseline_x = 0.0f;
+      baseline_y += 16.0f;
+      render_draw_text(&render->render_data,
+                       &baseline_x,
+                       &baseline_y,
+                       rgba_red,
+                       render_rect,
+                       (utf8 *) "abcdefghijklmnopqrstuvwxyz");
+    }
 
     Constant_Buffer constant_buffer_items = {};
     {
@@ -968,7 +970,8 @@ int main(int arg_count, char *arg_values[])
 
       // __debugbreak();
 
-      glDrawArraysInstancedBaseInstance(GL_TRIANGLE_STRIP, 0, 4, 1, 0);
+      u32 instance_count = render->render_data.used / sizeof(Instance_Buffer_Element);
+      glDrawArraysInstancedBaseInstance(GL_TRIANGLE_STRIP, 0, 4, instance_count, 0);
 
       /*
       for (u32 draw_layer_index = 0;

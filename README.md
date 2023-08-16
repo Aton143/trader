@@ -20,7 +20,7 @@ This project is still in its early stages, so to say. Right now, it supports HTT
 - [ ] JSON and HTTP response parsing
 
 ## Difficult-to-implement-but-useful features which may require a library for the time being
-- [ ] HLSL -> GLSL parser
+- [ ] HLSL &rarr; GLSL parser
 - [ ] InputLayout/VAO generator from shader
 
 ## How to Compile

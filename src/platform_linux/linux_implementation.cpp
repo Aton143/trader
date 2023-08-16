@@ -62,6 +62,15 @@ global_const String_Const_utf8 default_font_path =
     string_literal_init_type("../assets/ubuntu_default_font/Ubuntu-Regular.ttf", utf8);
 global_const f32 default_font_heights[] = {16.0f};
 
+#define X11_EVENT(name) #name ,
+global_const char *x11_event_name_map[] = 
+{
+  "",
+  "",
+#include "linux_x11_events.h"
+};
+#undef X11_EVENT
+
 internal void platform_debug_printf(char *format, ...)
 {
   char buffer[512] = {};

@@ -124,6 +124,21 @@ internal void x11_handle_events()
   }
 }
 
+struct Name_Value
+{
+  char *name; 
+  int   value;
+};
+
+internal int TRADER_CDECL __event_comp(const void *_a, const void *_b)
+{
+  Name_Value a = *((Name_Value *) _a);
+  Name_Value b = *((Name_Value *) _b);
+
+  if (a.value < b.value) return -1;
+  else                 return  1;
+}
+
 int main(int arg_count, char *arg_values[])
 {
   if (!platform_common_init())

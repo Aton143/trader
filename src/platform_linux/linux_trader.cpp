@@ -76,6 +76,9 @@ internal void x11_handle_events()
     XEvent event;
     XNextEvent(linux_platform_state.display, &event);
 
+    printf("x11 event: %s\n", x11_event_name_map[event.type]);
+
+    /*
     b32 filtered = false;
     if (XFilterEvent(&event, None) == True)
     {
@@ -85,6 +88,7 @@ internal void x11_handle_events()
         continue;
       }
     }
+    */
 
     u64 event_id = ((u64) (event.xkey.serial << 32)) | ((u64) event.xkey.time);
     switch (event.type)
@@ -114,6 +118,15 @@ internal void x11_handle_events()
                      SubstructureRedirectMask | SubstructureNotifyMask,
                      &event);
         }
+      } break;
+
+      case ConfigureNotify:
+      {
+        Rect_f32 new_rect = 
+        {
+          0, 0, (f32) event.xconfigure.width, (f32) event.xconfigure.height
+        };
+        render_set_client_rect(new_rect);
       } break;
 
       default:

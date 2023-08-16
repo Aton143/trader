@@ -76,7 +76,7 @@ void main()
   vs_output.uv = vec2(unnorm_uv_position.x / texture_width,
                       unnorm_uv_position.y / texture_height);
 
-  vs_output.color = color[gl_VertexID].xyzw;
+  vs_output.color = color[gl_VertexID];
 
   vs_output.dst_pos       = dst_position;
   vs_output.dst_center    = dst_center + position.xy;

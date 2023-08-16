@@ -58,7 +58,8 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
       // NOTE(antonio): calculate text width
 
       // NOTE(antonio): assuming that font height was found when pushed
-      stbtt_packedchar *packed_char_start = render->atlas->char_data + render_get_packed_char_start(ui->text_height);
+      stbtt_packedchar *packed_char_start =
+        render->atlas->char_data + render_get_packed_char_start(ui->text_height);
       // f32 font_scale = stbtt_ScaleForPixelHeight(&render->atlas->font_info, ui->text_height);
 
       u64 string_index;
@@ -154,7 +155,10 @@ internal Widget *ui_make_sentinel_widget()
 }
 
 // TODO(antonio): cannot have two directions in a children list
-internal Panel *ui_make_panel(Axis_Split split, f32 *size_relative_to_parent, String_Const_utf8 string, Panel *from)
+internal Panel *ui_make_panel(Axis_Split         split,
+                              f32               *size_relative_to_parent,
+                              String_Const_utf8  string,
+                              Panel             *from)
 {
   Panel      *panel   = NULL;
   UI_Context *ui      = ui_get_context();
@@ -193,8 +197,10 @@ internal Panel *ui_make_panel(Axis_Split split, f32 *size_relative_to_parent, St
       cur_par->last_child                    = panel;
     }
 
-    String_Const_utf8 panel_prefix         = string_literal_init_type("Panel::", utf8);
-    String_Const_utf8 panel_to_hash_string = concat_string_to_c_string(ui->string_pool, panel_prefix, string);
+    String_Const_utf8 panel_prefix         =
+      string_literal_init_type("Panel::", utf8);
+    String_Const_utf8 panel_to_hash_string =
+      concat_string_to_c_string(ui->string_pool, panel_prefix, string);
 
     panel->parent                  = cur_par;
     panel->split                   = split;
@@ -219,7 +225,7 @@ internal Panel *ui_make_panel(Axis_Split split, f32 *size_relative_to_parent, St
       3.0f,
     };
 
-    ui_make_widget(widget_flag_border_draggable | widget_flag_draw_background | widget_flag_top_level,
+    ui_make_widget(widget_flag_border_draggable | widget_flag_draw_background  | widget_flag_top_level,
                    size_flag_copy_parent_size_x | size_flag_copy_parent_size_y, 
                    string,
                    new_params_just_in_case.sizing,
@@ -470,8 +476,10 @@ internal void ui_initialize(UI_Context *ui)
        widget_index < default_widget_count - 1;
        ++widget_index)
   {
-    free_widget_list[widget_index].next_sibling = &free_widget_list[widget_index + 1];
-    free_widget_list[widget_index].string       = string_literal_init_type("no widgets here, buddy :)", utf8);
+    free_widget_list[widget_index].next_sibling =
+      &free_widget_list[widget_index + 1];
+    free_widget_list[widget_index].string       =
+      string_literal_init_type("no widgets here, buddy :)", utf8);
   }
 
   Panel *panel_memory = push_array_zero(global_arena, Panel, default_panel_count);
@@ -486,7 +494,11 @@ internal void ui_initialize(UI_Context *ui)
   ui->panel_memory_size = default_panel_count * sizeof(*ui->panels_start);
   ui->panel_count       = 0;
 
-  ui->event_queue.start = ui->event_queue.read = ui->event_queue.write = (u8 *) __event_queue_buffer;
+  ui->event_queue.start   =
+    ui->event_queue.read  =
+    ui->event_queue.write =
+    (u8 *) __event_queue_buffer;
+
   ui->event_queue.size  = array_count(__event_queue_buffer);
 
   for (u32 layer_index = 0;
@@ -543,11 +555,13 @@ internal void ui_initialize_frame(void)
     ui->panel_count             = 1;
   }
 
-  ui->text_height     = default_text_height;
+  ui->text_height     = default_font_heights[0];
   ui->text_gutter_dim = default_text_gutter_dim;
   ui->text_color      = default_text_color;
 
-  copy_memory_block(ui->background_color, (void *) default_background_color, sizeof(default_background_color));
+  copy_memory_block(ui->background_color,
+                    (void *) default_background_color,
+                    sizeof(default_background_color));
 
   ui->canvas_viewport = {};
   ui->keep_hot_key    = false;
@@ -1460,7 +1474,8 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
 
   arena_reset(temp_arena);
   {
-    Ring_Buffer widget_queue = ring_buffer_make(temp_arena, structs_in_size(ring_buffer_size, Widget **));
+    Ring_Buffer widget_queue =
+      ring_buffer_make(temp_arena, structs_in_size(ring_buffer_size, Widget **));
 
     // NOTE(antonio): don't care about the sentinel
     Widget *first_child = NULL;
@@ -1559,7 +1574,8 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
       }
       else
       {
-        cur_widget->rectangle.x0 = pre_sizing_top_left.x + cur_widget->position_relative_to_parent.x;
+        cur_widget->rectangle.x0 =
+          pre_sizing_top_left.x + cur_widget->position_relative_to_parent.x;
       }
 
       if (cur_widget->size_flags & size_flag_relative_to_parent_pos_y)
@@ -1570,7 +1586,8 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
       }
       else
       {
-        cur_widget->rectangle.y0 = pre_sizing_top_left.y + cur_widget->position_relative_to_parent.y;
+        cur_widget->rectangle.y0 =
+          pre_sizing_top_left.y + cur_widget->position_relative_to_parent.y;
       }
 
       cur_widget->rectangle.x1 = cur_widget->rectangle.x0 + cur_widget->computed_size_in_pixels.x;
@@ -1599,7 +1616,9 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
 
   arena_reset(temp_arena);
   {
-    Ring_Buffer widget_queue = ring_buffer_make(temp_arena, structs_in_size(ring_buffer_size, Widget *));
+    Ring_Buffer widget_queue =
+      ring_buffer_make(temp_arena, structs_in_size(ring_buffer_size, Widget *));
+
     Widget *first_child = NULL;
     for (Widget *cur_child = widgets->first_child;
          cur_child != first_child;
@@ -1627,7 +1646,8 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
 
         b32 mouse_left_change = ((ui->prev_frame_mouse_event & mouse_event_lclick) !=
                                  (ui->cur_frame_mouse_event  & mouse_event_lclick));
-        b32 mouse_left_went_up = mouse_left_change && ((ui->cur_frame_mouse_event & mouse_event_lclick) == 0);
+        b32 mouse_left_went_up =
+          mouse_left_change && ((ui->cur_frame_mouse_event & mouse_event_lclick) == 0);
 
         if (ui_is_key_equal(ui->active_key, cur_widget->key))
         {
@@ -1647,7 +1667,9 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
         }
         else if (ui_is_key_equal(ui->hot_key, cur_widget->key))
         {
-          b32 mouse_left_went_down = mouse_left_change && (ui->cur_frame_mouse_event & mouse_event_lclick);
+          b32 mouse_left_went_down =
+            mouse_left_change && (ui->cur_frame_mouse_event & mouse_event_lclick);
+
           if (mouse_left_went_down)
           {
             ui->active_key = cur_widget->key;
@@ -1684,7 +1706,9 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
                                  (ui->cur_frame_mouse_event  & mouse_event_lclick));
         if (mouse_left_change)
         {
-          b32 mouse_left_went_down = mouse_left_change && (ui->cur_frame_mouse_event & mouse_event_lclick);
+          b32 mouse_left_went_down =
+            mouse_left_change && (ui->cur_frame_mouse_event & mouse_event_lclick);
+
           if (mouse_left_went_down)
           {
             if (ui->hot_key == cur_widget->key)
@@ -1760,7 +1784,10 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
           event_value            = {};
           event_value.mouse      = V2((ui->mouse_pos.x - rect_to_use.x0) / rect_dimensions.x,
                                       (ui->mouse_pos.y - rect_to_use.y0) / rect_dimensions.y);
-          event_value.extra_data = rect_get_closest_side_to_point(ui->mouse_pos, cur_widget->rectangle, rectangle_side_none);
+
+          event_value.extra_data = rect_get_closest_side_to_point(ui->mouse_pos,
+                                                                  cur_widget->rectangle,
+                                                                  rectangle_side_none);
 
           ui_add_interaction(cur_widget, 1, ui_event_drag, &event_value);
         }
@@ -1776,7 +1803,9 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
           zero_struct(&event_value);
 
           i64 encode_result =
-            ui_key_event_to_utf8(first_key_event, (utf8 *) event_value.utf8_data, sizeof(event_value.utf8_data));
+            ui_key_event_to_utf8(first_key_event,
+                                 (utf8 *) event_value.utf8_data,
+                                 sizeof(event_value.utf8_data));
 
           if (encode_result > 0) 
           {
@@ -1821,8 +1850,9 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
 
       if (cur_widget->widget_flags & widget_flag_draw_background)
       {
-        Arena *background_render_layer = ui_get_render_layer(0);
-        Instance_Buffer_Element *draw_call = push_struct(background_render_layer, Instance_Buffer_Element);
+        Arena *background_render_layer     = ui_get_render_layer(0);
+        Instance_Buffer_Element *draw_call =
+          push_struct(background_render_layer, Instance_Buffer_Element);
 
         Persistent_Widget_Data *found_data = ui_search_persistent_data(cur_widget);
         f32 t = 1 - fast_powf(2.0f, 16.0f * -((f32) global_state->dt));
@@ -1841,7 +1871,9 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
         found_data->background_color[2] = wide_clamp(color_bottom, found_data->background_color[2], color_top);
         found_data->background_color[3] = wide_clamp(color_bottom, found_data->background_color[3], color_top);
 
-        copy_memory_block(draw_call->color, found_data->background_color, sizeof(found_data->background_color));
+        copy_memory_block(draw_call->color,
+                          found_data->background_color,
+                          sizeof(found_data->background_color));
 
         expect(rect.x0 <= rect.x1);
         expect(rect.y0 <= rect.y1);
@@ -1879,7 +1911,12 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
 
         Arena *text_render_layer = ui_get_render_layer(1);
         set_temp_arena_wait(1);
-        render_draw_text(text_render_layer, &x, &baseline, cur_widget->text_color, rect, cur_widget->string.str);
+        render_draw_text(text_render_layer,
+                         &x,
+                         &baseline,
+                         cur_widget->text_color,
+                         rect,
+                         cur_widget->string.str);
 
         if (cur_widget->widget_flags & widget_flag_get_user_input)
         {

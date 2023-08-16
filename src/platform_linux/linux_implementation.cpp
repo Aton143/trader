@@ -60,7 +60,7 @@ struct Global_Platform_State
 global Global_Platform_State linux_platform_state;
 global_const String_Const_utf8 default_font_path = 
     string_literal_init_type("../assets/ubuntu_default_font/Ubuntu-Regular.ttf", utf8);
-global_const f32 default_font_heights[] = {24.0f};
+global_const f32 default_font_heights[] = {16.0f};
 
 internal void platform_debug_printf(char *format, ...)
 {
@@ -336,8 +336,7 @@ internal String_Const_utf8 platform_get_file_name_from_path(String_Const_utf8 *p
 
 internal inline f64 platform_convert_high_precision_time_to_seconds(u64 hpt)
 {
-  f64 seconds = 0.0;
-  unused(hpt);
+  f64 seconds = hpt / ((f64) 1e6);
   return(seconds);
 }
 

@@ -820,15 +820,6 @@ int main(int arg_count, char *arg_values[])
 
   glUseProgram(shader_program);
 
-  f64 last_frame_time = platform_get_time_in_seconds();
-  b32 first_step      = true;
-
-  f32 acc_time =  1.0f;
-  f32 dir      = -1.0f;
-
-  f32 panel_floats[16]  = {0.20f, 0.45f, 0.05f, 0.30f};
-  u32 panel_float_index = 0;
-
   i32 texture_dimensions_location = glGetUniformLocation(shader_program, "texture_dimensions");
   i32 resolution_location         = glGetUniformLocation(shader_program, "resolution");
   i32 transform_location          = glGetUniformLocation(shader_program, "transform");
@@ -845,10 +836,21 @@ int main(int arg_count, char *arg_values[])
                                                  V4(0.0f,  0.0f, 0.0f, 1.0f));
 
   glEnable(GL_DEPTH_TEST);  
-  glDepthFunc(GL_LESS);
+  glDepthFunc(GL_GREATER);
+  glDepthMask(GL_TRUE);
 
   glEnable(GL_BLEND);
   glBlendFuncSeparate(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ZERO);
+
+  u64 last_hpt = platform_get_high_precision_time();
+  f64 last_frame_time = 0.0f;
+  b32 first_step      = true;
+
+  f32 acc_time =  1.0f;
+  f32 dir      = -1.0f;
+
+  f32 panel_floats[16]  = {0.50f};
+  u32 panel_float_index = 0;
 
   global_running = true;
   while (global_running)
@@ -872,56 +874,19 @@ int main(int arg_count, char *arg_values[])
     Rect_f32 render_rect = render_get_client_rect();
 
     ui_initialize_frame();
-    /*
 
     panel_float_index = 0;
+    ui_push_background_color(rgba_from_u8(55, 47, 36, 255));
     ui_make_panel(axis_split_vertical,
                   &panel_floats[panel_float_index++],
                   string_literal_init_type("first", utf8));
 
     ui_push_text_color(1.0f, 1.0f, 1.0f, 1.0f);
 
-    ui_do_formatted_string("A");
+    ui_do_formatted_string("Last frame time: %2.6fs", last_frame_time);
 
     ui_prepare_render_from_panels(ui_get_sentinel_panel(), render_rect);
     ui_flatten_draw_layers();
-    */
-
-    /*
-    {
-      Instance_Buffer_Element *draw = push_struct_zero(&render->render_data,
-                                                       Instance_Buffer_Element);
-
-      draw->size.p1  = V2(100.0f * acc_time , 200.0f * acc_time);
-
-      draw->color[0] = rgba(1.0f, 0.0f, 0.0f, 1.0f);
-      draw->color[1] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
-      draw->color[2] = rgba(0.0f, 0.0f, 1.0f, 1.0f);
-      draw->color[3] = rgba(1.0f, 1.0f, 1.0f, 1.0f);
-
-      draw->uv       = render_get_solid_color_rect();
-    }
-    */
-
-    {
-      f32 baseline_x = 0.0f;
-      f32 baseline_y = 16.0f;
-      render_draw_text(&render->render_data,
-                       &baseline_x,
-                       &baseline_y,
-                       rgba_white,
-                       render_rect,
-                       (utf8 *) "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
-
-      baseline_x = 0.0f;
-      baseline_y += 16.0f;
-      render_draw_text(&render->render_data,
-                       &baseline_x,
-                       &baseline_y,
-                       rgba_red,
-                       render_rect,
-                       (utf8 *) "abcdefghijklmnopqrstuvwxyz");
-    }
 
     Constant_Buffer constant_buffer_items = {};
     {
@@ -945,6 +910,7 @@ int main(int arg_count, char *arg_values[])
       glViewport(0, 0, (i32) rect_get_width(&render_rect), (i32) rect_get_height(&render_rect));
 
       glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+      glClearDepth(0.0f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
       glActiveTexture(GL_TEXTURE0);
@@ -968,14 +934,10 @@ int main(int arg_count, char *arg_values[])
         glUnmapBuffer(GL_ARRAY_BUFFER);
       }
 
-      // __debugbreak();
-
       u32 instance_count = render->render_data.used / sizeof(Instance_Buffer_Element);
-      glDrawArraysInstancedBaseInstance(GL_TRIANGLE_STRIP, 0, 4, instance_count, 0);
 
-      /*
       for (u32 draw_layer_index = 0;
-           draw_layer_index < 1;// array_count(ui->render_layers);
+           draw_layer_index < array_count(ui->render_layers);
            ++draw_layer_index)
       {
         u32 instance_count =
@@ -986,7 +948,6 @@ int main(int arg_count, char *arg_values[])
                                           instance_count,
                                           ui->flattened_draw_layer_indices[draw_layer_index]);
       }
-      */
     }
 
     glXSwapBuffers(linux_platform_state.display, linux_platform_state.window_handle);
@@ -1026,7 +987,12 @@ int main(int arg_count, char *arg_values[])
     }
 
     // meta_collate_timing_records();
-    last_frame_time = platform_get_time_in_seconds();
+
+    {
+      u64 cur_hpt = platform_get_high_precision_time();
+      last_frame_time = platform_convert_high_precision_time_to_seconds(cur_hpt - last_hpt);
+      last_hpt = cur_hpt;
+    }
   }
 
   return(0);

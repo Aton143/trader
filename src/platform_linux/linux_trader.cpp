@@ -872,6 +872,7 @@ int main(int arg_count, char *arg_values[])
     Rect_f32 render_rect = render_get_client_rect();
 
     ui_initialize_frame();
+    /*
 
     panel_float_index = 0;
     ui_make_panel(axis_split_vertical,
@@ -880,10 +881,11 @@ int main(int arg_count, char *arg_values[])
 
     ui_push_text_color(1.0f, 1.0f, 1.0f, 1.0f);
 
-    ui_do_formatted_string("What am I: %s", "OpenGL");
+    ui_do_formatted_string("A");
 
     ui_prepare_render_from_panels(ui_get_sentinel_panel(), render_rect);
     ui_flatten_draw_layers();
+    */
 
     /*
     {
@@ -900,6 +902,24 @@ int main(int arg_count, char *arg_values[])
       draw->uv       = render_get_solid_color_rect();
     }
     */
+
+    {
+      f32 baseline_x = 0.0f;
+      f32 baseline_y = 16.0f;
+      render_draw_text(&render->render_data,
+                       &baseline_x,
+                       &baseline_y,
+                       rgba_white,
+                       render_rect,
+                       (utf8 *) "A");
+    }
+
+    Instance_Buffer_Element *a_instance = (Instance_Buffer_Element *) render->render_data.start;
+    printf("IBE: size (%f, %f); pos: (%f, %f)\n",
+           (double) rect_get_width(&a_instance->size),
+           (double) rect_get_height(&a_instance->size),
+           (double) a_instance->pos.x,
+           (double) a_instance->pos.y);
 
     Constant_Buffer constant_buffer_items = {};
     {
@@ -946,6 +966,11 @@ int main(int arg_count, char *arg_values[])
         glUnmapBuffer(GL_ARRAY_BUFFER);
       }
 
+      // __debugbreak();
+
+      glDrawArraysInstancedBaseInstance(GL_TRIANGLE_STRIP, 0, 4, 1, 0);
+
+      /*
       for (u32 draw_layer_index = 0;
            draw_layer_index < 1;// array_count(ui->render_layers);
            ++draw_layer_index)
@@ -958,6 +983,7 @@ int main(int arg_count, char *arg_values[])
                                           instance_count,
                                           ui->flattened_draw_layer_indices[draw_layer_index]);
       }
+      */
     }
 
     glXSwapBuffers(linux_platform_state.display, linux_platform_state.window_handle);

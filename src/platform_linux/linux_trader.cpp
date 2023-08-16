@@ -122,10 +122,7 @@ internal void x11_handle_events()
 
       case ConfigureNotify:
       {
-        Rect_f32 new_rect = 
-        {
-          0, 0, (f32) event.xconfigure.width, (f32) event.xconfigure.height
-        };
+        Rect_f32 new_rect = {0, 0, (f32) event.xconfigure.width, (f32) event.xconfigure.height};
         render_set_client_rect(new_rect);
       } break;
 
@@ -589,6 +586,11 @@ int main(int arg_count, char *arg_values[])
       EnterWindowMask      |
       LeaveWindowMask      |
       PointerMotionMask    |
+      Button1MotionMask    |
+      Button2MotionMask    |
+      Button3MotionMask    |
+      Button4MotionMask    |
+      Button5MotionMask    |
       FocusChangeMask      |
       StructureNotifyMask  |
       ExposureMask         |

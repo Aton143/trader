@@ -52,6 +52,18 @@ struct Global_Platform_State
   Atom            atom__NET_WM_WINDOW_TYPE_NORMAL;
   Atom            atom__NET_WM_PID;
   Atom            atom_WM_DELETE_WINDOW;
+  Atom            atom_ATOM_PAIR;
+
+  // NOTE(antonio): from GLFW (https://github.com/glfw/glfw)
+  Atom            atom_XdndAware;
+  Atom            atom_XdndEnter;
+  Atom            atom_XdndPosition;
+  Atom            atom_XdndStatus;
+  Atom            atom_XdndActionCopy;
+  Atom            atom_XdndDrop;
+  Atom            atom_XdndFinished;
+  Atom            atom_XdndSelection;
+  Atom            atom_XdndTypeList;   
 
   b32             has_xfixes;
   i32             xfixes_selection_event;
@@ -61,6 +73,8 @@ struct Global_Platform_State
 
   i32             xkb_event;
   XkbDescPtr      xkb;
+
+  XContext        xcontext;
 };
 
 global Global_Platform_State linux_platform_state;

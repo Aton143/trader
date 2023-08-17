@@ -13,6 +13,8 @@
 #include <X11/extensions/Xfixes.h>
 #include <X11/XKBlib.h>
 #include <X11/keysym.h>
+#include <X11/Xmd.h>
+#include <X11/Xresource.h>
 
 #define internal static
 
@@ -68,6 +70,27 @@ internal void GLAPIENTRY gl__handle_errors(GLenum        source,
          type, severity, message);
 }
 
+typedef int X11_Debug_Function(Display *display, XErrorEvent *error);
+typedef X11_Debug_Function *X11_DEBUG_PROC;
+
+internal int x11__handle_errors(Display *display, XErrorEvent *error)
+{
+  unused(display);
+  unused(error);
+  __debugbreak();
+  return(0);
+}
+
+typedef int X11_IO_Debug_Function(Display *display);
+typedef X11_IO_Debug_Function *X11_IO_DEBUG_PROC;
+
+internal int x11__handle_io_errors(Display *display)
+{
+  unused(display);
+  __debugbreak();
+  return(0);
+}
+
 internal void x11_handle_events()
 {
   // TODO(antonio): :(
@@ -110,7 +133,7 @@ internal void x11_handle_events()
         }
         else if (atom == linux_platform_state.atom__NET_WM_PING)
         {
-          // Notify WM that we're still responding (don't grey our window out).
+          // NOTE(antonio): (inso) Notify WM that we're still responding (don't grey our window out).
           event.xclient.window = DefaultRootWindow(linux_platform_state.display);
           XSendEvent(linux_platform_state.display,
                      event.xclient.window,
@@ -132,21 +155,6 @@ internal void x11_handle_events()
       } break;
     }
   }
-}
-
-struct Name_Value
-{
-  char *name; 
-  int   value;
-};
-
-internal int TRADER_CDECL __event_comp(const void *_a, const void *_b)
-{
-  Name_Value a = *((Name_Value *) _a);
-  Name_Value b = *((Name_Value *) _b);
-
-  if (a.value < b.value) return -1;
-  else                 return  1;
 }
 
 int main(int arg_count, char *arg_values[])
@@ -174,9 +182,13 @@ int main(int arg_count, char *arg_values[])
 
     linux_platform_state.display = x11_display;
 
+    XSetErrorHandler((X11_DEBUG_PROC) &x11__handle_errors);
+    XSetIOErrorHandler((X11_IO_DEBUG_PROC) &x11__handle_io_errors);
+
     // NOTE(antonio): from https://github.com/Dion-Systems/4coder
-#define LOAD_ATOM(x) linux_platform_state.atom_##x = \
-    XInternAtom(linux_platform_state.display, #x, False)
+#define LOAD_ATOM(x) linux_platform_state.atom_##x =      \
+    XInternAtom(linux_platform_state.display, #x, False); \
+    expect(linux_platform_state.atom_##x != None)
 
     LOAD_ATOM(TARGETS);
     LOAD_ATOM(CLIPBOARD);
@@ -190,8 +202,21 @@ int main(int arg_count, char *arg_values[])
     LOAD_ATOM(_NET_WM_WINDOW_TYPE_NORMAL);
     LOAD_ATOM(_NET_WM_PID);
     LOAD_ATOM(WM_DELETE_WINDOW);
+    LOAD_ATOM(ATOM_PAIR);
+
+    LOAD_ATOM(XdndAware);
+    LOAD_ATOM(XdndEnter);
+    LOAD_ATOM(XdndPosition);
+    LOAD_ATOM(XdndStatus);
+    LOAD_ATOM(XdndActionCopy);
+    LOAD_ATOM(XdndDrop);
+    LOAD_ATOM(XdndFinished);
+    LOAD_ATOM(XdndSelection);
+    LOAD_ATOM(XdndTypeList);
 
 #undef LOAD_ATOM
+
+    linux_platform_state.xcontext = XUniqueContext();
 
     GLXFBConfig chosen_glxfb_config = {};
     XVisualInfo x11_visual_info     = {};
@@ -301,16 +326,6 @@ int main(int arg_count, char *arg_values[])
 
     linux_platform_state.window_handle = x11_window;
 
-    // NOTE(antonio): (inso) set the window's type to normal
-    XChangeProperty(linux_platform_state.display,
-                    linux_platform_state.window_handle,
-                    linux_platform_state.atom__NET_WM_WINDOW_TYPE,
-                    XA_ATOM,
-                    32,
-                    PropModeReplace,
-                    (unsigned char *) &linux_platform_state.atom__NET_WM_WINDOW_TYPE_NORMAL,
-                    1);
-
     // NOTE(antonio): (inso) window managers want the PID as a window property for some reason.
     pid_t process_id = getpid();
     XChangeProperty(linux_platform_state.display,
@@ -322,28 +337,56 @@ int main(int arg_count, char *arg_values[])
                     (u8 *) &process_id,
                     1);
 
+    // NOTE(antonio): (inso) set the window's type to normal
+    XChangeProperty(linux_platform_state.display,
+                    linux_platform_state.window_handle,
+                    linux_platform_state.atom__NET_WM_WINDOW_TYPE,
+                    XA_ATOM,
+                    32,
+                    PropModeReplace,
+                    (unsigned char *) &linux_platform_state.atom__NET_WM_WINDOW_TYPE_NORMAL,
+                    1);
+
     XStoreName(linux_platform_state.display, linux_platform_state.window_handle, "trader");
 
     XSizeHints *size_hints           = XAllocSizeHints();
     XWMHints   *window_manager_hints = XAllocWMHints();
     XClassHint *class_hints          = XAllocClassHint();
 
-    size_hints->flags       = PMinSize | PMaxSize | PWinGravity;
+    {
+      size_hints->flags       = PMinSize | PMaxSize | PWinGravity;
 
-    size_hints->min_width   = 50;
-    size_hints->min_height  = 50;
+      size_hints->min_width   = 50;
+      size_hints->min_height  = 50;
 
-    size_hints->max_width   = size_hints->max_height = (1UL << 16UL);
+      size_hints->max_width   = size_hints->max_height = (1UL << 16UL);
 
-    size_hints->win_gravity = NorthWestGravity;
+      size_hints->win_gravity = NorthWestGravity;
 
-    window_manager_hints->flags         |= InputHint | StateHint;
+      XSetWMNormalHints(linux_platform_state.display,
+                        linux_platform_state.window_handle,
+                        size_hints);
+    }
 
-    window_manager_hints->input          = True;
-    window_manager_hints->initial_state  = NormalState;
+    {
+      window_manager_hints->flags         |= InputHint | StateHint;
 
-    class_hints->res_name  = (char *) "trader";
-    class_hints->res_class = (char *) "trader";
+      window_manager_hints->input          = True;
+      window_manager_hints->initial_state  = NormalState;
+
+      XSetWMHints(linux_platform_state.display,
+                  linux_platform_state.window_handle,
+                  window_manager_hints);
+    }
+
+    {
+      class_hints->res_name  = (char *) "trader";
+      class_hints->res_class = (char *) "trader";
+
+      XSetClassHint(linux_platform_state.display,
+                    linux_platform_state.window_handle,
+                    class_hints);
+    }
 
     char          *window_name_list[] = {(char *) "trader"};
     XTextProperty  window_name;
@@ -359,11 +402,14 @@ int main(int arg_count, char *arg_values[])
                      window_manager_hints,
                      class_hints);
 
-
     XFree(window_name.value);
     XFree(size_hints);
     XFree(window_manager_hints);
     XFree(class_hints);
+
+    {
+
+    }
 
     // NOTE(antonio): (inso) make the window visible
     XMapWindow(linux_platform_state.display, linux_platform_state.window_handle);
@@ -474,8 +520,9 @@ int main(int arg_count, char *arg_values[])
     };
 
     XSetWMProtocols(linux_platform_state.display,
-                    linux_platform_state.window_handle,
-                    window_manager_protocols, array_count(window_manager_protocols));
+                                 linux_platform_state.window_handle,
+                                 window_manager_protocols,
+                                 array_count(window_manager_protocols));
 
     // NOTE(antonio): (inso) XFixes for clipboard notification
     {
@@ -660,6 +707,35 @@ int main(int arg_count, char *arg_values[])
         XCreatePixmapCursor(linux_platform_state.display, p, p, &c, &c, 0, 0);
 
       XFreePixmap(linux_platform_state.display, p);
+    }
+
+    {
+      // NOTE(antonio): from GLFW (https://github.com/glfw/glfw)
+      V2_f32 dpi = V2(96.0f, 96.0f);
+
+      // NOTE: Basing the scale on Xft.dpi where available should provide the most
+      //       consistent user experience (matches Qt, Gtk, etc), although not
+      //       always the most accurate one
+      char *resource_manager_str = XResourceManagerString(linux_platform_state.display);
+      if (resource_manager_str != NULL)
+      {
+        XrmDatabase db = XrmGetStringDatabase(resource_manager_str);
+        if (db)
+        {
+          XrmValue value;
+          char *type = NULL;
+
+          if (XrmGetResource(db, "Xft.dpi", "Xft.Dpi", &type, &value))
+          {
+            if (type && strcmp(type, "String") == 0)
+              dpi.x = dpi.y = atof(value.addr);
+          }
+
+          XrmDestroyDatabase(db);
+        }
+      }
+
+      render->dpi = dpi;
     }
   }
 
@@ -886,10 +962,7 @@ int main(int arg_count, char *arg_values[])
   global_running = true;
   while (global_running)
   {
-    if (XEventsQueued(linux_platform_state.display, QueuedAlready))
-    {
-      x11_handle_events();
-    }
+    x11_handle_events();
 
     if (first_step)
     {

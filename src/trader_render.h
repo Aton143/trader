@@ -107,6 +107,8 @@ struct Common_Render_Context
   V2_f32         vertex_render_dimensions;
   Rect_f32       client_rect;
   File_Buffer    default_font;
+
+  V2_f32         dpi;
 };
 
 #include "trader_platform.h"

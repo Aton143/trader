@@ -99,9 +99,6 @@ internal void x11_handle_events()
     XEvent event;
     XNextEvent(linux_platform_state.display, &event);
 
-    printf("x11 event: %s\n", x11_event_name_map[event.type]);
-
-    /*
     b32 filtered = false;
     if (XFilterEvent(&event, None) == True)
     {
@@ -111,7 +108,8 @@ internal void x11_handle_events()
         continue;
       }
     }
-    */
+
+    UI_Context *ui = ui_get_context();
 
     u64 event_id = ((u64) (event.xkey.serial << 32)) | ((u64) event.xkey.time);
     switch (event.type)
@@ -141,6 +139,15 @@ internal void x11_handle_events()
                      SubstructureRedirectMask | SubstructureNotifyMask,
                      &event);
         }
+      } break;
+
+      case MotionNotify:
+      {
+        Rect_f32 render_rect = render_get_client_rect();
+        f32 x = (f32) clamp(0, event.xmotion.x, rect_get_width(&render_rect)  - 1);
+        f32 y = (f32) clamp(0, event.xmotion.y, rect_get_height(&render_rect) - 1);
+
+        ui->mouse_pos = V2(x, y);
       } break;
 
       case ConfigureNotify:
@@ -988,6 +995,8 @@ int main(int arg_count, char *arg_values[])
     ui_push_text_color(1.0f, 1.0f, 1.0f, 1.0f);
 
     ui_do_formatted_string("Last frame time: %2.6fs", last_frame_time);
+    ui_do_formatted_string("Mouse position: (%.0f, %.0f)",
+                           (double) ui->mouse_pos.x, (double) ui->mouse_pos.y);
 
     ui_prepare_render_from_panels(ui_get_sentinel_panel(), render_rect);
     ui_flatten_draw_layers();

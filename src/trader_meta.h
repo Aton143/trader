@@ -59,17 +59,13 @@ struct Timing_Record
   u32   hit_count;
 
   u64   time_stamp;
-  u64   high_precision_time;
 };
 
 #if !SHIP_MODE
 struct Meta_Info
 {
   Handle log_handle;
-
-  u64    high_precision_timer_frequency;
   u64    last_time_stamp;
-  u64    last_high_precision_time;
 };
 
 global Meta_Info meta_info = {};

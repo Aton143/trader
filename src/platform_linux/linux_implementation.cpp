@@ -6,11 +6,17 @@
 #include <locale.h>
 
 #include <sys/mman.h>
+#include <sys/time.h>
 
 #include "../trader_platform.h"
 #include "../trader_ui.h"
 #include "../trader_render.h"
 #include "../trader_network.h"
+
+struct High_Res_Time
+{
+  timespec ts;
+};
 
 struct Cursor_Handle
 {
@@ -222,14 +228,10 @@ internal File_Buffer platform_open_and_read_entire_file(Arena *arena,
   return(result);
 }
 
-internal inline u64 platform_get_high_precision_time(void)
+internal inline High_Res_Time platform_get_high_resolution_time(void)
 {
-  timespec _ts;
-  u64 ts;
-
-  clock_gettime(CLOCK_MONOTONIC, &_ts);
-  ts = (_ts.tv_sec * 1e6) + _ts.tv_nsec;
-
+  High_Res_Time ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts.ts);
   return(ts);
 }
 
@@ -343,10 +345,27 @@ internal String_Const_utf8 platform_get_file_name_from_path(String_Const_utf8 *p
   return(result);
 }
 
-internal inline f64 platform_convert_high_precision_time_to_seconds(u64 hpt)
+// NOTE(antonio): x - y
+internal inline High_Res_Time platform_hrt_subtract(High_Res_Time x, High_Res_Time y)
 {
-  f64 seconds = hpt / ((f64) 1e6);
-  return(seconds);
+  High_Res_Time res = {};
+
+  res.ts.tv_sec  = x.ts.tv_sec  - y.ts.tv_sec;
+  res.ts.tv_nsec = x.ts.tv_nsec - y.ts.tv_nsec;
+
+  if (res.ts.tv_nsec < 0)
+  {
+    res.ts.tv_sec--;
+    res.ts.tv_nsec += 1000000000L;	
+  }
+
+  return(res);
+}
+
+internal f64 platform_high_resolution_time_to_seconds(High_Res_Time t)
+{
+  f64 time = ((f64) t.ts.tv_sec) + (t.ts.tv_nsec / ((f64) 1e9));
+  return(time);
 }
 
 internal void platform_debug_print_system_error()
@@ -366,14 +385,6 @@ internal void platform_thread_init(void)
 
 internal void meta_init(void)
 {
-  timespec _freq;
-  if (clock_getres(CLOCK_MONOTONIC, &_freq) == -1)
-  {
-    platform_debug_print_system_error();
-  }
-
-  meta_info.high_precision_timer_frequency = (_freq.tv_sec * 1e6) + _freq.tv_nsec;
-
   Arena *temp_arena = get_temp_arena();
   set_temp_arena_wait(1);
 
@@ -397,8 +408,6 @@ internal void meta_init(void)
   temp_arena->used += copy_string_lit(&temp_arena->start[temp_arena->used], (utf8 *) ".log");
   temp_arena->used -= 1;
 }
-
-
 
 internal Key_Event platform_convert_key_to_our_key(u64 key_value)
 {

@@ -1,6 +1,7 @@
 #ifndef TRADER_PLATFORM_H
 struct Handle;
 struct Cursor_Handle;
+struct High_Res_Time;
 
 typedef u32 Cursor_Kind;
 
@@ -60,7 +61,9 @@ internal void platform_collect_notifications(void);
 internal b32 platform_did_file_change(utf8 *file_name, u64 file_name_length);
 internal String_Const_utf8 platform_get_file_name_from_path(String_Const_utf8 *path);
 
-internal u64 platform_get_high_precision_time(void);
+internal High_Res_Time platform_get_high_resolution_time(void);
+internal f64 platform_high_resolution_time_to_seconds(High_Res_Time t);
+
 internal u64 platform_get_time_in_microseconds(void);
 internal f64 platform_get_time_in_seconds(void);
 

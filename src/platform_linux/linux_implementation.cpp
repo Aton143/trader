@@ -346,6 +346,7 @@ internal String_Const_utf8 platform_get_file_name_from_path(String_Const_utf8 *p
 }
 
 // NOTE(antonio): x - y
+// from https://github.com/openbsd/src/blob/master/sys/sys/time.h
 internal inline High_Res_Time platform_hrt_subtract(High_Res_Time x, High_Res_Time y)
 {
   High_Res_Time res = {};

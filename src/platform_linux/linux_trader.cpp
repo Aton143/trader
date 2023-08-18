@@ -423,21 +423,12 @@ int main(int arg_count, char *arg_values[])
 
     {
       typedef GLXContext (glXCreateContextAttribsARB_Function)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
-      typedef void       (glXSwapIntervalEXT_Function)        (Display *dpy, GLXDrawable drawable, int interval);
-      typedef int        (glXSwapIntervalMESA_Function)       (unsigned int interval);
-      typedef int        (glXGetSwapIntervalMESA_Function)    (void);
-      typedef int        (glXSwapIntervalSGI_Function)        (int interval);
 
       const char *glx_exts =
         glXQueryExtensionsString(linux_platform_state.display,
                                  DefaultScreen(linux_platform_state.display));
 
       glXCreateContextAttribsARB_Function *glXCreateContextAttribsARB = NULL;
-      glXSwapIntervalEXT_Function         *glXSwapIntervalEXT = NULL;
-      glXSwapIntervalMESA_Function        *glXSwapIntervalMESA = NULL;
-      glXGetSwapIntervalMESA_Function     *glXGetSwapIntervalMESA = NULL;
-      glXSwapIntervalSGI_Function         *glXSwapIntervalSGI = NULL;
-
 
 #define GLXLOAD(f) f = (f##_Function*) glXGetProcAddressARB((const GLubyte*) #f);
       GLXLOAD(glXCreateContextAttribsARB);
@@ -966,6 +957,19 @@ int main(int arg_count, char *arg_values[])
   f32 panel_floats[16]  = {0.50f};
   u32 panel_float_index = 0;
 
+  b32 vsync = true;
+
+  GLXDrawable drawable = glXGetCurrentDrawable();
+
+  // NOTE(antonio): query swap interval
+  {
+    u32 swap, max_swap;
+
+    glXQueryDrawable(linux_platform_state.display, drawable, GLX_SWAP_INTERVAL_EXT, &swap);
+    glXQueryDrawable(linux_platform_state.display, drawable, GLX_MAX_SWAP_INTERVAL_EXT,
+                     &max_swap);
+  }
+
   global_running = true;
   while (global_running)
   {
@@ -1061,6 +1065,11 @@ int main(int arg_count, char *arg_values[])
                                           instance_count,
                                           ui->flattened_draw_layer_indices[draw_layer_index]);
       }
+    }
+
+    if (vsync)
+    {
+      glXSwapIntervalEXT(linux_platform_state.display, drawable, 1);
     }
 
     glXSwapBuffers(linux_platform_state.display, linux_platform_state.window_handle);

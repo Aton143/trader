@@ -76,5 +76,9 @@ GL_FUNC(glUnmapBuffer, GLboolean, (GLenum target))
 GL_FUNC(glVertexAttribDivisor, void, (GLuint index, GLuint divisor))
 GL_FUNC(glDrawArraysInstancedBaseInstance, void, (GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance))
  
+GL_FUNC(glXSwapIntervalEXT, void, (Display *dpy, GLXDrawable drawable, int interval))
+GL_FUNC(glXSwapIntervalMESA, int, (unsigned int interval))
+GL_FUNC(glXGetSwapIntervalMESA, int, (void))
+GL_FUNC(glXSwapIntervalSGI, int, (int interval))
 
 #undef GL_FUNC

@@ -3,6 +3,17 @@ struct Handle;
 struct Cursor_Handle;
 struct High_Res_Time;
 
+typedef u64 Focus_Event;
+enum
+{
+  focus_event_none,
+
+  focus_event_gain,
+  focus_event_lose,
+
+  focus_event_count
+};
+
 typedef u32 Cursor_Kind;
 
 enum

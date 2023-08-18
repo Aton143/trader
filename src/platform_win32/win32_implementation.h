@@ -43,17 +43,6 @@ struct Render_Context
   ID3D11DeviceContext *device_context;
 };
 
-typedef u64 Focus_Event;
-enum
-{
-  focus_event_none,
-
-  focus_event_gain,
-  focus_event_lose,
-
-  focus_event_count
-};
-
 #pragma pack(push, 4)
 struct Global_Platform_State
 {

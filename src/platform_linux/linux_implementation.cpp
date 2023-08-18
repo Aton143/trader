@@ -75,6 +75,9 @@ struct Global_Platform_State
   XkbDescPtr      xkb;
 
   XContext        xcontext;
+  Focus_Event     focus_event;
+
+  KeyCode         prev_filtered_key;
 };
 
 global Global_Platform_State linux_platform_state;

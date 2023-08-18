@@ -115,13 +115,69 @@ internal void x11_handle_events()
     switch (event.type)
     {
       case KeyPress:
+      case KeyRelease:
       {
-        // __debugbreak();
+        __debugbreak();
+        b32 is_key_down = ((event.type == KeyPress) || (event.type == KeyRelease));
+
+        i32 key_state = event.xkey.state;
+
+        ui_add_key_event(key_mod_event_control, ((key_state & ControlMask) != 0) && is_key_down);
+        ui_add_key_event(key_mod_event_shift,   ((key_state & ShiftMask)   != 0) && is_key_down);
+        ui_add_key_event(key_mod_event_alt,     ((key_state & Mod1Mask)    != 0) && is_key_down);
+        ui_add_key_event(key_mod_event_super,   ((key_state & Mod4Mask)    != 0) && is_key_down);
+
+        // TODO(antonio): why?
+        event.xkey.state &= ~(ControlMask);
+
+        Status status;
+        KeySym key_sym = NoSymbol;
+        utf8 buf[256] = {};
+        i32 len = Xutf8LookupString(linux_platform_state.x11_input_context,
+                                    &event.xkey,
+                                    (char *) buf,
+                                    (sizeof(buf) - 1),
+                                    &key_sym,
+                                    &status);
+
+        if (status == XBufferOverflow)
+        {
+          Xutf8ResetIC(linux_platform_state.x11_input_context);
+          XSetICFocus(linux_platform_state.x11_input_context);
+        }
+
+        Key_Event key = platform_convert_key_to_our_key(event.xkey.keycode);
+        if (key != key_event_none)
+        {
+          ui_add_key_event(key, is_key_down);
+        }
+
+        b32 is_dead = false;
+        if ((key_sym >= XK_dead_grave) && (key_sym <= XK_dead_greek) && (len == 0))
+        {
+          is_dead = true;
+        }
+
+        if (!is_dead && filtered)
+        {
+          linux_platform_state.prev_filtered_key = key;
+          break;
+        }
+
+        if ((key == key_event_none) && linux_platform_state.prev_filtered_key)
+        {
+          key = linux_platform_state.prev_filtered_key;
+          linux_platform_state.prev_filtered_key = 0;
+        }
+
+        if (key == key_event_escape)
+        {
+          global_running = false;
+        }
       } break;
 
       case ClientMessage:
       {
-        // __debugbreak();
         Atom atom = event.xclient.data.l[0];
 
         // NOTE(antonio): (inso) Window X button clicked
@@ -131,7 +187,9 @@ internal void x11_handle_events()
         }
         else if (atom == linux_platform_state.atom__NET_WM_PING)
         {
-          // NOTE(antonio): (inso) Notify WM that we're still responding (don't grey our window out).
+          // NOTE(antonio): (inso) Notify WM that we're still responding
+          // (don't grey our window out)
+
           event.xclient.window = DefaultRootWindow(linux_platform_state.display);
           XSendEvent(linux_platform_state.display,
                      event.xclient.window,
@@ -154,6 +212,23 @@ internal void x11_handle_events()
       {
         Rect_f32 new_rect = {0, 0, (f32) event.xconfigure.width, (f32) event.xconfigure.height};
         render_set_client_rect(new_rect);
+      } break;
+
+      case FocusIn:
+      case FocusOut:
+      {
+        linux_platform_state.focus_event =
+          (event.type == FocusIn) ?  focus_event_gain : focus_event_lose;
+      } break;
+
+      case EnterNotify:
+      {
+        ui->mouse_area = mouse_area_in_client;
+      } break;
+
+      case LeaveNotify:
+      {
+        ui->mouse_area = mouse_area_out_client;
       } break;
 
       default:
@@ -773,7 +848,6 @@ int main(int arg_count, char *arg_values[])
     glBufferData(GL_ARRAY_BUFFER, render->render_data.size, NULL, GL_DYNAMIC_DRAW);
   }
 
-
   /*
    * NOTE(antonio): OpenGL NDC
    * (-1, 1) (1, 1)
@@ -992,7 +1066,7 @@ int main(int arg_count, char *arg_values[])
     ui_initialize_frame();
 
     panel_float_index = 0;
-    ui_push_background_color(rgba_from_u8(55, 47, 36, 255));
+    ui_push_background_color(rgba_from_u8(255, 255, 255, 255));
     ui_make_panel(axis_split_vertical,
                   &panel_floats[panel_float_index++],
                   string_literal_init_type("first", utf8));
@@ -1002,6 +1076,19 @@ int main(int arg_count, char *arg_values[])
     ui_do_formatted_string("Last frame time: %2.6fs", last_frame_time);
     ui_do_formatted_string("Mouse position: (%.0f, %.0f)",
                            (double) ui->mouse_pos.x, (double) ui->mouse_pos.y);
+
+    if (ui->mouse_area == mouse_area_in_client)
+    {
+      ui_do_string(string_literal_init_type("Mouse is in client", utf8));
+    }
+    else if (ui->mouse_area == mouse_area_out_client)
+    {
+      ui_do_string(string_literal_init_type("Mouse is not in client", utf8));
+    }
+    else
+    {
+      ui_do_string(string_literal_init_type("I don't where the hell the mouse is", utf8));
+    }
 
     ui_prepare_render_from_panels(ui_get_sentinel_panel(), render_rect);
     ui_flatten_draw_layers();
@@ -1112,6 +1199,8 @@ int main(int arg_count, char *arg_values[])
           ui->interactions[interaction_index] = {};
         }
       }
+
+      linux_platform_state.focus_event = focus_event_none;
 
       acc_time += dir * (1.0f / 60.f);
       if (acc_time > 1.0f)

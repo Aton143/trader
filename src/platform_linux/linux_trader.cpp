@@ -93,7 +93,7 @@ internal int x11__handle_io_errors(Display *display)
 
 internal void x11_handle_events()
 {
-  // TODO(antonio): :(
+  // TODO(antonio): :( - A little better but still bad
   while (XPending(linux_platform_state.display))
   {
     XEvent event;

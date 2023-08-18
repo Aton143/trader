@@ -117,7 +117,6 @@ internal void x11_handle_events()
       case KeyPress:
       case KeyRelease:
       {
-        __debugbreak();
         b32 is_key_down = ((event.type == KeyPress) || (event.type == KeyRelease));
 
         i32 key_state = event.xkey.state;
@@ -146,12 +145,13 @@ internal void x11_handle_events()
           XSetICFocus(linux_platform_state.x11_input_context);
         }
 
-        Key_Event key = platform_convert_key_to_our_key(event.xkey.keycode);
+        Key_Event key = platform_convert_key_to_our_key(key_sym);
         if (key != key_event_none)
         {
           ui_add_key_event(key, is_key_down);
         }
 
+        /*
         b32 is_dead = false;
         if ((key_sym >= XK_dead_grave) && (key_sym <= XK_dead_greek) && (len == 0))
         {
@@ -169,6 +169,16 @@ internal void x11_handle_events()
           key = linux_platform_state.prev_filtered_key;
           linux_platform_state.prev_filtered_key = 0;
         }
+
+        if (key != key_event_none)
+        {
+          ui_add_key_event(key, is_key_down);
+        }
+
+        if (status == XLookupChars || status == XLookupBoth)
+        {
+        }
+        */
 
         if (key == key_event_escape)
         {
@@ -1073,6 +1083,7 @@ int main(int arg_count, char *arg_values[])
 
     ui_push_text_color(1.0f, 1.0f, 1.0f, 1.0f);
 
+    ui_do_text_edit(&debug_teb, "text editor");
     ui_do_formatted_string("Last frame time: %2.6fs", last_frame_time);
     ui_do_formatted_string("Mouse position: (%.0f, %.0f)",
                            (double) ui->mouse_pos.x, (double) ui->mouse_pos.y);

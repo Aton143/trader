@@ -99,6 +99,7 @@ internal void x11_handle_events()
     XEvent event;
     XNextEvent(linux_platform_state.display, &event);
 
+    /*
     b32 filtered = false;
     if (XFilterEvent(&event, None) == True)
     {
@@ -108,6 +109,7 @@ internal void x11_handle_events()
         continue;
       }
     }
+    */
 
     UI_Context *ui = ui_get_context();
 
@@ -117,7 +119,7 @@ internal void x11_handle_events()
       case KeyPress:
       case KeyRelease:
       {
-        b32 is_key_down = ((event.type == KeyPress) || (event.type == KeyRelease));
+        b32 is_key_down = (event.type == KeyPress);
 
         i32 key_state = event.xkey.state;
 
@@ -128,6 +130,11 @@ internal void x11_handle_events()
 
         // TODO(antonio): why?
         event.xkey.state &= ~(ControlMask);
+
+        // TODO(antonio): this reallllly needs to be more robust
+        // some shifted chars don't work...
+        // international support...
+        // SO MUCH!
 
         Status status;
         KeySym key_sym = NoSymbol;
@@ -151,39 +158,62 @@ internal void x11_handle_events()
           ui_add_key_event(key, is_key_down);
         }
 
-        /*
-        b32 is_dead = false;
-        if ((key_sym >= XK_dead_grave) && (key_sym <= XK_dead_greek) && (len == 0))
-        {
-          is_dead = true;
-        }
-
-        if (!is_dead && filtered)
-        {
-          linux_platform_state.prev_filtered_key = key;
-          break;
-        }
-
-        if ((key == key_event_none) && linux_platform_state.prev_filtered_key)
-        {
-          key = linux_platform_state.prev_filtered_key;
-          linux_platform_state.prev_filtered_key = 0;
-        }
-
-        if (key != key_event_none)
-        {
-          ui_add_key_event(key, is_key_down);
-        }
-
-        if (status == XLookupChars || status == XLookupBoth)
-        {
-        }
-        */
-
         if (key == key_event_escape)
         {
           global_running = false;
         }
+      } break;
+
+      case ButtonPress:
+      {
+        Mouse_Event mouse_event = mouse_event_none;
+        switch (event.xbutton.button)
+        {
+          case Button1:
+          {
+            mouse_event = mouse_event_lclick;
+
+            // NOTE(antoniom): (inso) improves selection dragging
+            // (especially in notepad-like mode).
+            // we will still get mouse events when the pointer
+            // leaves the window if it's dragging.
+
+            XGrabPointer(linux_platform_state.display,
+                         linux_platform_state.window_handle,
+                         True, PointerMotionMask | ButtonPressMask | ButtonReleaseMask,
+                         GrabModeAsync, GrabModeAsync,
+                         None, None, CurrentTime);
+                        
+          } break;
+
+          case Button3:
+          {
+            mouse_event = mouse_event_rclick;
+          } break;
+        }
+
+        ui->cur_frame_mouse_event |= mouse_event;
+      } break;
+
+      case ButtonRelease:
+      {
+        Mouse_Event mouse_event_to_remove = mouse_event_none;
+
+        switch (event.xbutton.button)
+        {
+          case Button1:
+          {
+            mouse_event_to_remove = mouse_event_lclick;
+            XUngrabPointer(linux_platform_state.display, CurrentTime);
+          } break;
+
+          case Button3:
+          {
+            mouse_event_to_remove = mouse_event_rclick;
+          } break;
+        }
+
+        ui->cur_frame_mouse_event &= ~mouse_event_to_remove;
       } break;
 
       case ClientMessage:

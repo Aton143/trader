@@ -957,7 +957,8 @@ int main(int arg_count, char *arg_values[])
   f32 panel_floats[16]  = {0.50f};
   u32 panel_float_index = 0;
 
-  b32 vsync = true;
+  b32 vsync = false;
+  b32 requested_vsync = true;
 
   GLXDrawable drawable = glXGetCurrentDrawable();
 
@@ -1067,9 +1068,26 @@ int main(int arg_count, char *arg_values[])
       }
     }
 
-    if (vsync)
+    if (vsync != requested_vsync)
     {
-      glXSwapIntervalEXT(linux_platform_state.display, drawable, 1);
+      requested_vsync = !!requested_vsync;
+
+      if (glXSwapIntervalEXT != NULL)
+      {
+        glXSwapIntervalEXT(linux_platform_state.display, drawable, requested_vsync);
+      }
+      else if (glXSwapIntervalMESA != NULL)
+      {
+        i32 glx_return = glXSwapIntervalMESA(requested_vsync);
+        expect(glx_return != GLX_BAD_CONTEXT);
+      }
+      else if (glXSwapIntervalSGI != NULL)
+      {
+        i32 glx_return = glXSwapIntervalSGI(requested_vsync);
+        expect((glx_return != GLX_BAD_CONTEXT) && (glx_return != GLX_BAD_VALUE));
+      }
+
+      vsync = requested_vsync;
     }
 
     glXSwapBuffers(linux_platform_state.display, linux_platform_state.window_handle);

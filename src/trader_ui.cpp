@@ -304,6 +304,8 @@ internal inline i64 ui_key_event_to_utf8(Key_Event event, utf8 *put, u64 put_len
   UI_Context *ui    = ui_get_context();
   b8          shift = ui->mod_keys.shift;
 
+  if (event != key_mod_event_shift) __debugbreak();
+
   switch (event)
   {
     case key_event_tab:

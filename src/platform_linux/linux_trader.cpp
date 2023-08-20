@@ -119,6 +119,8 @@ internal void x11_handle_events()
       case KeyPress:
       case KeyRelease:
       {
+        // NOTE(antonio): see here #include <X11/keysymdef.h>
+
         b32 is_key_down = (event.type == KeyPress);
 
         i32 key_state = event.xkey.state;
@@ -145,6 +147,8 @@ internal void x11_handle_events()
                                     (sizeof(buf) - 1),
                                     &key_sym,
                                     &status);
+
+        if (key_sym != NoSymbol && key_sym != XK_Shift_L) __debugbreak();
 
         if (status == XBufferOverflow)
         {

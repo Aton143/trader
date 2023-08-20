@@ -148,6 +148,8 @@ internal void x11_handle_events()
                                     &key_sym,
                                     &status);
 
+        // if (key_sym != XK_Shift_L) __debugbreak();
+
         if (status == XBufferOverflow)
         {
           Xutf8ResetIC(linux_platform_state.x11_input_context);
@@ -1078,6 +1080,8 @@ int main(int arg_count, char *arg_values[])
   b32 vsync = false;
   b32 requested_vsync = true;
 
+  f32 slider_float = 0.0f;
+
   GLXDrawable drawable = glXGetCurrentDrawable();
 
   // NOTE(antonio): query swap interval
@@ -1134,6 +1138,9 @@ int main(int arg_count, char *arg_values[])
     {
       ui_do_string(string_literal_init_type("I don't where the hell the mouse is", utf8));
     }
+
+    ui_do_formatted_string("Slider float: %.4f", (double) slider_float);
+    ui_do_slider_f32(string_literal_init_type("slider", utf8), &slider_float, 0.0f, 1.0f);
 
     ui_prepare_render_from_panels(ui_get_sentinel_panel(), render_rect);
     ui_flatten_draw_layers();

@@ -127,7 +127,6 @@ KEY_EVENT(key_event_colon)
 KEY_EVENT(key_event_double_quotes)
 KEY_EVENT(key_event_less)
 KEY_EVENT(key_event_greater)
-KEY_EVENT(key_event_question)
 
 KEY_EVENT(key_mod_event_control)
 KEY_EVENT(key_mod_event_shift)

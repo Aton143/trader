@@ -563,7 +563,7 @@ internal Key_Event platform_convert_key_to_our_key(u64 key_value)
     case XK_quotedbl:     return key_event_double_quotes;
     case XK_less:         return key_event_less;
     case XK_greater:      return key_event_greater;
-    case XK_question:     return key_event_question;
+    case XK_question:     return key_event_question_mark;
 
     default:              return key_event_none;
     }

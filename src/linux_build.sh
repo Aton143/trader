@@ -1,6 +1,10 @@
 #!/bin/bash
 echo "Building trader"
 
+if [ -z $NIGHTLY ]; then
+  NIGHTLY=0
+fi
+
 BUILD_DIR="../build/"
 SRC_DIR="../src"
 
@@ -29,7 +33,7 @@ pushd $BUILD_DIR
   chmod +x $BIN_NAME
   cp ../utils/.gdbinit .gdbinit
 
-  if [ ! -v $NIGHTLY ]; then
+  if [ $NIGHTLY -eq 0 ]; then
     glslangValidator $SRC_DIR/platform_linux/*.vert
     glslangValidator $SRC_DIR/platform_linux/*.frag
   fi

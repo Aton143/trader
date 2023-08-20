@@ -429,6 +429,7 @@ internal void meta_init(void)
 
 internal Key_Event platform_convert_key_to_our_key(u64 key_value)
 {
+// #include "X11/keysymdef.h"
     switch (key_value)
     {
     case XK_Tab:          return key_event_tab;
@@ -543,8 +544,7 @@ internal Key_Event platform_convert_key_to_our_key(u64 key_value)
     case XK_numbersign:   return key_event_hash;
     case XK_dollar:       return key_event_dollar_sign;
     case XK_percent:      return key_event_percent;
-#define XK_caret 0x0afc
-    case XK_caret:        return key_event_caret;
+    case XK_asciicircum:  return key_event_caret;
     case XK_ampersand:    return key_event_ampersand;
     case XK_asterisk:     return key_event_asterisk;
     case XK_parenleft:    return key_event_open_parenthesis;

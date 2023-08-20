@@ -1,6 +1,13 @@
 #ifndef WIN32_IMPLEMENTATION_H
 #include <malloc.h>
 
+#include "../trader_platform.h"
+#include "../trader_ui.h"
+#include "../trader_render.h"
+#include "../trader_network.h"
+#include "../trader_math.h"
+#include "../trader_unicode.h"
+
 struct Thread_Handle 
 {
   HANDLE _handle;
@@ -85,6 +92,10 @@ global Global_Platform_State win32_global_state  = {};
 global_const String_Const_utf8 default_font_path =
   string_literal_init_type("C:/windows/fonts/arial.ttf", utf8);
 
+global_const u8 platform_path_separator = '\\';
+global_const u8 unix_path_separator = '/';
+global_const f32 default_font_heights[] = {24.0f};
+
 internal Render_Context *render_get_context(void)
 {
   Render_Context *context = &win32_global_state.render_context;
@@ -94,22 +105,6 @@ internal Render_Context *render_get_context(void)
 internal Arena *platform_get_global_arena()
 {
   return(&platform_get_global_state()->global_arena);
-}
-
-internal inline Arena *get_temp_arena(Thread_Context *context)
-{
-  Temp_Arena *temp_arena = &context->local_temp_arena;
-
-  if (temp_arena->wait > 0)
-  {
-    temp_arena->wait--;
-  }
-  else
-  {
-    temp_arena->arena.used = 0;
-  }
-
-  return(&temp_arena->arena);
 }
 
 struct Socket
@@ -138,10 +133,9 @@ internal Global_Platform_State *platform_get_global_state(void)
 
 internal void meta_init(void)
 {
-  LARGE_INTEGER high_precision_timer_frequency = {};
-  QueryPerformanceFrequency(&high_precision_timer_frequency);
-
-  meta_info.high_precision_timer_frequency = high_precision_timer_frequency.QuadPart; 
+  LARGE_INTEGER hpt_freq;
+  QueryPerformanceFrequency(&hpt_freq);
+  meta_info.high_precision_timer_frequency = hpt_freq.QuadPart;
 
   Arena *temp_arena = get_temp_arena();
   set_temp_arena_wait(1);
@@ -198,7 +192,7 @@ internal b32 platform_open_file(utf8 *file_path, u64 file_path_size, Handle *out
 
     if (file_handle != INVALID_HANDLE_VALUE)
     {
-      out_handle->file_handle = file_handle;
+      type_pun(HANDLE, out_handle->file_handle) = file_handle;
       result = true;
     }
   }
@@ -230,7 +224,7 @@ internal b32 platform_open_file_for_appending(utf8 *file_path, u64 file_path_siz
 
     if (file_handle != INVALID_HANDLE_VALUE)
     {
-      out_handle->file_handle = file_handle;
+      type_pun(HANDLE, out_handle->file_handle) = file_handle;
       result = true;
     }
   }
@@ -549,6 +543,8 @@ internal String_Const_utf8 platform_get_file_name_from_path(String_Const_utf8 *p
 
 internal Network_Return_Code network_startup(Network_State *out_state)
 {
+  unused(out_state);
+
   Network_Return_Code result = network_ok;
 
   WSADATA winsock_metadata = {};
@@ -560,6 +556,11 @@ internal Network_Return_Code network_startup(Network_State *out_state)
 
 internal Network_Return_Code network_connect(Network_State *state, Socket *out_socket, String_Const_utf8 host_name, u16 port)
 {
+  unused(state);
+  unused(out_socket);
+  unused(host_name);
+  unused(port);
+
   Network_Return_Code result = network_ok;
 
   expect(out_socket    != NULL);
@@ -641,6 +642,8 @@ internal Network_Return_Code network_receive_simple(Network_State *state, Socket
   expect(receive_buffer != NULL);
 
   i32 bytes_received;
+  unused(bytes_received);
+
   if (!is_nil(in_socket))
   {
     WSAPOLLFD sockets_to_poll[1] = {};
@@ -769,8 +772,7 @@ internal void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *s
 {
   void *blob = NULL;
 
-  u64 file_name_length = c_string_length(shader_handle->id, array_count(shader_handle->id));
-  if (force || platform_did_file_change(shader_handle->id, file_name_length))
+  if (force || platform_did_file_change(shader_handle->id.str, shader_handle->id.size))
   {
     safe_release(shader->shader);
 
@@ -822,8 +824,7 @@ internal void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *s
 
 internal void render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shader, b32 force)
 {
-  u64 file_name_length = c_string_length(shader_handle->id, array_count(shader_handle->id));
-  if (force || platform_did_file_change(shader_handle->id, file_name_length))
+  if (force || platform_did_file_change(shader_handle->id.str, shader_handle->id.size))
   {
     safe_release(shader->shader);
 
@@ -882,7 +883,7 @@ internal i64 render_get_font_height_index(f32 font_height)
        ++font_height_index)
   {
     f32 cur_height = atlas->heights[font_height_index];
-    if (approx_equal(cur_height, font_height))
+    if (approx_equal_f32(cur_height, font_height))
     {
       result = font_height_index;
     }
@@ -1218,8 +1219,14 @@ internal void platform_write_clipboard_contents(String_utf8 string)
 
 internal u8 *platform_allocate_memory_pages(u64 bytes, void *start)
 {
-  u8 *pages = (u8 *) VirtualAlloc(start, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+  u8 *pages = (u8 *) VirtualAlloc(start, bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
   return(pages);
+}
+
+internal u64 platform_get_processor_time_stamp(void)
+{
+  u64 ts = (u64) __rdtsc();
+  return(ts);
 }
 
 #define WIN32_IMPLEMENTATION_H

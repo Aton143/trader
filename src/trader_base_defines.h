@@ -230,6 +230,8 @@ typedef i64      b64;
 #define member_size(type, member) sizeof(((type *)0)->member)
 #define member_array_count(type, member) (member_size(type, member) / sizeof(*((type *)0)->member))
 
+#define type_pun(type, var) *((type *) &(var))
+
 #define array_count(a) ((sizeof(a))/(sizeof(*a)))
 #define array_initr(a) {(a), array_count(a)}
 

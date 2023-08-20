@@ -455,6 +455,8 @@ WinMain(HINSTANCE instance,
 
   platform_common_init();
 
+  Common_Render_Context *common_render = render_get_common_context();
+
 #if !SHIP_MODE
   ID3D11Debug *debug = NULL;
 #endif
@@ -484,15 +486,20 @@ WinMain(HINSTANCE instance,
   platform_push_notify_dir(notify_dir.str, notify_dir.size);
   platform_start_collect_notifications();
 
-  File_Buffer arial_font = platform_open_and_read_entire_file(global_arena, default_font_path.str, default_font_path.size);
+  File_Buffer arial_font = platform_open_and_read_entire_file(&win32_global_state.global_arena,
+                                                              default_font_path.str,
+                                                              default_font_path.size);
 
   // NOTE(antonio): default font on Windows is Arial
-  default_font = platform_open_and_read_entire_file(global_arena, default_font_path.str, default_font_path.size);
+  common_render->default_font =
+    platform_open_and_read_entire_file(&win32_global_state.global_arena,
+                                       default_font_path.str,
+                                       default_font_path.size);
 
-  render_atlas_initialize(global_arena,
+  render_atlas_initialize(&win32_global_state.global_arena,
                           win32_global_state.render_context.atlas,
                           &arial_font,
-                          default_font_heights,
+                          (f32 *) default_font_heights,
                           array_count(default_font_heights),
                           512, 512);
 
@@ -736,7 +743,7 @@ WinMain(HINSTANCE instance,
     {
       D3D11_BUFFER_DESC instance_buffer_description = {};
 
-      instance_buffer_description.ByteWidth      = (u32) render_data.size;
+      instance_buffer_description.ByteWidth      = (u32) common_render->render_data.size;
       instance_buffer_description.Usage          = D3D11_USAGE_DYNAMIC;
       instance_buffer_description.BindFlags      = D3D11_BIND_VERTEX_BUFFER;
       instance_buffer_description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -786,7 +793,7 @@ WinMain(HINSTANCE instance,
     {
       D3D11_BUFFER_DESC vertex_buffer_description = {};
 
-      vertex_buffer_description.ByteWidth      = (u32) triangle_render_data.size;
+      vertex_buffer_description.ByteWidth      = (u32) common_render->triangle_render_data.size;
       vertex_buffer_description.Usage          = D3D11_USAGE_DYNAMIC;
       vertex_buffer_description.BindFlags      = D3D11_BIND_VERTEX_BUFFER;
       vertex_buffer_description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -1037,8 +1044,6 @@ WinMain(HINSTANCE instance,
 
     text_edit_insert_string_and_advance(&debug_teb, str_from_lit("abcdefI don't    know", utf8));
 
-    Common_Render_Context *common_render = render_get_common_context();
-
     while (global_running)
     {
       TIMED_BLOCK_START();
@@ -1263,7 +1268,7 @@ WinMain(HINSTANCE instance,
 
       if (ui_do_button(string_literal_init_type("Open a file", utf8)))
       {
-        file = platform_open_and_read_entire_file_from_system_prompt(global_arena);
+        file = platform_open_and_read_entire_file_from_system_prompt(&win32_global_state.global_arena);
         file_str = {file.data, file.size};
       }
       ui_pop_background_color();
@@ -1735,5 +1740,8 @@ WinMain(HINSTANCE instance,
   return(0);
 }
 
-const u32 timing_records_count = __COUNTER__;
-Timing_Record timing_records[timing_records_count] = {};
+const u32 _timing_records_count = __COUNTER__;
+Timing_Record _timing_records[_timing_records_count] = {};
+
+u32 timing_records_count = _timing_records_count;
+Timing_Record *timing_records = _timing_records;

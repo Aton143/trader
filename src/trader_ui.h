@@ -102,6 +102,10 @@ enum
 
 enum
 {
+#if defined(KEY_EVENT)
+#undef KEY_EVENT
+#endif
+
 #define KEY_EVENT(name) name,
 #include "trader_ui_key_event.h"
 #undef KEY_EVENT

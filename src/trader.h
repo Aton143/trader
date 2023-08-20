@@ -68,7 +68,9 @@ global u8 __debug_memory[1 << 20];
 #include "trader_string_utilities.cpp"
 #include "trader_utils.cpp"
 
-#if OS_LINUX
+#if OS_WINDOWS
+# include "platform_win32/win32_implementation.h"
+#elif OS_LINUX
 #include "platform_linux/linux_implementation.cpp"
 #endif
 
@@ -87,10 +89,6 @@ global Text_Edit_Buffer debug_teb = make_text_edit_buffer({__debug_memory, array
 
 #include "trader_network.cpp"
 #include "trader_serialization.cpp"
-
-#if OS_WINDOWS
-# include "platform_win32/win32_implementation.h"
-#endif
 
 #define TRADER_H
 #endif

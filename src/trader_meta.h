@@ -66,6 +66,7 @@ struct Meta_Info
 {
   Handle log_handle;
   u64    last_time_stamp;
+  u64    high_precision_timer_frequency;
 };
 
 global Meta_Info meta_info = {};

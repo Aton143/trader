@@ -396,16 +396,6 @@ internal void platform_debug_print_system_error()
   perror(NULL);
 }
 
-internal void platform_thread_init(void)
-{
-  for (u32 thread_context_index = 0;
-       thread_context_index < thread_count;
-       ++thread_context_index)
-  {
-    thread_contexts[thread_context_index].local_temp_arena.arena = arena_alloc(global_temp_arena_size, 1, NULL);
-  }
-}
-
 internal void meta_init(void)
 {
   Arena *temp_arena = get_temp_arena();

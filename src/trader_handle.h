@@ -4,7 +4,11 @@
 #include "trader_base_defines.h"
 #include "trader_memory.h"
 
-#if OS_LINUX
+#if OS_WINDOWS
+
+typedef HANDLE OS_Handle;
+
+#elif OS_LINUX
 struct OS_Handle
 {
   i32 __handle;
@@ -19,7 +23,6 @@ enum {
 typedef u64 Handle_Kind;
 
 struct Asset_Node;
-struct OS_Handle;
 
 struct Handle {
   u64               generation;

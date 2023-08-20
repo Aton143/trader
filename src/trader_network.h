@@ -1,9 +1,7 @@
 #ifndef TRADER_NETWORK_H
-#include <openssl/err.h>
 
 struct Network_State
 {
-  SSL_CTX *ssl_context;
 };
 
 #define SSL_MAX_HOST_NAME_LENGTH 255

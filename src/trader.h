@@ -30,9 +30,6 @@
 
 #include <stdarg.h>
 
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-
 #if COMPILER_CL
 #  pragma warning(pop)
 #elif COMPILER_GCC

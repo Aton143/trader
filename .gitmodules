@@ -2,7 +2,3 @@
 	path = src/submodules/stb
 	url = https://github.com/nothings/stb
   ignore = dirty
-[submodule "src/submodules/openssl"]
-	path = src/submodules/openssl
-	url = https://github.com/openssl/openssl
-  ignore = dirty

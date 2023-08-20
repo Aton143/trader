@@ -289,6 +289,8 @@ int main(int arg_count, char *arg_values[])
     return(EXIT_FAILURE);
   }
 
+  linux_platform_state.cur_cursor = cursor_kind_pointer;
+
   UI_Context            *ui     = ui_get_context();
   Common_Render_Context *render = render_get_common_context();
 
@@ -1243,7 +1245,30 @@ int main(int arg_count, char *arg_values[])
         }
       }
 
-      linux_platform_state.focus_event = focus_event_none;
+      if (linux_platform_state.desired_cursor != cursor_kind_none)
+      {
+        if (linux_platform_state.desired_cursor != linux_platform_state.cur_cursor)
+        {
+          XDefineCursor(linux_platform_state.display,
+                        DefaultRootWindow(linux_platform_state.display),
+                        cursors[linux_platform_state.desired_cursor]._handle);
+          XFlush(linux_platform_state.display);
+
+          linux_platform_state.cur_cursor = linux_platform_state.desired_cursor;
+        }
+      }
+      else if (linux_platform_state.cur_cursor != cursor_kind_pointer)
+      {
+        XDefineCursor(linux_platform_state.display,
+                      DefaultRootWindow(linux_platform_state.display),
+                      cursors[cursor_kind_pointer]._handle);
+        XFlush(linux_platform_state.display);
+
+          linux_platform_state.cur_cursor = cursor_kind_pointer;
+      }
+
+      linux_platform_state.focus_event    = focus_event_none;
+      linux_platform_state.desired_cursor = cursor_kind_none;
 
       acc_time += dir * (1.0f / 60.f);
       if (acc_time > 1.0f)

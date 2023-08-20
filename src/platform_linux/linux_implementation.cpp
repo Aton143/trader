@@ -78,6 +78,9 @@ struct Global_Platform_State
   Focus_Event     focus_event;
 
   KeyCode         prev_filtered_key;
+
+  Cursor_Kind     cur_cursor;
+  Cursor_Kind     desired_cursor;
 };
 
 global Global_Platform_State linux_platform_state;
@@ -304,7 +307,9 @@ internal Network_Return_Code network_send_simple(Network_State *state, Socket *i
 
 internal void platform_set_cursor(Cursor_Kind cursor)
 {
-  unused(cursor);
+  expect(cursor < cursor_kind_count);
+  expect(cursors[cursor]._handle != None);
+  linux_platform_state.desired_cursor = cursor;
 }
 
 internal String_Const_utf8 platform_read_clipboard_contents(Arena *arena)

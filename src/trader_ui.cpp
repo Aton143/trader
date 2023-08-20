@@ -1074,6 +1074,8 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
   ui_pop_parent();
   ui_push_parent(last_parent);
 
+  b32 found = false;
+
   for (u32 interaction_index = 0;
        interaction_index < array_count(ui->interactions);
        ++interaction_index)
@@ -1083,8 +1085,17 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
     {
       f32 delta_x   = lerpf(minimum, cur_int->value.mouse.x, maximum);
       *in_out_value = clamp(minimum, delta_x, maximum);
-      platform_set_cursor(cursor_kind_left_right_direction);
+      found = true;
     }
+  }
+
+  if (found)
+  {
+    platform_set_cursor(cursor_kind_left_right_direction);
+  }
+  else
+  {
+    platform_set_cursor(cursor_kind_pointer);
   }
 }
 

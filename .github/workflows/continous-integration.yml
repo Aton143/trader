@@ -28,6 +28,9 @@ jobs:
       - name: Install compilation dependencies
         run: |
           sudo apt-get install -y libx11-dev libxfixes-dev libxi-dev mesa-common-dev libgl1-mesa-dev libxcb-keysyms1-dev libx11-xcb-dev g++-11
+      - name: Checkout submodules
+        run: |
+          git submodule update --init --recursive
       - name: Build
         run: |
           pushd src

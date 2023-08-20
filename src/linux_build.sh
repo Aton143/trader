@@ -6,10 +6,10 @@ SRC_DIR="../src"
 
 BIN_NAME="trader"
 
-INCLUDES="-I../src/submodules/stb/ -I../src/submodules/openssl/include"
+INCLUDES="-I../src/submodules/stb/"
 
-LIBRARY_PATHS="-L/usr/local/ssl/lib"
-LIBRARIES="-lX11 -lXfixes -lssl -lcrypto -lGL"
+LIBRARY_PATHS=""
+LIBRARIES="-lX11 -lXfixes -lGL"
 
 SOURCES="$SRC_DIR/platform_linux/linux_trader.cpp"
 
@@ -27,7 +27,10 @@ pushd $BUILD_DIR
   chmod +x $BIN_NAME
   cp ../utils/.gdbinit .gdbinit
 
+  if [ ! -v $NIGHTLY ]; then
   glslangValidator $SRC_DIR/platform_linux/*.vert
   glslangValidator $SRC_DIR/platform_linux/*.frag
+  fi
+
 popd
 

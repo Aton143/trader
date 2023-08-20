@@ -1,0 +1,35 @@
+name: Nightly Build
+on: [push]
+
+jobs:
+  nightly-linux:
+    name: Linux nightly builds
+    runs-on: ubuntu-20.04
+    env:
+      _GNU_SOURCE: 1
+      NIGHTLY: 1
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [ GCC 11 Development ]
+        include:
+          - name: GCC 11 Development
+            cxx: gcc-11
+            type: Debug
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+          ref: linux-bootstrap
+      - name: Add GCC
+        run: |
+          sudo apt-get upgrade
+          sudo apt install -y gcc-11
+      - name: Install compilation dependencies
+        run: |
+          sudo apt-get install -y libx11-dev mesa-common-dev libgl1-mesa-dev libxcb-keysyms1-dev libx11-xcb-dev g++-11
+      - name: Build
+        run: |
+          push src
+          bash linux_build.sh
+          popd

@@ -148,8 +148,6 @@ internal void x11_handle_events()
                                     &key_sym,
                                     &status);
 
-        if (key_sym != NoSymbol && key_sym != XK_Shift_L) __debugbreak();
-
         if (status == XBufferOverflow)
         {
           Xutf8ResetIC(linux_platform_state.x11_input_context);

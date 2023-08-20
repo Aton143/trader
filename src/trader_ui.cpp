@@ -296,15 +296,13 @@ internal inline void ui_add_key_event(Key_Event event, b32 is_down)
   }
 }
 
-internal inline i64 ui_key_event_to_utf8(Key_Event event, utf8 *put, u64 put_length)
+internal inline i64 ui_utf8_from_key_event(Key_Event event, utf8 *put, u64 put_length)
 {
   i64 result = -1;
   u32 to_encode = max_u32;
 
   UI_Context *ui    = ui_get_context();
   b8          shift = ui->mod_keys.shift;
-
-  if (event != key_mod_event_shift) __debugbreak();
 
   switch (event)
   {
@@ -321,46 +319,57 @@ internal inline i64 ui_key_event_to_utf8(Key_Event event, utf8 *put, u64 put_len
       to_encode = '\n';
     } break;
     case key_event_apostrophe:
+    case key_event_double_quotes:
     {
       to_encode = shift ? '"' : '\'';
     } break;
     case key_event_comma:
+    case key_event_less:
     {
       to_encode = shift ? '<' : ',';
     } break;
     case key_event_minus:
+    case key_event_underscore:
     {
       to_encode = shift ? '_' : '-';
     } break;
     case key_event_period:
+    case key_event_greater:
     {
       to_encode = shift ? '>' : '.';
     } break;
     case key_event_slash:
+    case key_event_question_mark:
     {
       to_encode = shift ? '?' : '/';
     } break;
     case key_event_semicolon:
+    case key_event_colon:
     {
       to_encode = shift ? ':' : ';';
     } break;
     case key_event_equal:
+    case key_event_plus:
     {
       to_encode = shift ? '+' : '=';
     } break;
     case key_event_left_bracket:
+    case key_event_open_curly_brace:
     {
       to_encode = shift ? '{' : '[';
     } break;
     case key_event_backslash:
+    case key_event_pipe:
     {
       to_encode = shift ? '|' : '\\';
     } break;
     case key_event_right_bracket:
+    case key_event_close_curly_brace:
     {
       to_encode = shift ? '}' : ']';
     } break;
     case key_event_grave_accent:
+    case key_event_tilde:
     {
       to_encode = shift ? '~' : '`';
     } break;
@@ -382,42 +391,52 @@ internal inline i64 ui_key_event_to_utf8(Key_Event event, utf8 *put, u64 put_len
       to_encode = '\n';
     } break;
     case key_event_0:
+    case key_event_close_parenthesis:
     {
       to_encode = shift ? ')' : '0';
     } break;
     case key_event_1:
+    case key_event_exclamation:
     {
       to_encode = shift ? '!' : '1';
     } break;
     case key_event_2:
+    case key_event_at:
     {
       to_encode = shift ? '@' : '2';
     } break;
     case key_event_3:
+    case key_event_hash:
     {
       to_encode = shift ? '#' : '3';
     } break;
     case key_event_4:
+    case key_event_dollar_sign:
     {
       to_encode = shift ? '$' : '4';
     } break;
     case key_event_5:
+    case key_event_percent:
     {
       to_encode = shift ? '%' : '5';
     } break;
     case key_event_6:
+    case key_event_caret:
     {
       to_encode = shift ? '^' : '6';
     } break;
     case key_event_7:
+    case key_event_ampersand:
     {
       to_encode = shift ? '&' : '7';
     } break;
     case key_event_8:
+    case key_event_asterisk:
     {
       to_encode = shift ? '*' : '8';
     } break;
     case key_event_9:
+    case key_event_open_parenthesis:
     {
       to_encode = shift ? '(' : '9';
     } break;
@@ -1805,7 +1824,7 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
           zero_struct(&event_value);
 
           i64 encode_result =
-            ui_key_event_to_utf8(first_key_event,
+            ui_utf8_from_key_event(first_key_event,
                                  (utf8 *) event_value.utf8_data,
                                  sizeof(event_value.utf8_data));
 

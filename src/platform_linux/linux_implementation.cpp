@@ -535,6 +535,31 @@ internal Key_Event platform_convert_key_to_our_key(u64 key_value)
     case XK_period:       return key_event_period;
     case XK_slash:        return key_event_slash;
     case XK_backslash:    return key_event_backslash;
+
+// NOTE(antonio): because we are receiving exactly that utf8 value
+    case XK_asciitilde:   return key_event_tilde;
+    case XK_exclam:       return key_event_exclamation;
+    case XK_at:           return key_event_at;
+    case XK_numbersign:   return key_event_hash;
+    case XK_dollar:       return key_event_dollar_sign;
+    case XK_percent:      return key_event_percent;
+#define XK_caret 0x0afc
+    case XK_caret:        return key_event_caret;
+    case XK_ampersand:    return key_event_ampersand;
+    case XK_asterisk:     return key_event_asterisk;
+    case XK_parenleft:    return key_event_open_parenthesis;
+    case XK_parenright:   return key_event_close_parenthesis;
+    case XK_underscore:   return key_event_underscore;
+    case XK_plus:         return key_event_plus;
+    case XK_braceleft:    return key_event_open_curly_brace;
+    case XK_braceright:   return key_event_close_curly_brace;
+    case XK_bar:          return key_event_pipe;
+    case XK_colon:        return key_event_colon;
+    case XK_quotedbl:     return key_event_double_quotes;
+    case XK_less:         return key_event_less;
+    case XK_greater:      return key_event_greater;
+    case XK_question:     return key_event_question;
+
     default:              return key_event_none;
     }
  }

@@ -1,11 +1,10 @@
-#ifndef TRADER_META_IMPL_H
 #include "trader_meta.h"
 
-const extern u32 timing_records_count;
-extern Timing_Record timing_records[];
+const u32 timing_records_count = 1;
+Timing_Record timing_records[1];
 
-struct Timed_Block
-{
+struct Timed_Block {
+
   Timing_Record *record;
   u64            cycle_count_start;
   u64            high_precision_time;
@@ -22,8 +21,7 @@ internal Timed_Block meta_start_timed_block(u32 counter, char *file_name, char *
   res.record->line_number = line_number;
   res.record->hit_count   = 0;
 
-  res.cycle_count_start   = platform_get_processor_time_stamp();
-  res.high_precision_time = platform_get_high_precision_timer();
+  res.cycle_count_start   = get_processor_time_stamp();
 
   return(res);
 }
@@ -31,12 +29,7 @@ internal Timed_Block meta_start_timed_block(u32 counter, char *file_name, char *
 internal void meta_end_timed_block(Timed_Block *timed_block)
 {
   timed_block->record->time_stamp +=
-    difference_with_wrap(platform_get_processor_time_stamp(), timed_block->cycle_count_start);
-  timed_block->record->high_precision_time += platform_get_high_precision_timer() - timed_block->high_precision_time;
-
-  double high_precision_time_in_seconds; high_precision_time_in_seconds =
-    platform_convert_high_precision_time_to_seconds(timed_block->high_precision_time);
-
+    difference_with_wrap(get_processor_time_stamp(), timed_block->cycle_count_start);
   timed_block->record->hit_count++;
 }
 
@@ -74,7 +67,6 @@ internal void meta_collate_timing_records(void)
     cur_collated->line_number         = cur_rec->line_number;
     cur_collated->hit_count          += cur_rec->hit_count;
     cur_collated->time_stamp          = cur_rec->time_stamp;
-    cur_collated->high_precision_time = cur_rec->high_precision_time;
   }
 
   String_char sprinted_text = push_string(temp_arena, char, 1024);
@@ -87,15 +79,11 @@ internal void meta_collate_timing_records(void)
 
     if (cur_collated->file_name != NULL)
     {
-      double high_precision_time_in_seconds =
-        platform_convert_high_precision_time_to_seconds(cur_collated->high_precision_time);
-
       sprinted_text.size = stbsp_snprintf(sprinted_text.str, (int) sprinted_text.cap,
-                                         "%s (%lld): %lld cycles (%fs) - %d %s\n",
+                                         "%s (%lld): %lld cycles - %d %s\n",
                                          cur_collated->function,
-                                         cur_collated->line_number,
-                                         cur_collated->time_stamp,
-                                         high_precision_time_in_seconds,
+                                         (long long int) cur_collated->line_number,
+                                         (long long int) cur_collated->time_stamp,
                                          cur_collated->hit_count,
                                          cur_collated->hit_count == 1 ? "time" : "times");
 
@@ -107,6 +95,3 @@ internal void meta_collate_timing_records(void)
 
   zero_array(timing_records, Timing_Record, timing_records_count);
 }
-
-#define TRADER_META_IMPL_H
-#endif

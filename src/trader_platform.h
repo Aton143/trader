@@ -1,6 +1,19 @@
 #ifndef TRADER_PLATFORM_H
-
+struct Handle;
 struct Cursor_Handle;
+struct High_Res_Time;
+
+typedef u64 Focus_Event;
+enum
+{
+  focus_event_none,
+
+  focus_event_gain,
+  focus_event_lose,
+
+  focus_event_count
+};
+
 typedef u32 Cursor_Kind;
 
 enum
@@ -17,6 +30,8 @@ enum
 
   cursor_kind_text_selection,
 
+  cursor_kind_hidden,
+
   cursor_kind_count,
 };
 
@@ -30,20 +45,22 @@ struct Thread_Handle;
 internal Global_Platform_State *platform_get_global_state(void);
 internal Arena *platform_get_global_arena(void);
 
-unimplemented internal void  *platform_allocate_memory_pages(u64 bytes);
+unimplemented internal u8 *platform_allocate_memory_pages(u64 bytes, void *start);
 
 internal void platform_debug_print(char *text);
 internal void platform_debug_printf(char *format, ...);
-internal void platform_debug_print_system_error();
+internal void platform_debug_print_system_error(void);
 
-internal void platform_initialize(void);
+internal b32 platform_common_init(void);
 
+// TODO(antonio): the read API should return a boolean?
 internal File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u64 file_path_size);
 
-internal b32         platform_open_file(utf8 *file_name, u64 file_name_length, Handle *out_handle);
-internal File_Buffer platform_read_entire_file(Handle *handle);
+internal b32 platform_open_file(utf8 *file_path, u64 file_path_length, Handle *out_handle);
+internal b32 platform_close_file(Handle *handle);
+internal File_Buffer platform_read_entire_file(Arena *arena, Handle *handle);
 
-internal b32 platform_open_file_for_appending(utf8 *file_name, u64 file_name_length, Handle *out_handle);
+internal b32 platform_open_file_for_appending(utf8 *file_path, u64 file_path_length, Handle *out_handle);
 internal b32 platform_append_to_file(Handle *handle, utf8 *format, va_list args);
 
 internal void platform_push_notify_dir(utf8 *dir_path, u64 dir_path_length);
@@ -55,36 +72,25 @@ internal void platform_collect_notifications(void);
 internal b32 platform_did_file_change(utf8 *file_name, u64 file_name_length);
 internal String_Const_utf8 platform_get_file_name_from_path(String_Const_utf8 *path);
 
-internal u64 platform_get_high_precision_timer(void);
-internal u64 platform_get_processor_time_stamp(void);
+internal High_Res_Time platform_get_high_resolution_time(void);
+internal f64 platform_high_resolution_time_to_seconds(High_Res_Time t);
 
-internal double platform_convert_high_precision_time_to_seconds(u64 high_precision_time);
+internal u64 platform_get_time_in_microseconds(void);
+internal f64 platform_get_time_in_seconds(void);
 
 internal Key_Event platform_convert_key_to_our_key(u64 key_value);
 
-internal String_Const_utf8 platform_get_file_from_system_prompt();
+internal String_Const_utf8 platform_get_file_from_system_prompt(void);
 internal File_Buffer       platform_open_and_read_entire_file_from_system_prompt(Arena *arena);
 
 internal void  platform_set_cursor(Cursor_Kind cursor);
 
 internal String_Const_utf8 platform_read_clipboard_contents(Arena *arena);
-internal void              plaform_write_clipboard_contents(String_utf8 string);
+internal void              platform_write_clipboard_contents(String_utf8 string);
 
 // NOTE(antonio): threads
+internal void platform_thread_init(void);
 internal Thread_Handle platform_create_thread(Thread_Routine routine, void *routine_arg);
-
-// implementation
-internal void platform_debug_printf(char *format, ...)
-{
-  char buffer[512] = {};
-  va_list args;
-  va_start(args, format);
-
-  stbsp_vsnprintf(buffer, array_count(buffer), format, args);
-  platform_debug_print(buffer);
-
-  va_end(args);
-}
 
 #define TRADER_PLATFORM_H
 #endif

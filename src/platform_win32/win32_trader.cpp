@@ -453,31 +453,10 @@ WinMain(HINSTANCE instance,
   unused(command_line);
   unused(show_command);
 
-  /*
-  Text_Edit_Buffer debug_teb; 
-
-  debug_teb.buf = {__debug_memory, array_count(__debug_memory), 0};
-  debug_teb.next_char_index = 0;
-  debug_teb.encoding = string_encoding_utf8;
-
-  String_utf8 first_string = su8((utf8 *) "hello");
-  text_edit_insert_string_and_advance(&debug_teb, first_string);
-  text_edit_move_cursor(&debug_teb, -2);
-  text_edit_delete(&debug_teb, 2);
-  */
-
-  for (u32 thread_context_index = 0;
-       thread_context_index < thread_count;
-       ++thread_context_index)
-  {
-    thread_contexts[thread_context_index].local_temp_arena.arena = arena_alloc(global_temp_arena_size, 1, NULL);
-  }
-
-  rng_init();
+  platform_common_init();
 
 #if !SHIP_MODE
   ID3D11Debug *debug = NULL;
-  meta_init();
 #endif
 
   utf16 _exe_file_path[MAX_PATH] = {};
@@ -487,24 +466,6 @@ WinMain(HINSTANCE instance,
   unused(exe_file_path);
 
   SetCurrentDirectoryW((LPCWSTR) exe_file_path.str);
-
-  win32_global_state.global_arena = arena_alloc(global_memory_size, 4, (void *) global_memory_start_addr);
-  Arena render_data               = arena_alloc(render_data_size, 1, NULL);
-  Arena triangle_render_data      = arena_alloc(triangle_render_data_size, 1, NULL);
-
-  Arena *global_arena = platform_get_global_arena();
-
-  Asset_Node *asset_pool_start = (Asset_Node *) arena_push(global_arena, asset_pool_size);
-  u64 asset_count = asset_pool_size / sizeof(*asset_pool_start);
-  for (u64 asset_index = 0;
-       asset_index < asset_count - 1;
-       ++asset_index)
-  {
-    asset_pool_start[asset_index].next = &asset_pool_start[asset_index + 1];
-  }
-  global_asset_pool.free_list_head = asset_pool_start;
-
-  ui_initialize(&win32_global_state.ui_context);
 
   HANDLE iocp_handle = INVALID_HANDLE_VALUE;
   {
@@ -523,16 +484,11 @@ WinMain(HINSTANCE instance,
   platform_push_notify_dir(notify_dir.str, notify_dir.size);
   platform_start_collect_notifications();
 
-  String_Const_utf8 default_font_path = string_literal_init_type("C:/windows/fonts/arial.ttf", utf8);
-
   File_Buffer arial_font = platform_open_and_read_entire_file(global_arena, default_font_path.str, default_font_path.size);
 
   // NOTE(antonio): default font on Windows is Arial
   default_font = platform_open_and_read_entire_file(global_arena, default_font_path.str, default_font_path.size);
 
-  f32 default_font_heights[] = {24.0f};//, 30.0f};
-
-  win32_global_state.render_context.atlas  = push_struct_zero(global_arena, Texture_Atlas);
   render_atlas_initialize(global_arena,
                           win32_global_state.render_context.atlas,
                           &arial_font,
@@ -712,8 +668,6 @@ WinMain(HINSTANCE instance,
       win32_global_state.render_context.swap_chain           = swap_chain;
       win32_global_state.render_context.device               = device;
       win32_global_state.render_context.device_context       = device_context;
-      win32_global_state.render_context.render_data          = render_data;
-      win32_global_state.render_context.triangle_render_data = triangle_render_data;
     };
 
     String_Const_utf8 shader_source_path   = string_literal_init_type("..\\src\\platform_win32\\shaders.hlsl", utf8);

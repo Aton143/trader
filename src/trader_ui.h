@@ -1,5 +1,8 @@
 #ifndef TRADER_UI_H
 
+#include "trader_platform.h"
+#include "trader_text_edit.h"
+
 typedef u64 Widget_Flag;
 enum
 {
@@ -99,119 +102,19 @@ enum
 
 enum
 {
-  key_event_none        = 0,
-  key_event_tab         = 1,
-  key_event_left_arrow  = 2,
-  key_event_right_arrow = 3,
-  key_event_up_arrow    = 4,
-  key_event_down_arrow  = 5,
-  key_event_page_up     = 6,
-  key_event_page_down   = 7,
-  key_event_home        = 8,
-  key_event_end         = 9,
-  key_event_insert      = 10,
-  key_event_delete      = 11,
-  key_event_backspace   = 12,
-  key_event_space,
-  key_event_enter,
-  key_event_escape,
-  key_event_apostrophe,
-  key_event_comma,
-  key_event_minus,
-  key_event_period,
-  key_event_slash,
-  key_event_semicolon,
-  key_event_equal,
-  key_event_left_bracket,
-  key_event_backslash,
-  key_event_right_bracket,
-  key_event_grave_accent,
-  key_event_caps_lock,
-  key_event_scroll_lock,
-  key_event_num_lock,
-  key_event_print_screen,
-  key_event_pause,
-  key_event_keypad_0,
-  key_event_keypad_1,
-  key_event_keypad_2,
-  key_event_keypad_3,
-  key_event_keypad_4,
-  key_event_keypad_5,
-  key_event_keypad_6,
-  key_event_keypad_7,
-  key_event_keypad_8,
-  key_event_keypad_9,
-  key_event_keypad_decimal,
-  key_event_keypad_divide,
-  key_event_keypad_multiply,
-  key_event_keypad_subtract,
-  key_event_keypad_add,
-  key_event_keypad_enter,
-  key_event_left_shift,
-  key_event_left_ctrl,
-  key_event_left_alt,
-  key_event_left_super,
-  key_event_right_shift,
-  key_event_right_ctrl,
-  key_event_right_alt,
-  key_event_right_super,
-  key_event_menu,
-  key_event_0,
-  key_event_1,
-  key_event_2,
-  key_event_3,
-  key_event_4,
-  key_event_5,
-  key_event_6,
-  key_event_7,
-  key_event_8,
-  key_event_9,
-  key_event_a,
-  key_event_b,
-  key_event_c,
-  key_event_d,
-  key_event_e,
-  key_event_f,
-  key_event_g,
-  key_event_h,
-  key_event_i,
-  key_event_j,
-  key_event_k,
-  key_event_l,
-  key_event_m,
-  key_event_n,
-  key_event_o,
-  key_event_p,
-  key_event_q,
-  key_event_r,
-  key_event_s,
-  key_event_t,
-  key_event_u,
-  key_event_v,
-  key_event_w,
-  key_event_x,
-  key_event_y,
-  key_event_z,
-  key_event_f1,
-  key_event_f2,
-  key_event_f3,
-  key_event_f4,
-  key_event_f5,
-  key_event_f6,
-  key_event_f7,
-  key_event_f8,
-  key_event_f9,
-  key_event_f10,
-  key_event_f11,
-  key_event_f12,
-
-  key_mod_event_control,
-  key_mod_event_shift,
-  key_mod_event_alt,
-  key_mod_event_super,
-
-  key_event_count,
+#define KEY_EVENT(name) name,
+#include "trader_ui_key_event.h"
+#undef KEY_EVENT
 };
+
+#if !SHIP_MODE
+global_const utf8 *key_event_names[] =
+{
+#define KEY_EVENT(name) (const utf8 *) #name ,
+#include "trader_ui_key_event.h"
+#undef KEY_EVENT
+};
+#endif
 
 struct Mod_Keys
 {
@@ -423,9 +326,6 @@ struct Panel
   f32         sizing_left;
 };
 
-#include "trader_platform.h"
-#include "trader_render.h"
-
 global_const UI_Key             nil_key                  = 0;
 global_const f32                default_text_height      = 24.0f;
 global_const V2_i16             default_text_gutter_dim  = {2, 4};
@@ -453,7 +353,7 @@ internal inline UI_Context *ui_get_context(void);
 internal inline void ui_add_interaction(Widget *cur_widget, i32 frames_left, UI_Event event, UI_Event_Value *event_value);
 
 internal inline void ui_add_key_event(Key_Event event, b32 is_down);
-internal inline i64 ui_key_event_to_utf8(Key_Event event, utf8 *put, u64 put_length);
+internal inline i64 ui_utf8_from_key_event(Key_Event event, utf8 *put, u64 put_length);
 
 internal void ui_initialize(UI_Context *ui);
 internal void ui_initialize_frame(void);
@@ -533,5 +433,6 @@ internal Panel *ui_make_panels(Axis_Split         split,
 
 internal void ui_evaluate_child_sizes(Panel *panel);
 internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect);
+
 #define TRADER_UI_H
 #endif

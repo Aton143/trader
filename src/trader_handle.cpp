@@ -1,11 +1,16 @@
-#ifndef TRADER_HANDLE_IMPL_H
-// implementation
+#include "trader_handle.h"
+
 internal b32 is_nil(Handle *handle)
 {
   b32 result = (handle->generation == nil_handle.generation) &&
                (handle->kind       == nil_handle.kind);
 
   return(result);
+}
+
+internal void make_nil(Handle *handle)
+{
+  copy_struct(handle, (Handle *) &nil_handle);
 }
 
 internal Handle *make_handle(String_Const_utf8 id, Handle_Kind kind, Handle *previous_handle)
@@ -25,8 +30,8 @@ internal Handle *make_handle(String_Const_utf8 id, Handle_Kind kind, Handle *pre
       if (platform_open_file(id.str, id.size, result))
       {
         String_Const_utf8 file_name = platform_get_file_name_from_path(&id);
-        copy_memory_block(result->id, file_name.str, min(file_name.size, array_count(result->id)));
 
+        result->id   = id;
         result->kind = kind;
 
         global_asset_pool.free_list_head = global_asset_pool.free_list_head->next;
@@ -37,12 +42,11 @@ internal Handle *make_handle(String_Const_utf8 id, Handle_Kind kind, Handle *pre
   else
   {
     expect(previous_handle->kind == kind);
-    expect(!copy_memory_block(previous_handle->id, id.str, min(id.size, array_count(result->id))));
+    expect(!compare_memory_block(previous_handle->id.str, id.str,
+                                 min(id.size, previous_handle->id.size)));
 
     result = previous_handle;
   }
 
   return(result);
 }
-#define TRADER_HANDLE_IMPL_H
-#endif

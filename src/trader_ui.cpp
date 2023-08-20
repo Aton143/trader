@@ -1,4 +1,5 @@
-#if !defined(TRADER_UI_IMPL_H)
+#include "trader_ui.h"
+
 internal void ui_make_widget(Widget_Flag        widget_flags,
                              Widget_Size_Flag   size_flags,
                              String_Const_utf8  string,
@@ -12,8 +13,8 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
                              String_Const_utf8 *alt_key_source)
 {
   // TODO(antonio): sprint nation?
-  UI_Context     *ui     = ui_get_context();
-  Render_Context *render = render_get_context();
+  UI_Context            *ui     = ui_get_context();
+  Common_Render_Context *render = render_get_common_context();
 
   unused(data);
   unused(data_size);
@@ -57,7 +58,8 @@ internal void ui_make_widget(Widget_Flag        widget_flags,
       // NOTE(antonio): calculate text width
 
       // NOTE(antonio): assuming that font height was found when pushed
-      stbtt_packedchar *packed_char_start = render->atlas->char_data + render_get_packed_char_start(ui->text_height);
+      stbtt_packedchar *packed_char_start =
+        render->atlas->char_data + render_get_packed_char_start(ui->text_height);
       // f32 font_scale = stbtt_ScaleForPixelHeight(&render->atlas->font_info, ui->text_height);
 
       u64 string_index;
@@ -153,7 +155,10 @@ internal Widget *ui_make_sentinel_widget()
 }
 
 // TODO(antonio): cannot have two directions in a children list
-internal Panel *ui_make_panel(Axis_Split split, f32 *size_relative_to_parent, String_Const_utf8 string, Panel *from)
+internal Panel *ui_make_panel(Axis_Split         split,
+                              f32               *size_relative_to_parent,
+                              String_Const_utf8  string,
+                              Panel             *from)
 {
   Panel      *panel   = NULL;
   UI_Context *ui      = ui_get_context();
@@ -192,8 +197,10 @@ internal Panel *ui_make_panel(Axis_Split split, f32 *size_relative_to_parent, St
       cur_par->last_child                    = panel;
     }
 
-    String_Const_utf8 panel_prefix         = string_literal_init_type("Panel::", utf8);
-    String_Const_utf8 panel_to_hash_string = concat_string_to_c_string(ui->string_pool, panel_prefix, string);
+    String_Const_utf8 panel_prefix         =
+      string_literal_init_type("Panel::", utf8);
+    String_Const_utf8 panel_to_hash_string =
+      concat_string_to_c_string(ui->string_pool, panel_prefix, string);
 
     panel->parent                  = cur_par;
     panel->split                   = split;
@@ -218,7 +225,7 @@ internal Panel *ui_make_panel(Axis_Split split, f32 *size_relative_to_parent, St
       3.0f,
     };
 
-    ui_make_widget(widget_flag_border_draggable | widget_flag_draw_background | widget_flag_top_level,
+    ui_make_widget(widget_flag_border_draggable | widget_flag_draw_background  | widget_flag_top_level,
                    size_flag_copy_parent_size_x | size_flag_copy_parent_size_y, 
                    string,
                    new_params_just_in_case.sizing,
@@ -289,7 +296,7 @@ internal inline void ui_add_key_event(Key_Event event, b32 is_down)
   }
 }
 
-internal inline i64 ui_key_event_to_utf8(Key_Event event, utf8 *put, u64 put_length)
+internal inline i64 ui_utf8_from_key_event(Key_Event event, utf8 *put, u64 put_length)
 {
   i64 result = -1;
   u32 to_encode = max_u32;
@@ -312,46 +319,57 @@ internal inline i64 ui_key_event_to_utf8(Key_Event event, utf8 *put, u64 put_len
       to_encode = '\n';
     } break;
     case key_event_apostrophe:
+    case key_event_double_quotes:
     {
       to_encode = shift ? '"' : '\'';
     } break;
     case key_event_comma:
+    case key_event_less:
     {
       to_encode = shift ? '<' : ',';
     } break;
     case key_event_minus:
+    case key_event_underscore:
     {
       to_encode = shift ? '_' : '-';
     } break;
     case key_event_period:
+    case key_event_greater:
     {
       to_encode = shift ? '>' : '.';
     } break;
     case key_event_slash:
+    case key_event_question_mark:
     {
       to_encode = shift ? '?' : '/';
     } break;
     case key_event_semicolon:
+    case key_event_colon:
     {
       to_encode = shift ? ':' : ';';
     } break;
     case key_event_equal:
+    case key_event_plus:
     {
       to_encode = shift ? '+' : '=';
     } break;
     case key_event_left_bracket:
+    case key_event_open_curly_brace:
     {
       to_encode = shift ? '{' : '[';
     } break;
     case key_event_backslash:
+    case key_event_pipe:
     {
       to_encode = shift ? '|' : '\\';
     } break;
     case key_event_right_bracket:
+    case key_event_close_curly_brace:
     {
       to_encode = shift ? '}' : ']';
     } break;
     case key_event_grave_accent:
+    case key_event_tilde:
     {
       to_encode = shift ? '~' : '`';
     } break;
@@ -373,42 +391,52 @@ internal inline i64 ui_key_event_to_utf8(Key_Event event, utf8 *put, u64 put_len
       to_encode = '\n';
     } break;
     case key_event_0:
+    case key_event_close_parenthesis:
     {
       to_encode = shift ? ')' : '0';
     } break;
     case key_event_1:
+    case key_event_exclamation:
     {
       to_encode = shift ? '!' : '1';
     } break;
     case key_event_2:
+    case key_event_at:
     {
       to_encode = shift ? '@' : '2';
     } break;
     case key_event_3:
+    case key_event_hash:
     {
       to_encode = shift ? '#' : '3';
     } break;
     case key_event_4:
+    case key_event_dollar_sign:
     {
       to_encode = shift ? '$' : '4';
     } break;
     case key_event_5:
+    case key_event_percent:
     {
       to_encode = shift ? '%' : '5';
     } break;
     case key_event_6:
+    case key_event_caret:
     {
       to_encode = shift ? '^' : '6';
     } break;
     case key_event_7:
+    case key_event_ampersand:
     {
       to_encode = shift ? '&' : '7';
     } break;
     case key_event_8:
+    case key_event_asterisk:
     {
       to_encode = shift ? '*' : '8';
     } break;
     case key_event_9:
+    case key_event_open_parenthesis:
     {
       to_encode = shift ? '(' : '9';
     } break;
@@ -461,7 +489,7 @@ internal void ui_initialize(UI_Context *ui)
   ui->widget_memory_size = sizeof(Widget) * default_widget_count;
 
   ui->string_pool  = push_struct(global_arena, Arena);
-  *ui->string_pool =arena_alloc(default_string_pool_size, 1, NULL);
+  *ui->string_pool = arena_alloc(default_string_pool_size, 1, NULL);
 
   // TODO(antonio): do I need to do back links?
   Widget *free_widget_list = ui->widget_memory;
@@ -469,8 +497,10 @@ internal void ui_initialize(UI_Context *ui)
        widget_index < default_widget_count - 1;
        ++widget_index)
   {
-    free_widget_list[widget_index].next_sibling = &free_widget_list[widget_index + 1];
-    free_widget_list[widget_index].string       = string_literal_init_type("no widgets here, buddy :)", utf8);
+    free_widget_list[widget_index].next_sibling =
+      &free_widget_list[widget_index + 1];
+    free_widget_list[widget_index].string       =
+      string_literal_init_type("no widgets here, buddy :)", utf8);
   }
 
   Panel *panel_memory = push_array_zero(global_arena, Panel, default_panel_count);
@@ -485,7 +515,11 @@ internal void ui_initialize(UI_Context *ui)
   ui->panel_memory_size = default_panel_count * sizeof(*ui->panels_start);
   ui->panel_count       = 0;
 
-  ui->event_queue.start = ui->event_queue.read = ui->event_queue.write = (u8 *) __event_queue_buffer;
+  ui->event_queue.start   =
+    ui->event_queue.read  =
+    ui->event_queue.write =
+    (u8 *) __event_queue_buffer;
+
   ui->event_queue.size  = array_count(__event_queue_buffer);
 
   for (u32 layer_index = 0;
@@ -542,11 +576,13 @@ internal void ui_initialize_frame(void)
     ui->panel_count             = 1;
   }
 
-  ui->text_height     = default_text_height;
+  ui->text_height     = default_font_heights[0];
   ui->text_gutter_dim = default_text_gutter_dim;
   ui->text_color      = default_text_color;
 
-  copy_memory_block(ui->background_color, (void *) default_background_color, sizeof(default_background_color));
+  copy_memory_block(ui->background_color,
+                    (void *) default_background_color,
+                    sizeof(default_background_color));
 
   ui->canvas_viewport = {};
   ui->keep_hot_key    = false;
@@ -1038,6 +1074,8 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
   ui_pop_parent();
   ui_push_parent(last_parent);
 
+  b32 found = false;
+
   for (u32 interaction_index = 0;
        interaction_index < array_count(ui->interactions);
        ++interaction_index)
@@ -1047,8 +1085,17 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
     {
       f32 delta_x   = lerpf(minimum, cur_int->value.mouse.x, maximum);
       *in_out_value = clamp(minimum, delta_x, maximum);
-      platform_set_cursor(cursor_kind_left_right_direction);
+      found = true;
     }
+  }
+
+  if (found)
+  {
+    platform_set_cursor(cursor_kind_left_right_direction);
+  }
+  else
+  {
+    platform_set_cursor(cursor_kind_pointer);
   }
 }
 
@@ -1213,7 +1260,7 @@ internal inline void ui_add_interaction(Widget *cur_widget, i32 frames_left, u32
   i32 interaction_update_index = -1;
 
   for (i32 interaction_index = 0;
-       interaction_index < array_count(ui->interactions);
+       interaction_index < (i32) array_count(ui->interactions);
        ++interaction_index) 
   {
     UI_Interaction *cur_int = &ui->interactions[interaction_index];
@@ -1244,7 +1291,7 @@ internal inline void ui_add_interaction(Widget *cur_widget, i32 frames_left, u32
       cur_int->value.mouse_initial_pos = mouse_initial;
     }
 
-    const u32 frames_until_drag = 10;
+    const i32 frames_until_drag = 10;
     if ((event & ui_event_drag) && (cur_widget->widget_flags & widget_flag_clickable))
     {
       if ((cur_int->frames_active < frames_until_drag) && ((event & ui_event_keyboard) == 0))
@@ -1459,7 +1506,8 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
 
   arena_reset(temp_arena);
   {
-    Ring_Buffer widget_queue = ring_buffer_make(temp_arena, structs_in_size(ring_buffer_size, Widget **));
+    Ring_Buffer widget_queue =
+      ring_buffer_make(temp_arena, structs_in_size(ring_buffer_size, Widget **));
 
     // NOTE(antonio): don't care about the sentinel
     Widget *first_child = NULL;
@@ -1558,7 +1606,8 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
       }
       else
       {
-        cur_widget->rectangle.x0 = pre_sizing_top_left.x + cur_widget->position_relative_to_parent.x;
+        cur_widget->rectangle.x0 =
+          pre_sizing_top_left.x + cur_widget->position_relative_to_parent.x;
       }
 
       if (cur_widget->size_flags & size_flag_relative_to_parent_pos_y)
@@ -1569,7 +1618,8 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
       }
       else
       {
-        cur_widget->rectangle.y0 = pre_sizing_top_left.y + cur_widget->position_relative_to_parent.y;
+        cur_widget->rectangle.y0 =
+          pre_sizing_top_left.y + cur_widget->position_relative_to_parent.y;
       }
 
       cur_widget->rectangle.x1 = cur_widget->rectangle.x0 + cur_widget->computed_size_in_pixels.x;
@@ -1598,7 +1648,9 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
 
   arena_reset(temp_arena);
   {
-    Ring_Buffer widget_queue = ring_buffer_make(temp_arena, structs_in_size(ring_buffer_size, Widget *));
+    Ring_Buffer widget_queue =
+      ring_buffer_make(temp_arena, structs_in_size(ring_buffer_size, Widget *));
+
     Widget *first_child = NULL;
     for (Widget *cur_child = widgets->first_child;
          cur_child != first_child;
@@ -1626,7 +1678,8 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
 
         b32 mouse_left_change = ((ui->prev_frame_mouse_event & mouse_event_lclick) !=
                                  (ui->cur_frame_mouse_event  & mouse_event_lclick));
-        b32 mouse_left_went_up = mouse_left_change && ((ui->cur_frame_mouse_event & mouse_event_lclick) == 0);
+        b32 mouse_left_went_up =
+          mouse_left_change && ((ui->cur_frame_mouse_event & mouse_event_lclick) == 0);
 
         if (ui_is_key_equal(ui->active_key, cur_widget->key))
         {
@@ -1646,7 +1699,9 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
         }
         else if (ui_is_key_equal(ui->hot_key, cur_widget->key))
         {
-          b32 mouse_left_went_down = mouse_left_change && (ui->cur_frame_mouse_event & mouse_event_lclick);
+          b32 mouse_left_went_down =
+            mouse_left_change && (ui->cur_frame_mouse_event & mouse_event_lclick);
+
           if (mouse_left_went_down)
           {
             ui->active_key = cur_widget->key;
@@ -1683,7 +1738,9 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
                                  (ui->cur_frame_mouse_event  & mouse_event_lclick));
         if (mouse_left_change)
         {
-          b32 mouse_left_went_down = mouse_left_change && (ui->cur_frame_mouse_event & mouse_event_lclick);
+          b32 mouse_left_went_down =
+            mouse_left_change && (ui->cur_frame_mouse_event & mouse_event_lclick);
+
           if (mouse_left_went_down)
           {
             if (ui->hot_key == cur_widget->key)
@@ -1759,7 +1816,10 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
           event_value            = {};
           event_value.mouse      = V2((ui->mouse_pos.x - rect_to_use.x0) / rect_dimensions.x,
                                       (ui->mouse_pos.y - rect_to_use.y0) / rect_dimensions.y);
-          event_value.extra_data = rect_get_closest_side_to_point(ui->mouse_pos, cur_widget->rectangle, rectangle_side_none);
+
+          event_value.extra_data = rect_get_closest_side_to_point(ui->mouse_pos,
+                                                                  cur_widget->rectangle,
+                                                                  rectangle_side_none);
 
           ui_add_interaction(cur_widget, 1, ui_event_drag, &event_value);
         }
@@ -1775,7 +1835,9 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
           zero_struct(&event_value);
 
           i64 encode_result =
-            ui_key_event_to_utf8(first_key_event, (utf8 *) event_value.utf8_data, sizeof(event_value.utf8_data));
+            ui_utf8_from_key_event(first_key_event,
+                                 (utf8 *) event_value.utf8_data,
+                                 sizeof(event_value.utf8_data));
 
           if (encode_result > 0) 
           {
@@ -1820,8 +1882,9 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
 
       if (cur_widget->widget_flags & widget_flag_draw_background)
       {
-        Arena *background_render_layer = ui_get_render_layer(0);
-        Instance_Buffer_Element *draw_call = push_struct(background_render_layer, Instance_Buffer_Element);
+        Arena *background_render_layer     = ui_get_render_layer(0);
+        Instance_Buffer_Element *draw_call =
+          push_struct(background_render_layer, Instance_Buffer_Element);
 
         Persistent_Widget_Data *found_data = ui_search_persistent_data(cur_widget);
         f32 t = 1 - fast_powf(2.0f, 16.0f * -((f32) global_state->dt));
@@ -1840,7 +1903,9 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
         found_data->background_color[2] = wide_clamp(color_bottom, found_data->background_color[2], color_top);
         found_data->background_color[3] = wide_clamp(color_bottom, found_data->background_color[3], color_top);
 
-        copy_memory_block(draw_call->color, found_data->background_color, sizeof(found_data->background_color));
+        copy_memory_block(draw_call->color,
+                          found_data->background_color,
+                          sizeof(found_data->background_color));
 
         expect(rect.x0 <= rect.x1);
         expect(rect.y0 <= rect.y1);
@@ -1878,7 +1943,12 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
 
         Arena *text_render_layer = ui_get_render_layer(1);
         set_temp_arena_wait(1);
-        render_draw_text(text_render_layer, &x, &baseline, cur_widget->text_color, rect, cur_widget->string.str);
+        render_draw_text(text_render_layer,
+                         &x,
+                         &baseline,
+                         cur_widget->text_color,
+                         rect,
+                         cur_widget->string.str);
 
         if (cur_widget->widget_flags & widget_flag_get_user_input)
         {
@@ -1971,5 +2041,3 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
 
   arena_reset(temp_arena);
 }
-#define TRADER_UI_IMPL_H
-#endif

@@ -1,5 +1,16 @@
 #ifndef TRADER_HANDLE_H
 
+#include <stdio.h>
+#include "trader_base_defines.h"
+#include "trader_memory.h"
+
+#if OS_LINUX
+struct OS_Handle
+{
+  i32 __handle;
+};
+#endif
+
 enum {
   Handle_Kind_None,
   Handle_Kind_File,
@@ -8,15 +19,16 @@ enum {
 typedef u64 Handle_Kind;
 
 struct Asset_Node;
+struct OS_Handle;
 
 struct Handle {
-  u64         generation;
-  Handle_Kind kind;
-  utf8        id[32];
+  u64               generation;
+  Handle_Kind       kind;
+  String_Const_utf8 id;
 
   union
   {
-    HANDLE file_handle;
+    OS_Handle file_handle;
   };
 };
 
@@ -48,11 +60,14 @@ struct Asset_Pool
 global Asset_Pool global_asset_pool;
 
 typedef Handle Asset_Handle;
-global_const Handle nil_handle = {0, 0, Handle_Kind_None, 0};
+global_const Handle nil_handle = {};
 
-internal b32 is_nil(Handle *handle);
+internal b32  is_nil(Handle *handle);
+internal void make_nil(Handle *handle);
 
-internal Handle *make_handle(String_Const_utf8 id, Handle_Kind kind, Handle *previous_handle = NULL);
+internal Handle *make_handle(String_Const_utf8  id,
+                             Handle_Kind        kind,
+                             Handle            *previous_handle = NULL);
 internal u64     handle_node_count(Handle *handle);
 
 #define TRADER_HANDLE_H

@@ -2,8 +2,13 @@
 #include "trader_handle.h"
 
 #if OS_WINDOWS
-# define debug_break() __debugbreak()
+#elif COMPILER_GCC
+# if ARCH_X64
+#define __debugbreak() __asm__ volatile("int3")
+# endif
 #endif
+
+# define debug_break() __debugbreak()
 
 #define expect_break(m) debug_break()
 #define expect_always(c, m) \
@@ -54,17 +59,13 @@ struct Timing_Record
   u32   hit_count;
 
   u64   time_stamp;
-  u64   high_precision_time;
 };
 
 #if !SHIP_MODE
 struct Meta_Info
 {
   Handle log_handle;
-
-  u64    high_precision_timer_frequency;
   u64    last_time_stamp;
-  u64    last_high_precision_time;
 };
 
 global Meta_Info meta_info = {};
@@ -72,7 +73,10 @@ global Meta_Info meta_info = {};
 
 internal void meta_init(void);
 internal void meta_log(utf8 *format, ...);
-#define meta_log_char(format, ...) meta_log((utf8 *) format, __VA_ARGS__)
+internal void meta_log(const char *format, ...);
+
+#define meta_log_char(string) meta_log((utf8 *) (string))
+#define meta_log_charf(format, ...) meta_log((utf8 *) (format), __VA_ARGS__)
 
 internal void meta_collate_timing_records(void);
 

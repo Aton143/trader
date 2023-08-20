@@ -28,11 +28,12 @@ struct Render_Context
   {
     struct
     {
-      Texture_Atlas       *atlas;
-      Arena                render_data;
-      Arena                triangle_render_data;
-      V2_f32               vertex_render_dimensions;
-      Rect_f32             client_rect;
+      Texture_Atlas *atlas;
+      Arena          render_data;
+      Arena          triangle_render_data;
+      V2_f32         vertex_render_dimensions;
+      Rect_f32       client_rect;
+      File_Buffer    default_font;
     };
     Common_Render_Context common_context;
   };
@@ -40,17 +41,6 @@ struct Render_Context
   IDXGISwapChain1     *swap_chain;
   ID3D11Device        *device;
   ID3D11DeviceContext *device_context;
-};
-
-typedef u64 Focus_Event;
-enum
-{
-  focus_event_none,
-
-  focus_event_gain,
-  focus_event_lose,
-
-  focus_event_count
 };
 
 #pragma pack(push, 4)
@@ -91,7 +81,9 @@ struct Global_Platform_State
 };
 #pragma pack(pop)
 
-global Global_Platform_State win32_global_state = {};
+global Global_Platform_State win32_global_state  = {};
+global_const String_Const_utf8 default_font_path =
+  string_literal_init_type("C:/windows/fonts/arial.ttf", utf8);
 
 internal Render_Context *render_get_context(void)
 {
@@ -120,48 +112,11 @@ internal inline Arena *get_temp_arena(Thread_Context *context)
   return(&temp_arena->arena);
 }
 
-internal inline Arena  get_rest_of_temp_arena(f32 rest, Thread_Context *context)
-{
-  expect(is_between_inclusive(0.0f, rest, 1.0f));
-  expect(context != NULL);
-
-  Temp_Arena *temp_arena = &context->local_temp_arena;
-
-  Arena res;
-  res.start     = temp_arena->arena.start + temp_arena->arena.used;
-  res.size      = (u64) (rest * (temp_arena->arena.size  - temp_arena->arena.used));
-  res.used      = 0;
-  res.alignment = temp_arena->arena.alignment;
-
-  temp_arena->arena.used += res.size;
-  expect(temp_arena->arena.used < temp_arena->arena.size);
-
-  return(res);
-}
-
-internal inline u64 get_temp_arena_used(Thread_Context *context)
-{
-  Temp_Arena *temp_arena = &context->local_temp_arena;
-  return(temp_arena->arena.used);
-}
-internal inline void set_temp_arena_used(u64 size, Thread_Context *context)
-{
-  Temp_Arena *temp_arena = &context->local_temp_arena;
-  temp_arena->arena.used = size;
-}
-
-internal void set_temp_arena_wait(u64 wait, Thread_Context *context)
-{
-  context->local_temp_arena.wait = wait;
-}
-
 struct Socket
 {
   SOCKET socket;
-
-  SSL   *ssl_state;
-  BIO   *ssl_buffer;
 };
+
 Socket nil_socket = {INVALID_SOCKET};
 
 internal b32 is_nil(Socket *check)
@@ -216,14 +171,6 @@ internal void meta_init(void)
   temp_arena->used -= 1;
 
   platform_open_file_for_appending(temp_arena->start, temp_arena->used, &meta_info.log_handle);
-}
-
-internal void meta_log(utf8 *format, ...)
-{
-  va_list arguments;
-  va_start(arguments, format);
-  platform_append_to_file(&meta_info.log_handle, format, arguments);
-  va_end(arguments);
 }
 
 internal b32 platform_open_file(utf8 *file_path, u64 file_path_size, Handle *out_handle)
@@ -577,9 +524,6 @@ internal b32 platform_did_file_change(utf8 *file_name, u64 file_name_length)
   return(file_changed);
 }
 
-global_const u8 platform_path_separator = '\\';
-global_const u8 unix_path_separator = '/';
-
 internal String_Const_utf8 platform_get_file_name_from_path(String_Const_utf8 *path)
 {
   String_Const_utf8 result = {};
@@ -610,26 +554,6 @@ internal Network_Return_Code network_startup(Network_State *out_state)
   WSADATA winsock_metadata = {};
   i32 winsock_result = WSAStartup(MAKEWORD(2, 2), &winsock_metadata);
   expect_message(winsock_result == 0, "expected winsock dll to load");
-
-  {
-    expect_message(out_state != NULL, "expected out_state to be valid");
-
-    const SSL_METHOD *client_method = NULL;
-    client_method = TLS_client_method();
-
-    out_state->ssl_context = SSL_CTX_new(client_method);
-    expect_message(out_state->ssl_context != NULL, "expected to create an ssl context");
-
-    SSL_CTX_set_verify(out_state->ssl_context, SSL_VERIFY_PEER, NULL);
-
-    // TODO(antonio): certificate?
-    i32 ssl_result = SSL_CTX_set_default_verify_paths(out_state->ssl_context);
-    if (ssl_result != SSL_OK)
-    {
-      result = network_error_client_certificate_needed;
-      network_print_error();
-    }
-  }
 
   return(result);
 }
@@ -684,48 +608,10 @@ internal Network_Return_Code network_connect(Network_State *state, Socket *out_s
   expect_message(found_socket != INVALID_SOCKET, "expected connection");
   freeaddrinfo(first_addr);
 
-  // TODO(antonio): investigate how the following may change the performance of the socket
-#if 0
-  BOOL send_no_buffering = 0;
-  i32 set_result = setsockopt(out_socket->socket,
-                              SOL_SOCKET,
-                              SO_SNDBUF,
-                              (char *) &send_no_buffering,
-                              sizeof(send_no_buffering));
-  expect_message(set_result == 0, "could not disable send buffering");
-#endif
-
-  i32 ssl_result;
-  {
-    out_socket->ssl_state = SSL_new(state->ssl_context);
-
-    ssl_result = SSL_set_fd(out_socket->ssl_state, (int) out_socket->socket);
-    if (ssl_result != SSL_OK)
-    {
-      network_print_error();
-    }
-
-    SSL_set_connect_state(out_socket->ssl_state);
-
-    expect_message(host_name.size <= SSL_MAX_HOST_NAME_LENGTH, "the host name is too long");
-    ssl_result = SSL_set_tlsext_host_name(out_socket->ssl_state, (char *) host_name.str);
-    expect_message(ssl_result == 1, "no tls extension :(");
-
-    ssl_result = SSL_add1_host(out_socket->ssl_state, (char *) host_name.str);
-    expect_message(ssl_result == 1, "could not add host name");
-  }
-
   b32 connected = WSAConnectByNameA(out_socket->socket,
                                    (char *) host_name.str, (char *) port_name,
                                    0, NULL, 0, NULL, NULL, NULL);
   expect_message(connected, "expected connection");
-
-  // TODO(antonio): wrap up? resumption?
-  ssl_result = SSL_do_handshake(out_socket->ssl_state);
-  if (ssl_result == SSL_ERROR)
-  {
-    network_print_error();
-  }
 
   return(result);
 }
@@ -739,12 +625,7 @@ internal Network_Return_Code network_send_simple(Network_State *state, Socket *i
 
   if (!is_nil(in_socket))
   {
-    i32 bytes_sent = SSL_write(in_socket->ssl_state, send_buffer->data, (i32) send_buffer->used);
-    if (bytes_sent <= 0) {
-      result = network_error_send_failure;
-    }
   }
-  network_print_error();
 
   return(result);
 }
@@ -767,17 +648,6 @@ internal Network_Return_Code network_receive_simple(Network_State *state, Socket
     sockets_to_poll[0].fd     = in_socket->socket;
     sockets_to_poll[0].events = POLLIN;
 
-    /*
-      revents: 
-      POLLERR:    1
-      POLLHUP:    2
-      POLLNVAL:   4
-      POLLPRI:    1024
-      POLLRDBAND: 512
-      POLLRDNORM: 256
-      POLLWRNORM: 16
-    */
-
     i32 poll_res = WSAPoll(sockets_to_poll, array_count(sockets_to_poll), -1);
 
     if (poll_res == 0)
@@ -787,22 +657,6 @@ internal Network_Return_Code network_receive_simple(Network_State *state, Socket
 
     while (poll_res > 0)
     {
-      bytes_received = SSL_read(in_socket->ssl_state, receive_buffer->data, (i32) receive_buffer->size - 1);
-      if (bytes_received > 0)
-      {
-        receive_buffer->used = bytes_received;
-        receive_buffer->data[receive_buffer->used] = 0;
-        platform_debug_print((char * ) receive_buffer->data);
-      }
-      else if (bytes_received < 0)
-      {
-        network_print_error();
-      }
-
-      sockets_to_poll[0].fd     = in_socket->socket;
-      sockets_to_poll[0].events = POLLIN;
-
-      poll_res = WSAPoll(sockets_to_poll, array_count(sockets_to_poll), 0);
     }
   }
 
@@ -911,22 +765,6 @@ internal void platform_debug_print_system_error()
   }
 }
 
-internal Arena arena_alloc(u64 size, u64 alignment, void *start)
-{
-  Arena arena = {};
-
-  u8 *allocated = (u8 *) VirtualAlloc(start, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-
-  expect_message(allocated != NULL, "virtual alloc failed");
-
-  arena.start     = allocated;
-  arena.size      = size;
-  arena.used      = 0;
-  arena.alignment = alignment;
-
-  return(arena);
-}
-
 internal void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *shader, b32 force)
 {
   void *blob = NULL;
@@ -989,7 +827,7 @@ internal void render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shad
   {
     safe_release(shader->shader);
 
-    // TODO(antonio): will have to read file twice
+    // TODO(antonio): will have to read file twice: once for vertex, again for pixel
     File_Buffer temp_shader_source = platform_read_entire_file(shader_handle);
     {
       ID3DBlob *pixel_shader_blob          = NULL;
@@ -1051,39 +889,6 @@ internal i64 render_get_font_height_index(f32 font_height)
   }
 
   return(result);
-}
-
-internal i64 render_get_packed_char_start(f32 font_height)
-{
-  Texture_Atlas *atlas = win32_global_state.render_context.atlas;
-
-  i64 result = 0;
-  b32 found = false;
-
-  for (u64 font_height_index = 0;
-       font_height_index < array_count(atlas->heights);
-       ++font_height_index)
-  {
-    f32 cur_height = atlas->heights[font_height_index];
-
-    if (approx_equal(cur_height, font_height))
-    {
-      found = true;
-      break;
-    }
-    else
-    {
-      result += atlas->char_data_set_counts[font_height_index];
-    }
-  }
-
-  return(found ? result : -1);
-}
-
-internal u64 platform_get_processor_time_stamp(void)
-{
-  u64 time_stamp = (u64) __rdtsc();
-  return(time_stamp);
 }
 
 internal u64 platform_get_high_precision_timer(void)
@@ -1409,6 +1214,12 @@ internal void platform_write_clipboard_contents(String_utf8 string)
   }
 
   platform_debug_print_system_error();
+}
+
+internal u8 *platform_allocate_memory_pages(u64 bytes, void *start)
+{
+  u8 *pages = (u8 *) VirtualAlloc(start, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+  return(pages);
 }
 
 #define WIN32_IMPLEMENTATION_H

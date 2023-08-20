@@ -56,7 +56,7 @@ SamplerState global_sampler: register(s0);
 //     +-------------+
 //  (-1,  1)        (1,  1)
 
-// >= 0 if outside
+// > 0 if outside
 // 0 if inside
 float sdf_rounded_rect(float2 sample_pos,
                        float2 rect_center,
@@ -123,7 +123,7 @@ float4 PS_Main(PS_Input input): SV_Target
   float alpha_sample = global_texture.Sample(global_sampler, input.uv).r;
 
   float border_factor = 1.0f;
-  if(input.border_thickness != 0.0f)
+  if (input.border_thickness != 0.0f)
   {
     float2 interior_half_size = input.dst_half_size - input.border_thickness;
 

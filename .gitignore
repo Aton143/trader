@@ -1,5 +1,7 @@
 foreign
 tags.lock
+tags.temp
+tags.*
 tags*
 
 # Mine

@@ -1,7 +1,7 @@
 #include "trader_meta.h"
 
-const u32 timing_records_count = 1;
-Timing_Record timing_records[1];
+extern u32 timing_records_count;
+extern Timing_Record *timing_records;
 
 struct Timed_Block {
 
@@ -94,4 +94,12 @@ internal void meta_collate_timing_records(void)
   }
 
   zero_array(timing_records, Timing_Record, timing_records_count);
+}
+
+internal void meta_log(utf8 *format, ...)
+{
+  va_list arguments;
+  va_start(arguments, format);
+  platform_append_to_file(&meta_info.log_handle, format, arguments);
+  va_end(arguments);
 }

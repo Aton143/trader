@@ -1,4 +1,5 @@
 #ifndef TRADER_PLATFORM_H
+
 struct Handle;
 struct Cursor_Handle;
 struct High_Res_Time;
@@ -77,6 +78,8 @@ internal f64 platform_high_resolution_time_to_seconds(High_Res_Time t);
 
 internal u64 platform_get_time_in_microseconds(void);
 internal f64 platform_get_time_in_seconds(void);
+
+internal u64 platform_get_processor_time_stamp(void);
 
 internal Key_Event platform_convert_key_to_our_key(u64 key_value);
 

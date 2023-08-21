@@ -5,7 +5,8 @@
 
 #if COMPILER_CL
 # pragma warning(push)
-# pragma warning(disable: 4996)
+# pragma warning(disable: 4996 4244)
+#define _CRT_SECURE_NO_WARNINGS
 #elif COMPILER_GCC
 # pragma GCC diagnostic push
 # pragma GCC diagnostic ignored "-Wmissing-field-initializers"
@@ -36,6 +37,8 @@
 #  pragma GCC diagnostic pop
 #endif
 
+#define align(val, alignment) ((((val) + (alignment) - 1) / (alignment)) * (alignment))
+
 struct Global_Platform_State;
 struct Render_Context;
 
@@ -65,7 +68,12 @@ global u8 __debug_memory[1 << 20];
 #include "trader_string_utilities.cpp"
 #include "trader_utils.cpp"
 
+#if OS_WINDOWS
+# include "platform_win32/win32_implementation.h"
+#elif OS_LINUX
 #include "platform_linux/linux_implementation.cpp"
+#endif
+
 #include "trader_platform_common.cpp"
 
 #include "trader_handle.cpp"
@@ -81,10 +89,6 @@ global Text_Edit_Buffer debug_teb = make_text_edit_buffer({__debug_memory, array
 
 #include "trader_network.cpp"
 #include "trader_serialization.cpp"
-
-#if OS_WINDOWS
-# include "platform_win32/win32_implementation.h"
-#endif
 
 #define TRADER_H
 #endif

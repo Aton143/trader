@@ -12,7 +12,9 @@
 # error This compiler/platform combination is not supported
 #endif
 
-# if defined(_M_AMD64) #  define ARCH_X64 1 # elif defined(_M_IX86)
+# if defined(_M_AMD64)
+#  define ARCH_X64 1
+# elif defined(_M_IX86)
 #  define ARCH_X86 1
 # elif defined(_M_ARM64)
 #  define ARCH_ARM64 1
@@ -227,6 +229,8 @@ typedef i64      b64;
 #define member_offset(st, m) ((size_t)((u8 *)&((st *)0)->m - (u8 *) 0))
 #define member_size(type, member) sizeof(((type *)0)->member)
 #define member_array_count(type, member) (member_size(type, member) / sizeof(*((type *)0)->member))
+
+#define type_pun(type, var) *((type *) &(var))
 
 #define array_count(a) ((sizeof(a))/(sizeof(*a)))
 #define array_initr(a) {(a), array_count(a)}
@@ -894,8 +898,6 @@ struct String_Any {
     String_utf32 s_utf32;
   };
 };
-
-#define align(val, alignment) ((((val) + (alignment) - 1) / (alignment)) * (alignment))
 
 struct Buffer
 {

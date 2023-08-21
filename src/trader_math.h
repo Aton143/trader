@@ -16,7 +16,7 @@ internal inline f32 fast_powf(f32 a, f32 b);
 internal inline V2_f32 line_get_closest_point_to_point(V2_f32 p, V2_f32 line_start, V2_f32 line_end);
 internal inline f32    line_get_squared_distance_from_point(V2_f32 p, V2_f32 line_start, V2_f32 line_end);
 
-internal inline b32    approx_equal_f32(f32 a);
+internal inline b32    approx_equal_f32(f32 a, f32 b);
 internal inline f32    absf(f32 a);
 internal inline f32    fmaddf(f32 m1, f32 m2, f32 a);
 

@@ -102,10 +102,10 @@ internal inline void *arena_push(Arena *arena, u64 size)
 {
   void *memory_given_back = NULL;
 
-  size = align(size, arena->alignment);
+  size = align_size(size, arena->alignment);
   if ((arena->used + size) <= arena->size)
   {
-    void *aligned_ptr = (void *) align((ptr_val) (arena->start + arena->used), arena->alignment);
+    void *aligned_ptr = (void *) align_size((u64) (arena->start + arena->used), arena->alignment);
     memory_given_back = aligned_ptr;
 
     arena->used += size;

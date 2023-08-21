@@ -167,8 +167,12 @@ internal void meta_init(void)
   platform_open_file_for_appending(temp_arena->start, temp_arena->used, &meta_info.log_handle);
 }
 
-internal b32 platform_open_file(utf8 *file_path, u64 file_path_size, Handle *out_handle)
+internal b32 platform_open_file(utf8   *file_path,
+                                u64     file_path_size,
+                                Handle *out_handle,
+                                b32     force_create)
 {
+  unused(force_create);
   b32 result = false;
 
   Arena *temp_arena = get_temp_arena();
@@ -355,11 +359,7 @@ internal b32 platform_append_to_file(Handle *handle, utf8 *format, va_list args)
   u32 bytes_written = 0;
   WriteFile(handle->file_handle, sprinted_text.str, (DWORD) sprinted_text.size, (DWORD *) &bytes_written, NULL);
 
-  if (bytes_written == sprinted_text.size)
-  {
-    result = true;
-  }
-
+  result = (bytes_written == sprinted_text.size)
   return(result);
 }
 

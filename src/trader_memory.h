@@ -23,6 +23,13 @@ global_const void *global_memory_start_addr = (void *) tb(2);
 global_const u64 global_memory_size = mb(8);
 global_const u64 global_temp_arena_size = mb(32);
 
+internal inline u64 align_size(u64 size, u64 alignment)
+{
+  u64 ceiling = (size + (alignment - 1)) / alignment;
+  u64 result  = ceiling * alignment;
+  return(result);
+}
+
 internal inline i64 copy_memory_block(void *dest, void *source, i64 byte_count);
 #define copy_string(dest, string)       copy_memory_block((dest), (string).str, (string).size)
 #define copy_string_lit(dest, string)   copy_memory_block((dest), (string), sizeof(string))

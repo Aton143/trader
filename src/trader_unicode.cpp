@@ -380,8 +380,8 @@ internal inline utf8 *unicode_utf8_from_utf16(Arena *arena,
 
   // TODO(antonio) need to make sure that memory was allocated
   // this could also be very wrong
-  arena->used -= align(maybe_length, arena->alignment);
-  arena->used += align(converted_length, arena->alignment);
+  arena->used -= align_size(maybe_length, arena->alignment);
+  arena->used += align_size(converted_length, arena->alignment);
 
   if (out_length != NULL)
   {

@@ -111,7 +111,8 @@ internal void platform_debug_printf(char *format, ...)
 
 internal b32 platform_open_file(utf8   *file_name,
                                 u64     file_name_length,
-                                Handle *out_handle)
+                                Handle *out_handle,
+                                b32     force_create)
 {
   expect(file_name  != NULL);
   expect(out_handle != NULL);
@@ -123,7 +124,9 @@ internal b32 platform_open_file(utf8   *file_name,
 
   b32 result = true;
 
-  i32 file_descriptor = open((char *) file_name, O_RDWR);
+  i32 file_descriptor = open((char *) file_name,
+                             O_RDWR | (force_create ? O_CREAT : 0),
+                             S_IRUSR | S_IWUSR);
   if (file_descriptor > -1)
   {
     out_handle->generation++;
@@ -166,17 +169,17 @@ internal b32 platform_open_file_for_appending(utf8   *file_path,
                                               u64     file_path_size,
                                               Handle *out_handle)
 {
-  b32 result = platform_open_file(file_path, file_path_size, out_handle);
+  b32 result = platform_open_file(file_path, file_path_size, out_handle, true);
 
   if (result)
   {
-    if (fcntl(F_SETFD, O_RDONLY) < 0)
+    if (fcntl(out_handle->file_handle.__handle, F_SETFD, O_RDONLY) < 0)
     {
       platform_debug_print_system_error();
       result = false;
     }
 
-    if (result && fcntl(F_SETFL, O_APPEND) < 0)
+    if (result && fcntl(out_handle->file_handle.__handle, F_SETFL, O_APPEND) < 0)
     {
       platform_debug_print_system_error();
       result = false;
@@ -253,11 +256,6 @@ internal inline High_Res_Time platform_get_high_resolution_time(void)
   High_Res_Time ts;
   clock_gettime(CLOCK_MONOTONIC, &ts.ts);
   return(ts);
-}
-
-internal void meta_log(utf8 *format, ...)
-{
-  unused(format);
 }
 
 internal Global_Platform_State *platform_get_global_state(void)
@@ -398,16 +396,17 @@ internal void platform_debug_print_system_error()
 
 internal void meta_init(void)
 {
+  __debugbreak();
   Arena *temp_arena = get_temp_arena();
   set_temp_arena_wait(1);
 
-  temp_arena->used = copy_string_lit(temp_arena->start, (utf8 *) "./logs/");
+  temp_arena->used += copy_string_lit(temp_arena->start, (utf8 *) "./logs/");
   temp_arena->used -= 1;
 
   time_t _now = time(NULL);
   tm now = *localtime(&_now);
 
-  temp_arena->used = stbsp_snprintf((char *) (temp_arena->start + temp_arena->used),
+  temp_arena->used += stbsp_snprintf((char *) (temp_arena->start + temp_arena->used),
                                     (int) (temp_arena->size - temp_arena->used - 1),
                                     "%04d_%02d_%02d_%02d_%02d_%02d",
                                     now.tm_year + 1900,
@@ -420,6 +419,8 @@ internal void meta_init(void)
 
   temp_arena->used += copy_string_lit(&temp_arena->start[temp_arena->used], (utf8 *) ".log");
   temp_arena->used -= 1;
+
+  platform_open_file_for_appending(temp_arena->start, temp_arena->used, &meta_info.log_handle);
 }
 
 internal Key_Event platform_convert_key_to_our_key(u64 key_value)
@@ -602,4 +603,32 @@ internal void render_debug_print_compile_errors(void *data)
     glGetShaderInfoLog(*gl_shader, sizeof(info_log), NULL, (GLchar *) info_log);
     meta_log(info_log);
   }
+}
+
+internal b32 platform_append_to_file(Handle *handle, utf8 *format, va_list args)
+{
+  b32 result = false;
+  expect_message(handle != NULL, "expected a file handle, numbnuts");
+
+  Arena *temp_arena = get_temp_arena();
+
+  utf8 *str = (utf8 *) arena_push(temp_arena, arena_get_remaining_size(temp_arena));
+  String_utf8 sprinted_text =
+  {
+    str,
+    0,
+    temp_arena->size
+  };
+
+  sprinted_text.size = stbsp_vsnprintf((char *) sprinted_text.str, (i32) sprinted_text.cap - 1, (char *) format, args);
+
+  i64 bytes_written = write(handle->file_handle.__handle, sprinted_text.str, sprinted_text.size);
+
+  if (bytes_written < 0)
+  {
+    platform_debug_print_system_error();
+  }
+
+  result = ((u64) bytes_written == sprinted_text.size);
+  return(result);
 }

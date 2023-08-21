@@ -37,8 +37,6 @@
 #  pragma GCC diagnostic pop
 #endif
 
-#define align(val, alignment) ((((val) + (alignment) - 1) / (alignment)) * (alignment))
-
 struct Global_Platform_State;
 struct Render_Context;
 

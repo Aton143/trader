@@ -1302,3 +1302,9 @@ int main(int arg_count, char *arg_values[])
 
   return(0);
 }
+
+const u32 _timing_records_count = __COUNTER__;
+Timing_Record _timing_records[_timing_records_count] = {};
+
+u32 timing_records_count = _timing_records_count;
+Timing_Record *timing_records = _timing_records;

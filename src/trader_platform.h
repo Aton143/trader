@@ -57,7 +57,11 @@ internal b32 platform_common_init(void);
 // TODO(antonio): the read API should return a boolean?
 internal File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u64 file_path_size);
 
-internal b32 platform_open_file(utf8 *file_path, u64 file_path_length, Handle *out_handle);
+internal b32 platform_open_file(utf8   *file_path,
+                                u64     file_path_length,
+                                Handle *out_handle, 
+                                b32     force_create = false);
+
 internal b32 platform_close_file(Handle *handle);
 internal File_Buffer platform_read_entire_file(Arena *arena, Handle *handle);
 

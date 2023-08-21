@@ -4,7 +4,6 @@ set SUBMODULES_DIR=..\src\submodules
 
 set INCLUDE_DIRS=
 set INCLUDE_DIRS=%INCLUDE_DIRS% /I %SUBMODULES_DIR%\stb\
-
 set LIBS=
 
 IF NOT EXIST ..\build mkdir ..\build

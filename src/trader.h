@@ -88,5 +88,7 @@ global Text_Edit_Buffer debug_teb = make_text_edit_buffer({__debug_memory, array
 #include "trader_network.cpp"
 #include "trader_serialization.cpp"
 
+#include "trader_independent.cpp"
+
 #define TRADER_H
 #endif

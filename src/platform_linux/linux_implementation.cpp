@@ -396,7 +396,6 @@ internal void platform_debug_print_system_error()
 
 internal void meta_init(void)
 {
-  __debugbreak();
   Arena *temp_arena = get_temp_arena();
   set_temp_arena_wait(1);
 

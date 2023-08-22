@@ -1029,7 +1029,10 @@ internal b32 ui_do_button(String_Const_utf8 string)
   return(result);
 }
 
-internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 minimum, f32 maximum)
+internal void ui_do_slider_f32(String_Const_utf8  string,
+                               f32               *in_out_value,
+                               f32                minimum,
+                               f32                maximum)
 {
   UI_Context *ui           = ui_get_context();
   Panel      *panel_parent = ui->current_panel_parent;
@@ -1042,7 +1045,7 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
   String_Const_utf8 slider_parent_to_hash_prefix = string_literal_init_type("Slider parent::", utf8);
   String_Const_utf8 slider_parent_to_hash = concat_string_to_c_string(ui->string_pool, slider_parent_to_hash_prefix, string);
 
-  ui_make_widget(widget_flag_none,
+  ui_make_widget(widget_flag_draggable,
                  size_flag_copy_parent_size_x | size_flag_given_size_y | size_flag_advancer_y,
                  slider_parent_to_hash,
                  V2(0.5f, ui->text_height));
@@ -1061,7 +1064,7 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
   f32 norm = 1.0f / (maximum - minimum);
   f32 slider_x_scale = lerpf(0.0f, clamp(minimum, *in_out_value, maximum) * norm, 1.0f);
 
-  ui_make_widget(widget_flag_draw_background  | widget_flag_draggable,
+  ui_make_widget(widget_flag_draw_background,
                  size_flag_copy_parent_size_x | size_flag_copy_parent_size_y |
                  size_flag_relative_to_parent_pos_x | size_flag_relative_to_parent_pos_y,
                  slider_to_hash,
@@ -1081,7 +1084,7 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
        ++interaction_index)
   {
     UI_Interaction *cur_int = ui->interactions + interaction_index;
-    if (cur_int->key == slider->key)
+    if (cur_int->key == slider_parent->key)
     {
       f32 delta_x   = lerpf(minimum, cur_int->value.mouse.x, maximum);
       *in_out_value = clamp(minimum, delta_x, maximum);
@@ -1645,6 +1648,8 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
   }
 
   Widget *hover_widget = NULL;
+  Widget *hot_setting_widget = NULL;
+  Widget *active_setting_widget = NULL;
 
   arena_reset(temp_arena);
   {
@@ -1705,6 +1710,7 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
           if (mouse_left_went_down)
           {
             ui->active_key = cur_widget->key;
+            active_setting_widget = cur_widget;
 
             Persistent_Widget_Data pers_data = {cur_widget->key};
             copy_memory_block(&pers_data.background_color,
@@ -1720,6 +1726,7 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
           if (ui->active_key == nil_key)
           {
             ui->hot_key = cur_widget->key;
+            hot_setting_widget = cur_widget;
           }
 
           hover_widget = cur_widget;
@@ -1734,8 +1741,10 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
         b32 draggable        = (cur_widget->widget_flags & widget_flag_draggable)        > 0;
         expect(draggable != border_draggable);
 
+        b32 make_hot          = rect_is_point_inside(ui->mouse_pos, cur_widget->rectangle);
         b32 mouse_left_change = ((ui->prev_frame_mouse_event & mouse_event_lclick) !=
                                  (ui->cur_frame_mouse_event  & mouse_event_lclick));
+
         if (mouse_left_change)
         {
           b32 mouse_left_went_down =
@@ -1746,6 +1755,7 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
             if (ui->hot_key == cur_widget->key)
             {
               ui->active_key = cur_widget->key;
+              active_setting_widget = cur_widget;
             }
           }
           else if (ui->active_key == cur_widget->key)
@@ -1754,7 +1764,6 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
           }
         }
 
-        b32 make_hot       = rect_is_point_inside(ui->mouse_pos, cur_widget->rectangle);
         u32 drag_direction = 0;
 
         if (cur_widget->widget_flags & widget_flag_border_draggable)
@@ -1777,6 +1786,7 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
           if (ui->active_key == nil_key)
           {
             ui->hot_key = cur_widget->key;
+            hot_setting_widget = cur_widget;
 
             if ((cur_widget->widget_flags & widget_flag_clickable) == 0)
             {
@@ -1808,7 +1818,8 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
           } 
           else
           {
-            rect_to_use = cur_widget->parent->rectangle;
+            rect_to_use = cur_widget->rectangle;
+            // rect_to_use = cur_widget->parent->rectangle;
           }
 
           V2_f32   rect_dimensions = rect_get_dimensions(&rect_to_use);

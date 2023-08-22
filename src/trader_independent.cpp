@@ -50,6 +50,9 @@ void update_and_render(Game_Data *game_data)
                            (i32) cur_interaction->frames_left);
   }
 
+  ui_do_formatted_string("Active key: %d", (i32) ui->active_key);
+  ui_do_formatted_string("Hot Key: %d", (i32) ui->hot_key);
+
   ui_prepare_render_from_panels(ui_get_sentinel_panel(), render_rect);
   ui_flatten_draw_layers();
 }

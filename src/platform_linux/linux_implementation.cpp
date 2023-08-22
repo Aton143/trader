@@ -12,6 +12,8 @@
 #include "../trader_ui.h"
 #include "../trader_render.h"
 #include "../trader_network.h"
+#include "../trader_independent.h"
+#include "../trader_volatile_game_data.h"
 
 struct High_Res_Time
 {
@@ -81,6 +83,8 @@ struct Global_Platform_State
 
   Cursor_Kind     cur_cursor;
   Cursor_Kind     desired_cursor;
+
+  Game_Data      *game_data;
 };
 
 global Global_Platform_State linux_platform_state;

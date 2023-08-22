@@ -291,6 +291,9 @@ int main(int arg_count, char *arg_values[])
     return(EXIT_FAILURE);
   }
 
+  Game_Data *game_data =
+    (Game_Data *) arena_push(&linux_platform_state.global_arena, sizeof(Game_Data));
+
   linux_platform_state.cur_cursor = cursor_kind_pointer;
 
   UI_Context            *ui     = ui_get_context();
@@ -1074,13 +1077,8 @@ int main(int arg_count, char *arg_values[])
   f32 acc_time =  1.0f;
   f32 dir      = -1.0f;
 
-  f32 panel_floats[16]  = {0.50f};
-  u32 panel_float_index = 0;
-
   b32 vsync = false;
   b32 requested_vsync = true;
-
-  f32 slider_float = 0.0f;
 
   GLXDrawable drawable = glXGetCurrentDrawable();
 
@@ -1109,7 +1107,7 @@ int main(int arg_count, char *arg_values[])
       first_step = false;
     }
 
-    update_and_render(&slider_float, (f32 *) &panel_floats, last_frame_time);
+    update_and_render(game_data);
 
     Rect_f32 render_rect = render_get_client_rect();
     Constant_Buffer constant_buffer_items = {};
@@ -1264,6 +1262,10 @@ int main(int arg_count, char *arg_values[])
       last_frame_time =
         platform_high_resolution_time_to_seconds(platform_hrt_subtract(cur_hpt, last_hpt));
       last_hpt = cur_hpt;
+    }
+
+    if (!ui->keep_hot_key) {
+      ui->hot_key = nil_key;
     }
   }
 

@@ -3,6 +3,8 @@
 #define TRADER_VERSION 1LL
 #include "trader_base_defines.h"
 
+#include "trader_volatile_game_data.h"
+
 #if COMPILER_CL
 # pragma warning(push)
 # pragma warning(disable: 4996 4244)

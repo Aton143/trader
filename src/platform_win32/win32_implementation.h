@@ -257,6 +257,7 @@ internal File_Buffer platform_read_entire_file(Handle *handle)
 
         file_buffer.data           = file_buffer_data;
         file_buffer.size           = file_size;
+        file_buffer.used           = file_size;
       }
       else
       {
@@ -306,6 +307,7 @@ internal File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file
 
             file_buffer.data           = file_buffer_data;
             file_buffer.size           = file_size;
+            file_buffer.used           = file_size;
 
             CloseHandle(file_handle);
           }
@@ -1101,7 +1103,7 @@ internal Thread_Handle platform_create_thread(Thread_Routine routine, void *rout
   return(res);
 }
 
-internal void  platform_set_cursor(Cursor_Kind cursor)
+internal void platform_set_cursor(Cursor_Kind cursor)
 {
   expect(cursor < cursor_kind_count);
   expect(cursors[cursor]._handle != NULL);

@@ -967,6 +967,9 @@ WinMain(HINSTANCE instance,
 #pragma warning(disable:4302)
     cursors[cursor_kind_none]._handle = NULL;
 
+    cursors[cursor_kind_pointer]._handle =
+      (HCURSOR) LoadImage(NULL, MAKEINTRESOURCEW(IDC_ARROW), IMAGE_CURSOR, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
+
     cursors[cursor_kind_finger_pointer]._handle =
       (HCURSOR) LoadImage(NULL, MAKEINTRESOURCEW(IDC_HAND), IMAGE_CURSOR, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
 

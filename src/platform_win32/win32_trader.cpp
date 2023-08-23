@@ -939,6 +939,8 @@ WinMain(HINSTANCE instance,
 #if !SHIP_MODE
     b32              save_current_frame_buffer = false;
     ID3D11Texture2D *copy_frame_buffer_texture = NULL;
+
+    unused(save_current_frame_buffer);
 #endif
 
     UI_Context *ui = &win32_global_state.ui_context;
@@ -982,54 +984,7 @@ WinMain(HINSTANCE instance,
       (HCURSOR) LoadImage(NULL, MAKEINTRESOURCEW(IDC_IBEAM), IMAGE_CURSOR, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
 #pragma warning(default:4302)
 
-    /*
-    V2_f32 data_for_lines[] =
-    {
-      {0.000000f, 0.000000f},
-      {0.033333f, 0.001111f},
-      {0.066667f, 0.004444f},
-      {0.100000f, 0.010000f},
-      {0.133333f, 0.017778f},
-      {0.166667f, 0.027778f},
-      {0.200000f, 0.040000f},
-      {0.233333f, 0.054444f},
-      {0.266667f, 0.071111f},
-      {0.300000f, 0.090000f},
-      {0.333333f, 0.111111f},
-      {0.366667f, 0.134444f},
-      {0.400000f, 0.160000f},
-      {0.433333f, 0.187778f},
-      {0.466667f, 0.217778f},
-      {0.500000f, 0.250000f},
-      {0.533333f, 0.284444f},
-      {0.566667f, 0.321111f},
-      {0.600000f, 0.360000f},
-      {0.633333f, 0.401111f},
-      {0.666667f, 0.444444f},
-      {0.700000f, 0.490000f},
-      {0.733333f, 0.537778f},
-      {0.766667f, 0.587778f},
-      {0.800000f, 0.640000f},
-      {0.833333f, 0.694444f},
-      {0.866667f, 0.751111f},
-      {0.900000f, 0.810000f},
-      {0.933333f, 0.871111f},
-      {0.966667f, 0.934444f},
-    };
-    */
-
-    local_persist V2_f32 data_for_lines[4096] = {};
-
-    u32 data_index  = 0;
-    u32 click_count = 0;
-
-    f32 slider_float = 0.25f;
-    f32 panel_float  = 0.5f;
-
-    f32 acc_time    = 0.0f;
-    b32 triangle    = false;
-
-    f32 panel_floats[16]  = {0.20f, 0.45f, 0.05f, 0.30f};
+    f32 panel_floats[16]  = {1.00f};
     u32 panel_float_index = 0;
 
     Range_f32 range       = {0.0f, 1.0f};
@@ -1150,6 +1105,7 @@ WinMain(HINSTANCE instance,
 #endif
       }
 
+      Rect_f32 client_rect = render_get_client_rect();
       platform_collect_notifications();
 
       ui_initialize_frame();
@@ -1158,315 +1114,13 @@ WinMain(HINSTANCE instance,
       ui_push_background_color(rgba_from_u8(55, 47, 36, 255));
 
       ui_make_panel(axis_split_vertical, &panel_floats[panel_float_index++], string_literal_init_type("first", utf8));
-      // first_panel->sentinel = ui_get_sentinel();
 
-      win32_global_state.frame_count++;
+      ui_do_string(string_literal_init_type("Hello World!", utf8));
 
-      ui_do_text_edit(&debug_teb, "text editor");
-      ui_do_formatted_string("Using as spacer");
-      ui_do_formatted_string("Cursor - start: %d - end: %d",
-                             debug_teb.range.start_index,
-                             debug_teb.range.inclusive_end_index);
-
-      if (range_get_length(&debug_teb.range) >= 1)
-      {
-        ui_do_formatted_string("Selected: %.*s",
-                               (debug_teb.range.inclusive_end_index - debug_teb.range.start_index),
-                               &debug_teb.buf.data[debug_teb.range.start_index]);
-      }
-      else
-      {
-        i64 start = debug_teb.range.start_index;
-        ui_do_formatted_string("Before cursor: %c", 
-                               (start == 0) ? ' ' : debug_teb.buf.data[start - 1]);
-      }
-
-      ui_do_formatted_string("TEB Length: %d\n", debug_teb.buf.used);
-
-      ui_do_formatted_string("Last frame time: %.6fs", last_frame_time);
-      ui_do_formatted_string("Last frame time in cycles: %lld", last_frame_time_in_cycles);
-      ui_do_formatted_string("Frame count: %lld", win32_global_state.frame_count);
-
-      if (ui_do_button(string_literal_init_type("click here to save frame buffer", utf8)))
-      {
-        save_current_frame_buffer = true;
-      }
-
-      if (ui->mouse_area == mouse_area_out_client)
-      {
-        ui_do_string(string_literal_init_type("Mouse is not in client", utf8));
-      }
-      else if (ui->mouse_area == mouse_area_in_client)
-      {
-        ui_do_string(string_literal_init_type("Mouse is in client", utf8));
-      }
-      else
-      {
-        ui_do_string(string_literal_init_type("Mouse is in client but not really, if you know what I mean", utf8));
-      }
-
-      ui_push_text_color(clamp(0.0f, ui->mouse_pos.x / render_get_client_rect().x1, 1.0f),
-                         clamp(0.0f, ui->mouse_pos.y / render_get_client_rect().y1, 1.0f),
-                         1.0f, 1.0f);
-
-      ui_do_formatted_string("Mouse position: (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
-      ui_do_formatted_string("Mouse delta: (%.0f, %.0f)", ui->mouse_delta.x, ui->mouse_delta.y);
-
-      ui_pop_text_color();
-
-      ui_do_formatted_string("Mouse wheel delta: (%f, %f)", ui->mouse_wheel_delta.x, ui->mouse_wheel_delta.y);
-
-      ui_do_formatted_string("Active key: %d", (i32) ui->active_key);
-      ui_do_formatted_string("Hot Key: %d", (i32) ui->hot_key);
-
-      ui_do_formatted_string("Panel float: %.16f",  panel_float);
-      ui_do_formatted_string("Slider float: %.16f", slider_float);
-      ui_do_slider_f32(string_literal_init_type("slider", utf8), &slider_float, 0.0f, 1.0f);
-      global_slider_float = slider_float;
-      ui_push_background_color(rgba_from_u8(0, 0, 0, 0));
-
-      ui_do_formatted_string("Interaction Results:");
-      for (u32 interaction_index = 0;
-           interaction_index < array_count(ui->interactions);
-           ++interaction_index)
-      {
-        UI_Interaction *cur_interaction = &ui->interactions[interaction_index];
-        ui_do_formatted_string("Key: %d, Value: %d, Frames Left: %d",
-                               (i32) cur_interaction->key,
-                               (i32) cur_interaction->event,
-                               (i32) cur_interaction->frames_left);
-      }
-
-      ui_do_formatted_string("Persistent Widget Data:");
-      for (u32 pers_index = 0;
-           pers_index < array_count(ui->persistent_data);
-           ++pers_index)
-      {
-        Persistent_Widget_Data *cur_pers= &ui->persistent_data[pers_index];
-        ui_do_formatted_string("Key: %d, Background Color: ", (i32) cur_pers->key);
-
-        for (u32 color_index = 0;
-             color_index < 4;
-             ++color_index)
-        {
-          ui_do_formatted_string("[%d]: (%f, %f, %f, %f)",
-                                 color_index,
-                                 cur_pers->background_color[color_index].r,
-                                 cur_pers->background_color[color_index].g,
-                                 cur_pers->background_color[color_index].b,
-                                 cur_pers->background_color[color_index].a);
-        }
-      }
-
-      ui_pop_background_color();
-      ui_push_background_color(rgba_from_u8(0, 0, 0, 0));
-
-      if (ui_do_button(string_literal_init_type("Click me!", utf8)))
-      {
-        // ui_do_string(string_literal_init_type("That was the good action", utf8));
-        // slider_float = 1.0f;
-        triangle = !triangle;
-        click_count++;
-      }
-
-      if (ui_do_button(string_literal_init_type("Open a file", utf8)))
-      {
-        file = platform_open_and_read_entire_file_from_system_prompt(&win32_global_state.global_arena);
-        file_str = {file.data, file.size};
-      }
-      ui_pop_background_color();
-      ui_do_string(file_str);
-
-      if (triangle)
-      {
-        ui_canvas(string_literal_init_type("Easel", utf8), V2(slider_float * 200.0f, slider_float * 200.0f));
-        Vertex_Buffer_Element *vertices = render_push_triangles(1);
-        Rect_i16 *solid_color_glyph = &win32_global_state.render_context.atlas->solid_color_rect;
-        vertices[0] = 
-        {
-          V4(0.0f, 1.0f, 0.5f, 1.0f),
-          rgba(1.0f, 0.0f, 0.0f, 1.0f),
-          (f32) solid_color_glyph->x0, (f32) solid_color_glyph->y1,
-        };
-
-        vertices[1] = 
-        {
-          V4(1.0f, 0.0f, 0.5f, 1.0f),
-          rgba(0.0f, 1.0f, 0.0f, 1.0f),
-          (f32) solid_color_glyph->x1, (f32) solid_color_glyph->y0
-        };
-
-        vertices[2] = 
-        {
-          V4(1.0f, 1.0f, 0.5f, 1.0f),
-          rgba(0.0f, 0.0f, 1.0f, 1.0f),
-          (f32) solid_color_glyph->x1, (f32) solid_color_glyph->y1
-        };
-      }
-      else
-      {
-        // ui_canvas(string_literal_init_type("Canvas", utf8), V2(200.0f, 200.0f));
-
-      }
-
-      ui_push_text_color(0.0f, 0.0f, 0.0f, 1.0f);
-
-      ui_push_panel_parent(ui_get_sentinel_panel());
-      Panel *other_half = ui_make_panel(axis_split_vertical,
-                                        &panel_floats[panel_float_index++],
-                                        string_literal_init_type("the middle third", utf8));
-
-      ui_do_string(string_literal_init_type("hello from the other side", utf8));
-
-      ui_push_panel_parent(ui_get_sentinel_panel());
-      Panel *last_half = ui_make_panel(axis_split_vertical,
-                                       &panel_floats[panel_float_index++],
-                                       string_literal_init_type("the last third", utf8));
-      ui_do_string(string_literal_init_type("hello from the last side", utf8));
-
-      ui_push_panel_parent(ui_get_sentinel_panel());
-      Panel *last_ = ui_make_panel(axis_split_vertical,
-                                   &panel_floats[panel_float_index++],
-                                   string_literal_init_type("the last thirdiii", utf8));
-      ui_do_string(string_literal_init_type("hello from the last sideiii", utf8));
-
-      if (click_count)
-      {
-        unused(other_half);
-        unused(last_half);
-        unused(last_);
-
-        /*
-        Panel *panel_from_which_to_split = other_half;
-
-        for (u32 click_index = 1;
-             click_index < click_count;
-             ++click_index)
-        {
-          String_Const_utf8 panel_strings[2];
-
-          panel_strings[0] = scu8f(ui->string_pool, 512, "half: %d",       click_count * 2);
-          panel_strings[1] = scu8f(ui->string_pool, 512, "other half: %d", (click_count * 2) + 1);
-
-          f32 panel_sizes[2] = {0.5f, 0.5f};
-
-          Panel *child = ui_make_panels((click_index % 2 == 1) ? axis_split_horizontal : axis_split_vertical,
-                                        panel_sizes,
-                                        panel_strings,
-                                        array_count(panel_strings),
-                                        panel_from_which_to_split);
-
-          // ui_do_formatted_string("split half: %d", click_count);
-          panel_from_which_to_split = child->next_sibling;
-        }
-          */
-      }
-
-      Rect_f32 render_rect = render_get_client_rect();
-      Rect_f32 plot_rect;
-
-      {
-        f32 width  = 800.0f;
-        f32 height = 900.0f;
-
-        V2_f32 line_start  = V2(500.0f, 100.0f);
-        V2_f32 line_end    = V2(line_start.x + width, line_start.y);
-
-        render_push_line_instance(line_start, width, 1.0f, 0.0f);
-        render_push_line_instance(line_start, height, 0.0f, 1.0f);
-
-        render_push_line_instance(V2(line_start.x, line_start.y + height), width + 0.5f, 1.0f, 0.0f);
-        render_push_line_instance(V2(line_start.x + width, line_start.y), height + 0.5f, 0.0f, 1.0f);
-
-        String_Const_utf8 start_str = scu8f(ui->string_pool, "%.0f", range.start);
-        String_Const_utf8 end_str   = scu8f(ui->string_pool, "%.0f", range.end);
-
-        V2_f32 start_text_dimensions = {};
-        V2_f32 end_text_dimensions   = {};
-
-        render_get_text_dimensions(&start_text_dimensions.x,
-                                   &start_text_dimensions.y,
-                                   render_rect,
-                                   start_str,
-                                   start_str.size);
-
-        render_get_text_dimensions(&end_text_dimensions.x,
-                                   &end_text_dimensions.y,
-                                   render_rect,
-                                   end_str,
-                                   end_str.size);
-
-        V2_f32 start_text_pos = V2(line_start.x - (0.5f * start_text_dimensions.x),
-                                   line_start.y + common_render->atlas->heights[0] + height);
-
-        render_draw_text(&common_render->render_data,
-                         &start_text_pos.x,
-                         &start_text_pos.y,
-                         rgba(1.0f, 1.0f, 1.0f, 1.0f),
-                         render_rect,
-                         start_str.str);
-
-        V2_f32 end_text_pos = V2(line_end.x - (0.5f * end_text_dimensions.x),
-                                 line_end.y + common_render->atlas->heights[0] + height);
-
-        render_draw_text(&common_render->render_data,
-                         &end_text_pos.x,
-                         &end_text_pos.y,
-                         rgba(1.0f, 1.0f, 1.0f, 1.0f),
-                         render_rect,
-                         end_str.str);
-
-        if (!triangle)
-        {
-          for (f32 x = 0.1f; x < 1.00f; x += 0.10f)
-          {
-            V2_f32 x_line_start = V2(fmaddf(width, x, line_start.x), line_start.y);
-            render_push_line_instance(x_line_start, height + 0.5f, 0.0f, 1.0f, rgba(1.0f, 1.0f, 1.0f, 0.55f));
-          }
-
-          for (f32 y = 0.1f; y < 1.00f; y += 0.10f)
-          {
-            V2_f32 y_line_start = V2(line_start.x, fmaddf(height, y, line_start.y));
-            render_push_line_instance(y_line_start, width + 0.5f, 1.0f, 0.0f, rgba(1.0f, 1.0f, 1.0f, 0.55f));
-          }
-        }
-
-        plot_rect  = {line_start.x, line_start.y, line_start.x + width, line_start.y + height};
-        if (rect_is_point_inside(ui->mouse_pos, plot_rect))
-        {
-          f32 x = ui->mouse_pos.x;
-          f32 y = ui->mouse_pos.y;
-
-          render_draw_text(&common_render->render_data, &x, &y, rgba_white, render_rect,
-                           (utf8 *) "(%.2f, %.2f)",
-                           (x - plot_rect.x0) / rect_get_width(&plot_rect),
-                           (y - plot_rect.y0) / rect_get_height(&plot_rect));
-        }
-
-        if (acc_time < 1.0f)
-        {
-          data_for_lines[data_index] = V2(acc_time, 0.5f * (sinf(acc_time * tau_f32) + 1.0f));
-          data_index = (data_index + 1) % array_count(data_for_lines);
-        }
-
-        common_render->vertex_render_dimensions = {width, height};
-        u64 lines_to_render = data_index;
-        render_data_to_lines(data_for_lines, lines_to_render);
-      }
-
-      ui_prepare_render_from_panels(ui_get_sentinel_panel(), render_rect);
+      ui_prepare_render_from_panels(ui_get_sentinel_panel(), client_rect);
 
       u32 initial_draw_count = (u32) (win32_global_state.render_context.render_data.used / sizeof(Instance_Buffer_Element));
       ui_flatten_draw_layers();
-
-      acc_time += 1.0f/60.0f;
-      /*
-      if (acc_time > 1.0f)
-      {
-        acc_time = 0.f;
-        up_down = ((f32) (rng_get_random32() % 1024)) / (1024.0f);
-      }
-      */
 
       // NOTE(antonio): instances
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -1477,7 +1131,6 @@ WinMain(HINSTANCE instance,
 
         device_context->OMSetRenderTargets(1, &frame_buffer_view, depth_stencil_view);
 
-        Rect_f32 client_rect = render_get_client_rect();
         {
           {
             constant_buffer_items.client_width  = client_rect.x1;
@@ -1563,22 +1216,13 @@ WinMain(HINSTANCE instance,
         }
       }
 
-      Rect_f32 client_rect = render_get_client_rect();
       // NOTE(antonio): triangles
       D3D11_VIEWPORT viewport =
       {
-        plot_rect.x0, plot_rect.y0, 
-        rect_get_width(&plot_rect), rect_get_height(&plot_rect),
+        client_rect.x0, client_rect.y0, 
+        rect_get_width(&client_rect), rect_get_height(&client_rect),
         0.0f, 1.0f
       };
-
-      /*
-       D3D11_VIEWPORT viewport = 
-       {
-       ui->canvas_viewport.x0,               ui->canvas_viewport.y0,
-       rect_get_width(&ui->canvas_viewport), rect_get_height(&ui->canvas_viewport),
-       }
-      */
 
       device_context->RSSetViewports(1, &viewport);
 
@@ -1596,18 +1240,6 @@ WinMain(HINSTANCE instance,
         }
 
         {
-          if (triangle)
-          {
-            constant_buffer_items.model_view_projection = matrix4x4_rotate_about_y(slider_float);
-          }
-          else
-          {
-            constant_buffer_items.model_view_projection = matrix4x4_from_rows(V4(1.0, 0.0f, 0.0f, 0.0f),
-                                                                              V4(0.0, 1.0f, 0.0f, 0.0f),
-                                                                              V4(0.0, 0.0f, 1.0f, 0.0f),
-                                                                              V4(0.0, 0.0f, 0.0f, 1.0f));
-          }
-
           {
             D3D11_MAPPED_SUBRESOURCE mapped_subresource = {};
             device_context->Map(constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
@@ -1637,11 +1269,9 @@ WinMain(HINSTANCE instance,
         u32 triangle_draw_call_count = 
           (u32) (win32_global_state.render_context.triangle_render_data.used / sizeof(Vertex_Buffer_Element));
 
-        /*
-        expect_message((vertex_count % 3) == 0, 
+        expect_message((triangle_draw_call_count % 3) == 0, 
                        "Expected vertex count to be divisible by 3 - "
                        "you realize you're drawing triangles, right?");
-                       */
 
         device_context->Draw(triangle_draw_call_count, 0);
       }

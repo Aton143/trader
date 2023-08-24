@@ -1314,6 +1314,8 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
     return;
   }
 
+  UI_Context *ui = ui_get_context();
+
   V2_f32 rect_dimensions = rect_get_dimensions(&rect);
 
   Arena *temp_arena     = get_temp_arena();
@@ -1331,11 +1333,6 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
   }
   
   ui_evaluate_child_sizes_panel(panel);
-
-  RGBA_f32 start_color = rgba_from_u8(0, 0, 0, 255);
-  RGBA_f32 end_color   = rgba_from_u8((u8) (global_slider_float * 255), (u8) ((1.0f - global_slider_float) * 255), 0, 255);
-
-  f32 rect_area = rect_get_area(&rect);
 
   while (panel_queue.read != panel_queue.write)
   {
@@ -1368,15 +1365,12 @@ internal void ui_prepare_render_from_panels(Panel *panel, Rect_f32 rect)
 
       draw_call->size     = {0.0f, 0.0f, rect_get_width(&to_place), rect_get_height(&to_place)};
       draw_call->uv       = render_get_solid_color_rect();
-      draw_call->pos      = V3(to_place.x0, to_place.y0, 0.4f);
+      draw_call->pos      = V3(to_place.x0, to_place.y0, 1.0f);
 
-      draw_call->color[0] = start_color;
-      draw_call->color[1] = start_color;
-      draw_call->color[2] = start_color;
-      draw_call->color[3] = start_color;
-
-      f32 area_ratio = (rect_get_area(&to_place)) / rect_area;
-      start_color = wide_lerp(start_color, area_ratio, end_color);
+      draw_call->color[0] = ui->background_color[0];
+      draw_call->color[1] = ui->background_color[1];
+      draw_call->color[2] = ui->background_color[2];
+      draw_call->color[3] = ui->background_color[3];
 
       draw_call->corner_radius    = global_slider_float * 100.0f;
       draw_call->border_thickness = 3.0f;
@@ -1988,7 +1982,7 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
               rect_get_width(&cursor), rect_get_height(&cursor),
             };
 
-            draw_call->pos = V3(cursor.x0, cursor.y0, 1.0f);
+            draw_call->pos = V3(cursor.x0, cursor.y0, 0.0f);
 
             RGBA_f32 cursor_color = (range_get_length(&debug_teb.range) == 0) ?
               rgba(1.0f, 1.0f, 1.0f, 1.0f) :

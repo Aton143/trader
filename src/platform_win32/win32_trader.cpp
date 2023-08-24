@@ -184,6 +184,12 @@ internal LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM
 
   switch (message)
   {
+    case WM_GETMINMAXINFO:
+    {
+      MINMAXINFO *window_tracking_info = (MINMAXINFO *) lparam;
+      window_tracking_info->ptMinTrackSize = {400, 300};
+    } break;
+
     // TODO(antonio): when y ~= 0, mouse is registered as not in client
     case WM_MOUSEMOVE:
     case WM_NCMOUSEMOVE: // NOTE(antonio): NC - non-client
@@ -919,7 +925,7 @@ WinMain(HINSTANCE instance,
 
       depth_stencil_state_description.DepthEnable                  = TRUE;
       depth_stencil_state_description.DepthWriteMask               = D3D11_DEPTH_WRITE_MASK_ALL;
-      depth_stencil_state_description.DepthFunc                    = D3D11_COMPARISON_GREATER;
+      depth_stencil_state_description.DepthFunc                    = D3D11_COMPARISON_LESS_EQUAL;
       depth_stencil_state_description.StencilEnable                = TRUE;
       depth_stencil_state_description.StencilReadMask              = 0xff;
       depth_stencil_state_description.StencilWriteMask             = 0xff;
@@ -999,8 +1005,6 @@ WinMain(HINSTANCE instance,
 
     void *win32_message_fiber_handle = CreateFiber(0, &win32_message_fiber, NULL);
     expect_message(win32_global_state.main_fiber_address != NULL, "could not create a fiber for messages");
-
-    text_edit_insert_string_and_advance(&debug_teb, str_from_lit("abcdefI don't    know", utf8));
 
     while (global_running)
     {
@@ -1111,12 +1115,9 @@ WinMain(HINSTANCE instance,
       ui_initialize_frame();
       panel_float_index = 0;
 
-      ui_push_background_color(rgba_from_u8(55, 47, 36, 255));
-
+      ui_push_background_color(rgba_from_u8(255, 0, 0, 255));
       ui_make_panel(axis_split_vertical, &panel_floats[panel_float_index++], string_literal_init_type("first", utf8));
-
       ui_do_string(string_literal_init_type("Hello World!", utf8));
-
       ui_prepare_render_from_panels(ui_get_sentinel_panel(), client_rect);
 
       u32 initial_draw_count = (u32) (win32_global_state.render_context.render_data.used / sizeof(Instance_Buffer_Element));
@@ -1127,7 +1128,7 @@ WinMain(HINSTANCE instance,
       Constant_Buffer constant_buffer_items = {};
       {
         device_context->ClearRenderTargetView(frame_buffer_view, background_color);
-        device_context->ClearDepthStencilView(depth_stencil_view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0, 0);
+        device_context->ClearDepthStencilView(depth_stencil_view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
         device_context->OMSetRenderTargets(1, &frame_buffer_view, depth_stencil_view);
 
@@ -1296,7 +1297,7 @@ WinMain(HINSTANCE instance,
 
         device_context->OMSetRenderTargets(1, &copy_frame_buffer_rtv, depth_stencil_view);
         device_context->ClearRenderTargetView(copy_frame_buffer_rtv, background_color);
-        device_context->ClearDepthStencilView(depth_stencil_view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0, 0);
+        device_context->ClearDepthStencilView(depth_stencil_view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
         device_context->DrawInstanced(4, draw_call_count, 0, 0);
 
         Arena *temp_arena = get_temp_arena();

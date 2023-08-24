@@ -365,7 +365,7 @@ internal void render_draw_text(Arena    *render_arena,
         {
           cur_pos.x + cur_packed_char->xoff,
           cur_pos.y + cur_packed_char->yoff,
-          0.6f
+          0.2f
         };
 
         cur_element->size = 

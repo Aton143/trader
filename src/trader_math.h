@@ -52,6 +52,7 @@ internal inline f32 squared_length(V2_f32 v);
 internal inline V2_f32 normalize(V2_f32 v);
 
 internal inline Matrix_f32_4x4 matrix4x4_from_rows(V4_f32 row0, V4_f32 row1, V4_f32 row2, V4_f32 row3);
+internal inline Matrix_f32_4x4 matrix4x4_translate(f32 x, f32 y, f32 z);
 internal inline Matrix_f32_4x4 matrix4x4_diagonals(f32 row0, f32 row1, f32 row2, f32 row3);
 internal inline Matrix_f32_4x4 matrix4x4_symmetric_projection(f32 near, f32 far, f32 top_bottom, f32 left_right);
 

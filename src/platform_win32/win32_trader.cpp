@@ -1005,8 +1005,8 @@ WinMain(HINSTANCE instance,
 #include "../trader_cube_vertices.h"
     };
 
-    Matrix_f32_4x4 model = matrix4x4_diagonals(1.0f, 1.0f, 1.0f, 1.0f);
-    Matrix_f32_4x4 view = matrix4x4_diagonals(1.0f, 1.0f, 1.0f, 1.0f);
+    Matrix_f32_4x4 model      = matrix4x4_translate(0.0f, 0.0f, -2.0f);
+    Matrix_f32_4x4 view       = matrix4x4_diagonals(1.0f, 1.0f, 1.0f, 1.0f);
     Matrix_f32_4x4 projection = matrix4x4_symmetric_projection(1.0f, 10.0f, 1.0f, 1.0f);
 
     while (global_running)
@@ -1223,7 +1223,6 @@ WinMain(HINSTANCE instance,
       }
 
       {
-        device_context->ClearRenderTargetView(frame_buffer_view, background_color);
         device_context->OMSetRenderTargets(1, &frame_buffer_view, depth_stencil_view);
         device_context->ClearDepthStencilView(depth_stencil_view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
@@ -1300,6 +1299,7 @@ WinMain(HINSTANCE instance,
 
         device_context->DrawInstanced(4, initial_draw_count, 0, 0);
 
+        /*
         for (u32 draw_layer_index = 0;
              draw_layer_index < array_count(ui->render_layers);
              ++draw_layer_index)
@@ -1310,6 +1310,7 @@ WinMain(HINSTANCE instance,
                                         0,
                                         ui->flattened_draw_layer_indices[draw_layer_index]);
         }
+        */
       }
 
 #if 0 && !SHIP_MODE

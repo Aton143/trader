@@ -273,6 +273,18 @@ internal inline Matrix_f32_4x4 matrix4x4_symmetric_projection(f32 near_plane, f3
   return(mat);
 }
 
+internal inline Matrix_f32_4x4 matrix4x4_translate(f32 x, f32 y, f32 z)
+{
+  Matrix_f32_4x4 mat = {};
+
+  mat.row0 = V4(1.0f, 0.0f, 0.0f, x);
+  mat.row1 = V4(0.0f, 1.0f, 0.0f, y);
+  mat.row2 = V4(1.0f, 0.0f, 1.0f, z);
+  mat.row3 = V4(0.0f, 0.0f, 0.0f, 1.0f);
+
+  return(mat);
+}
+
 internal inline Matrix_f32_4x4 matrix4x4_rotate_about_x(f32 amount)
 {
   f32 to_rad = amount * tau_f32;

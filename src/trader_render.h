@@ -14,7 +14,9 @@ struct Constant_Buffer
 
     // NOTE(antonio): for vertex-based rendering
     struct {
-      Matrix_f32_4x4 model_view_projection;
+      Matrix_f32_4x4 model;
+      Matrix_f32_4x4 view;
+      Matrix_f32_4x4 projection;
     };
   };
 };

@@ -3,6 +3,12 @@ struct Vertex_Global_Data
 {
   float4   texture_dimensions;
   float4x4 model_view_projection;
+
+  /*
+  float4x4 model;
+  float4x4 view;
+  float4x4 projection;
+  */
 };
 
 struct VS_Input
@@ -27,15 +33,14 @@ PS_Input VS_Main(VS_Input input)
 {
   PS_Input output;
 
-
   float4 centered_vertex = float4((2 * input.position.x) - 1,
                                   1 - (2 * input.position.y),
                                   input.position.z,
                                   input.position.w);
 
   output.vertex = mul(global_data.model_view_projection, centered_vertex);
-  output.vertex.z = 0.5f;
-  output.uv     = float2(input.uv.x / global_data.texture_dimensions.x, input.uv.y / global_data.texture_dimensions.y);
+  // output.vertex.z = 0.5f;
+  output.uv     = float2(input.uv.x, input.uv.y);
   output.color  = input.color;
 
   return(output);

@@ -237,6 +237,42 @@ internal inline Matrix_f32_4x4 matrix4x4_from_rows(V4_f32 row0, V4_f32 row1, V4_
   return(mat);
 }
 
+internal inline Matrix_f32_4x4 matrix4x4_diagonals(f32 row0, f32 row1, f32 row2, f32 row3)
+{
+  Matrix_f32_4x4 mat = {};
+
+  mat.rows[0].v[0] = row0;
+  mat.rows[1].v[1] = row1;
+  mat.rows[2].v[2] = row2;
+  mat.rows[3].v[3] = row3;
+
+  return(mat);
+}
+
+internal inline Matrix_f32_4x4 matrix4x4_symmetric_projection(f32 near_plane, f32 far_plane, f32 top_bottom, f32 left_right)
+{
+  Matrix_f32_4x4 mat = {};
+
+  expect(near_plane > 0.0f);
+  expect(far_plane > near_plane);
+  expect(top_bottom > 0.0f);
+  expect(left_right > 0.0f);
+
+  f32 lr_reciprocal = 1.0f / left_right;
+  f32 tb_reciprocal = 1.0f / top_bottom;
+  f32 f_min_n_reciprocal = 1.0f / (far_plane - near_plane);
+
+  mat.row0 = V4(near_plane * lr_reciprocal, 0.0f, 0.0f, 0.0f);
+  mat.row1 = V4(0.0f, near_plane * tb_reciprocal, 0.0f, 0.0f);
+  mat.row2 = V4(0.0f,
+                0.0f,
+                -1.0f * (near_plane + far_plane) * f_min_n_reciprocal,
+                -2.0f * near_plane * far_plane * f_min_n_reciprocal);
+  mat.row3 = V4(0.0f, 0.0f, -1.0f, 0.0f);
+
+  return(mat);
+}
+
 internal inline Matrix_f32_4x4 matrix4x4_rotate_about_x(f32 amount)
 {
   f32 to_rad = amount * tau_f32;

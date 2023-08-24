@@ -993,18 +993,21 @@ WinMain(HINSTANCE instance,
     f32 panel_floats[16]  = {1.00f};
     u32 panel_float_index = 0;
 
-    Range_f32 range       = {0.0f, 1.0f};
-
-    Buffer           teb_buf = stack_alloc_buffer(128);
-    zero_memory_block(teb_buf.data, teb_buf.size);
-    Text_Edit_Buffer teb = {teb_buf, string_encoding_utf8};
-
     // NOTE(antonio): experimental change
     win32_global_state.main_fiber_address = ConvertThreadToFiber(NULL);
     expect_message(win32_global_state.main_fiber_address != NULL, "expected to use fiber path");
 
     void *win32_message_fiber_handle = CreateFiber(0, &win32_message_fiber, NULL);
     expect_message(win32_global_state.main_fiber_address != NULL, "could not create a fiber for messages");
+
+    Vertex_Buffer_Element cube_vertices[] = 
+    {
+#include "../trader_cube_vertices.h"
+    };
+
+    Matrix_f32_4x4 model = matrix4x4_diagonals(1.0f, 1.0f, 1.0f, 1.0f);
+    Matrix_f32_4x4 view = matrix4x4_diagonals(1.0f, 1.0f, 1.0f, 1.0f);
+    Matrix_f32_4x4 projection = matrix4x4_symmetric_projection(1.0f, 10.0f, 1.0f, 1.0f);
 
     while (global_running)
     {
@@ -1115,7 +1118,7 @@ WinMain(HINSTANCE instance,
       ui_initialize_frame();
       panel_float_index = 0;
 
-      ui_push_background_color(rgba_from_u8(255, 0, 0, 255));
+      ui_push_background_color(rgba_from_u8(0, 0, 0, 255));
       ui_make_panel(axis_split_vertical, &panel_floats[panel_float_index++], string_literal_init_type("first", utf8));
       ui_do_string(string_literal_init_type("Hello World!", utf8));
       ui_prepare_render_from_panels(ui_get_sentinel_panel(), client_rect);
@@ -1123,14 +1126,106 @@ WinMain(HINSTANCE instance,
       u32 initial_draw_count = (u32) (win32_global_state.render_context.render_data.used / sizeof(Instance_Buffer_Element));
       ui_flatten_draw_layers();
 
+      Vertex_Buffer_Element *triangles = push_array(&win32_global_state.render_context.triangle_render_data,
+                                                    Vertex_Buffer_Element,
+                                                    array_count(cube_vertices));
+      copy_memory_block(triangles, cube_vertices, sizeof(cube_vertices));
+
       // NOTE(antonio): instances
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
       Constant_Buffer constant_buffer_items = {};
       {
         device_context->ClearRenderTargetView(frame_buffer_view, background_color);
+        device_context->OMSetRenderTargets(1, &frame_buffer_view, depth_stencil_view);
         device_context->ClearDepthStencilView(depth_stencil_view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
+        {
+          D3D11_MAPPED_SUBRESOURCE mapped_vertex_buffer = {};
+          device_context->Map(vertex_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_vertex_buffer);
+
+          copy_memory_block(mapped_vertex_buffer.pData,
+                            win32_global_state.render_context.triangle_render_data.start,
+                            win32_global_state.render_context.triangle_render_data.used);
+
+          device_context->Unmap(vertex_buffer, 0);
+        }
+
+        {
+          constant_buffer_items.atlas_width   = (f32) atlas->bitmap.width;
+          constant_buffer_items.atlas_height  = (f32) atlas->bitmap.height;
+
+          constant_buffer_items.model      = model;
+          constant_buffer_items.view       = view;
+          constant_buffer_items.projection = projection;
+        }
+
+        {
+          D3D11_MAPPED_SUBRESOURCE mapped_subresource = {};
+          device_context->Map(constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
+
+          Constant_Buffer *constants_to_fill = (Constant_Buffer *) mapped_subresource.pData;
+          copy_struct(constants_to_fill, &constant_buffer_items);
+
+          device_context->Unmap(constant_buffer, 0);
+        }
+
+        // NOTE(antonio): triangles
+        D3D11_VIEWPORT viewport =
+        {
+          client_rect.x0, client_rect.y0, 
+          rect_get_width(&client_rect), rect_get_height(&client_rect),
+          0.0f, 1.0f
+        };
+
+        device_context->RSSetViewports(1, &viewport);
+
+        device_context->IASetInputLayout(triangle_input_layout);
+
+        u32 vertex_buffer_strides[] = {sizeof(Vertex_Buffer_Element)};
+        u32 vertex_buffer_offsets[] = {0};
+        device_context->IASetVertexBuffers(0, 1, &vertex_buffer,
+                                           vertex_buffer_strides,
+                                           vertex_buffer_offsets);
+
+        device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        render_load_vertex_shader(triangle_shader_source_handle, &triangle_vertex_shader);
+        device_context->VSSetShader(triangle_vertex_shader.shader, NULL, 0);
+        device_context->VSSetConstantBuffers(0, 1, &constant_buffer);
+
+        render_load_pixel_shader(triangle_shader_source_handle, &triangle_pixel_shader);
+        device_context->PSSetShader(triangle_pixel_shader.shader, NULL, 0);
+
+        device_context->PSSetShaderResources(0, 1, &font_texture_view);
+        device_context->PSSetSamplers(0, 1, &sampler_state);
+
+        device_context->GSSetShader(NULL, NULL, 0);
+        device_context->HSSetShader(NULL, NULL, 0);
+        device_context->DSSetShader(NULL, NULL, 0);
+        device_context->CSSetShader(NULL, NULL, 0);
+
+        f32 blend_factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+        device_context->OMSetBlendState(transparent_blend_state, blend_factor, 0xffffffff);
+        device_context->OMSetDepthStencilState(depth_stencil_state, 0);
+        device_context->RSSetState(rasterizer_state);
+
+        D3D11_RECT scissor_rectangle = {(LONG) 0, (LONG) 0, (LONG) client_rect.x1, (LONG) client_rect.y1};
+        device_context->RSSetScissorRects(1, &scissor_rectangle);
+
+        u32 triangle_draw_call_count = 
+          (u32) (win32_global_state.render_context.triangle_render_data.used / sizeof(Vertex_Buffer_Element));
+
+        expect_message((triangle_draw_call_count % 3) == 0, 
+                       "Expected vertex count to be divisible by 3 - "
+                       "you realize you're drawing triangles, right?");
+
+        device_context->Draw(triangle_draw_call_count, 0);
+      }
+
+      {
+        device_context->ClearRenderTargetView(frame_buffer_view, background_color);
         device_context->OMSetRenderTargets(1, &frame_buffer_view, depth_stencil_view);
+        device_context->ClearDepthStencilView(depth_stencil_view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
         {
           {
@@ -1215,66 +1310,6 @@ WinMain(HINSTANCE instance,
                                         0,
                                         ui->flattened_draw_layer_indices[draw_layer_index]);
         }
-      }
-
-      // NOTE(antonio): triangles
-      D3D11_VIEWPORT viewport =
-      {
-        client_rect.x0, client_rect.y0, 
-        rect_get_width(&client_rect), rect_get_height(&client_rect),
-        0.0f, 1.0f
-      };
-
-      device_context->RSSetViewports(1, &viewport);
-
-      {
-        device_context->IASetInputLayout(triangle_input_layout);
-        {
-          D3D11_MAPPED_SUBRESOURCE mapped_vertex_buffer = {};
-          device_context->Map(vertex_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_vertex_buffer);
-
-          copy_memory_block(mapped_vertex_buffer.pData,
-                            win32_global_state.render_context.triangle_render_data.start,
-                            win32_global_state.render_context.triangle_render_data.used);
-
-          device_context->Unmap(vertex_buffer, 0);
-        }
-
-        {
-          {
-            D3D11_MAPPED_SUBRESOURCE mapped_subresource = {};
-            device_context->Map(constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
-
-            Constant_Buffer *constants_to_fill = (Constant_Buffer *) mapped_subresource.pData;
-            copy_struct(constants_to_fill, &constant_buffer_items);
-
-            device_context->Unmap(constant_buffer, 0);
-          }
-        }
-
-        u32 vertex_buffer_strides[] = {sizeof(Vertex_Buffer_Element)};
-        u32 vertex_buffer_offsets[] = {0};
-        device_context->IASetVertexBuffers(0, 1, &vertex_buffer,
-                                           vertex_buffer_strides,
-                                           vertex_buffer_offsets);
-
-        render_load_vertex_shader(triangle_shader_source_handle, &triangle_vertex_shader);
-        device_context->VSSetShader(triangle_vertex_shader.shader, NULL, 0);
-        device_context->VSSetConstantBuffers(0, 1, &constant_buffer);
-
-        render_load_pixel_shader(triangle_shader_source_handle, &triangle_pixel_shader);
-        device_context->PSSetShader(triangle_pixel_shader.shader, NULL, 0);
-
-        device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-        u32 triangle_draw_call_count = 
-          (u32) (win32_global_state.render_context.triangle_render_data.used / sizeof(Vertex_Buffer_Element));
-
-        expect_message((triangle_draw_call_count % 3) == 0, 
-                       "Expected vertex count to be divisible by 3 - "
-                       "you realize you're drawing triangles, right?");
-
-        device_context->Draw(triangle_draw_call_count, 0);
       }
 
 #if 0 && !SHIP_MODE

@@ -182,6 +182,12 @@ internal inline f32 dot(V2_f32 u, V2_f32 v)
   return(dot_product);
 }
 
+internal inline f32 dot(V4_f32 u, V4_f32 v)
+{
+  f32 dot_product = (u.x * v.x) + (u.y * v.y) + (u.z * v.z) + (u.w * v.w);
+  return(dot_product);
+}
+
 internal inline V2_f32 operator +(V2_f32 a, V2_f32 b)
 {
   return(add(a, b));
@@ -279,8 +285,31 @@ internal inline Matrix_f32_4x4 matrix4x4_translate(f32 x, f32 y, f32 z)
 
   mat.row0 = V4(1.0f, 0.0f, 0.0f, x);
   mat.row1 = V4(0.0f, 1.0f, 0.0f, y);
-  mat.row2 = V4(1.0f, 0.0f, 1.0f, z);
+  mat.row2 = V4(0.0f, 0.0f, 1.0f, z);
   mat.row3 = V4(0.0f, 0.0f, 0.0f, 1.0f);
+
+  return(mat);
+}
+
+internal inline Matrix_f32_4x4 matrix4x4_multiply(Matrix_f32_4x4 a, Matrix_f32_4x4 b)
+{
+  Matrix_f32_4x4 mat = {};
+
+  u32 col_count = matrix_col_count(&b);
+  u32 row_count = matrix_row_count(&a);
+
+  for (u32 row = 0; row < row_count; ++row)
+  {
+    for (u32 col = 0; col < col_count; ++col)
+    {
+      V4_f32 b_col = V4(b.rows[0].v[col],
+                        b.rows[1].v[col],
+                        b.rows[2].v[col],
+                        b.rows[3].v[col]);
+
+      mat.rows[row].v[col] = dot(a.rows[row], b_col);
+    }
+  }
 
   return(mat);
 }

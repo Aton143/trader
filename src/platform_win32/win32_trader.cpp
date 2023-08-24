@@ -1005,7 +1005,8 @@ WinMain(HINSTANCE instance,
 #include "../trader_cube_vertices.h"
     };
 
-    Matrix_f32_4x4 model      = matrix4x4_translate(0.0f, 0.0f, -2.0f);
+    f32 acc_time = 0.0f;
+
     Matrix_f32_4x4 view       = matrix4x4_diagonals(1.0f, 1.0f, 1.0f, 1.0f);
     Matrix_f32_4x4 projection = matrix4x4_symmetric_projection(1.0f, 10.0f, 1.0f, 1.0f);
 
@@ -1154,9 +1155,17 @@ WinMain(HINSTANCE instance,
           constant_buffer_items.atlas_width   = (f32) atlas->bitmap.width;
           constant_buffer_items.atlas_height  = (f32) atlas->bitmap.height;
 
-          constant_buffer_items.model      = model;
+          f32 normalized_sine = (sinf((acc_time / 10.0f) * tau_f32) + 1.0f) * 0.5f;
+          Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, (normalized_sine + 0.5f) * -1.0f);
+          Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(acc_time);
+          Matrix_f32_4x4 x_rotation  = matrix4x4_rotate_about_x(1.0f - acc_time);
+
+          constant_buffer_items.model      = matrix4x4_multiply(translation, matrix4x4_multiply(y_rotation, x_rotation));
           constant_buffer_items.view       = view;
           constant_buffer_items.projection = projection;
+
+          acc_time += 1.0f / 60.0f;
+          if (acc_time > 10.0f) acc_time = 0.0f;
         }
 
         {

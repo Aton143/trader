@@ -925,7 +925,7 @@ WinMain(HINSTANCE instance,
 
       depth_stencil_state_description.DepthEnable                  = TRUE;
       depth_stencil_state_description.DepthWriteMask               = D3D11_DEPTH_WRITE_MASK_ALL;
-      depth_stencil_state_description.DepthFunc                    = D3D11_COMPARISON_LESS_EQUAL;
+      depth_stencil_state_description.DepthFunc                    = D3D11_COMPARISON_LESS;//_EQUAL;
       depth_stencil_state_description.StencilEnable                = TRUE;
       depth_stencil_state_description.StencilReadMask              = 0xff;
       depth_stencil_state_description.StencilWriteMask             = 0xff;
@@ -1008,7 +1008,7 @@ WinMain(HINSTANCE instance,
     f32 acc_time = 0.0f;
 
     Matrix_f32_4x4 view       = matrix4x4_diagonals(1.0f, 1.0f, 1.0f, 1.0f);
-    Matrix_f32_4x4 projection = matrix4x4_symmetric_projection(1.0f, 10.0f, 1.0f, 1.0f);
+    Matrix_f32_4x4 projection = matrix4x4_symmetric_projection(1.0f, 100.0f, 1.0f, 1.0f);
 
     while (global_running)
     {
@@ -1156,11 +1156,11 @@ WinMain(HINSTANCE instance,
           constant_buffer_items.atlas_height  = (f32) atlas->bitmap.height;
 
           f32 normalized_sine = (sinf((acc_time / 10.0f) * tau_f32) + 1.0f) * 0.5f;
-          Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, (normalized_sine + 0.5f) * -1.0f);
-          Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(acc_time);
-          Matrix_f32_4x4 x_rotation  = matrix4x4_rotate_about_x(1.0f - acc_time);
+          Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, (normalized_sine + 2.0f) * -1.0f);
+          Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(acc_time / 10.0f);
+          Matrix_f32_4x4 x_rotation  = matrix4x4_rotate_about_x(1.0f - (acc_time / 10.0f));
 
-          constant_buffer_items.model      = matrix4x4_multiply(translation, matrix4x4_multiply(y_rotation, x_rotation));
+          constant_buffer_items.model      = matrix4x4_multiply(translation, matrix4x4_multiply(x_rotation, y_rotation));
           constant_buffer_items.view       = view;
           constant_buffer_items.projection = projection;
 
@@ -1228,7 +1228,11 @@ WinMain(HINSTANCE instance,
                        "Expected vertex count to be divisible by 3 - "
                        "you realize you're drawing triangles, right?");
 
-        device_context->Draw(triangle_draw_call_count, 0);
+        // device_context->Draw(triangle_draw_call_count, 0);
+        for (int i = 0; i < 6; ++i)
+        {
+          device_context->Draw(6, 6 * i);
+        }
       }
 
       {

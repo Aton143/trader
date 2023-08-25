@@ -42,6 +42,6 @@ float4 PS_Main(PS_Input input): SV_Target
   float alpha_sample = global_texture.Sample(global_sampler, input.uv).r;
   float3 combined    = float3(input.color.rgb) * alpha_sample;
   float4 out_color   = float4(combined, alpha_sample);
-  out_color = pow(out_color, 1.0 / 2.2f);
+  out_color = pow(out_color, 1.0f / 2.2f);
   return out_color;
 }

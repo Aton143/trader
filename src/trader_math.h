@@ -51,6 +51,13 @@ internal inline f32 squared_length(V2_f32 v);
 
 internal inline V2_f32 normalize(V2_f32 v);
 
+internal inline V3_f32 subtract(V3_f32 a, V3_f32 b);
+internal inline V3_f32 scale(f32 scale, V3_f32 v);
+
+internal inline f32 dot(V3_f32 u, V3_f32 v);
+internal inline V3_f32 normalize(V3_f32 u);
+internal inline V3_f32 cross(V3_f32 u, V3_f32 v);
+
 internal inline f32 dot(V4_f32 u, V4_f32 v);
 
 #define matrix_row_count(m) array_count((m)->rows)
@@ -60,6 +67,7 @@ internal inline Matrix_f32_4x4 matrix4x4_from_rows(V4_f32 row0, V4_f32 row1, V4_
 internal inline Matrix_f32_4x4 matrix4x4_translate(f32 x, f32 y, f32 z);
 internal inline Matrix_f32_4x4 matrix4x4_diagonals(f32 row0, f32 row1, f32 row2, f32 row3);
 internal inline Matrix_f32_4x4 matrix4x4_symmetric_projection(f32 near, f32 far, f32 top_bottom, f32 left_right);
+internal inline Matrix_f32_4x4 matrix4x4_look_at(V3_f32 camera_pos, V3_f32 object_pos, V3_f32 helper);
 
 internal inline Matrix_f32_4x4 matrix4x4_multiply(Matrix_f32_4x4 a, Matrix_f32_4x4 b);
 

@@ -209,6 +209,42 @@ internal inline V3_f32 V3(f32 x, f32 y, f32 z)
   return(res);
 }
 
+internal inline V3_f32 subtract(V3_f32 a, V3_f32 b)
+{
+  V3_f32 res = V3(a.x - b.x, a.y - b.y, a.z - b.z);
+  return(res);
+}
+
+internal inline V3_f32 scale(f32 scale, V3_f32 v)
+{
+  V3_f32 scaled = V3(scale * v.x, scale * v.y, scale * v.z);
+  return(scaled);
+}
+
+internal inline f32 dot(V3_f32 u, V3_f32 v)
+{
+  f32 dot_product = (u.x * v.x) + (u.y * v.y) + (u.z * v.z);
+  return(dot_product);
+}
+
+internal inline V3_f32 normalize(V3_f32 u)
+{
+  f32 squared_length_rec = dot(u, u);
+  expect(squared_length_rec > 0.0f);
+  squared_length_rec = 1.0f / squared_length_rec;
+
+  V3_f32 normalized = scale(squared_length_rec, u);
+  return(normalized);
+}
+
+internal inline V3_f32 cross(V3_f32 u, V3_f32 v)
+{
+  V3_f32 cross_product = V3( (u.y * v.z) - (u.z * v.y),
+                            -(u.x * v.z) + (u.z * v.x),
+                             (u.x * v.y) - (u.y * v.x));
+  return(cross_product);
+}
+
 internal inline V4_f32 V4(f32 x, f32 y, f32 z, f32 w)
 {
   V4_f32 res = {x, y, z, w};
@@ -288,6 +324,22 @@ internal inline Matrix_f32_4x4 matrix4x4_translate(f32 x, f32 y, f32 z)
   mat.row1 = V4(0.0f, 1.0f, 0.0f, y);
   mat.row2 = V4(0.0f, 0.0f, 1.0f, z);
   mat.row3 = V4(0.0f, 0.0f, 0.0f, 1.0f);
+
+  return(mat);
+}
+
+internal inline Matrix_f32_4x4 matrix4x4_look_at(V3_f32 camera_pos, V3_f32 object_pos, V3_f32 helper)
+{
+  Matrix_f32_4x4 mat;
+
+  V3_f32 forward = normalize(subtract(camera_pos, object_pos));
+  V3_f32 right = cross(helper, forward);
+  V3_f32 up = cross(forward, right);
+
+  mat = matrix4x4_from_rows(V4(right.x,   right.y,   right.z,   0.0f),
+                            V4(up.x,      up.y,      up.z,      0.0f),
+                            V4(forward.x, forward.y, forward.z, 0.0f),
+                            V4(0.0f,      0.0f,      0.0f,      1.0f));
 
   return(mat);
 }

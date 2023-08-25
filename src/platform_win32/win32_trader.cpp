@@ -925,7 +925,7 @@ WinMain(HINSTANCE instance,
 
       depth_stencil_state_description.DepthEnable                  = TRUE;
       depth_stencil_state_description.DepthWriteMask               = D3D11_DEPTH_WRITE_MASK_ALL;
-      depth_stencil_state_description.DepthFunc                    = D3D11_COMPARISON_LESS;//_EQUAL;
+      depth_stencil_state_description.DepthFunc                    = D3D11_COMPARISON_LESS_EQUAL;
       depth_stencil_state_description.StencilEnable                = TRUE;
       depth_stencil_state_description.StencilReadMask              = 0xff;
       depth_stencil_state_description.StencilWriteMask             = 0xff;

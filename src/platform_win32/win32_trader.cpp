@@ -1007,7 +1007,7 @@ WinMain(HINSTANCE instance,
 #include "../trader_cube_vertices.h"
     };
 
-    f32 acc_time = 0.0f;
+    f32 acc_time = 9.0f;
 
     Matrix_f32_4x4 view       = matrix4x4_diagonals(1.0f, 1.0f, 1.0f, 1.0f);
     Matrix_f32_4x4 projection = matrix4x4_symmetric_projection(1.0f, 100.0f, 1.0f, 1.0f);
@@ -1121,47 +1121,18 @@ WinMain(HINSTANCE instance,
       ui_initialize_frame();
       panel_float_index = 0;
 
-      ui_push_background_color(rgba_from_u8(0, 0, 10, 255));
+      ui_push_background_color(rgba_from_u8(0, 0, 100, 255));
       ui_make_panel(axis_split_vertical, &panel_floats[panel_float_index++], string_literal_init_type("first", utf8));
       ui_do_string(string_literal_init_type("Hello World!", utf8));
+      ui_do_formatted_string("Mouse (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
       ui_do_slider_f32(string_literal_init_type("Cylinder Top Radius", utf8), &cylinder_top_radius, 0.05f, 1.0f);
+
       ui_prepare_render_from_panels(ui_get_sentinel_panel(), client_rect);
 
       u32 initial_draw_count = (u32) (win32_global_state.render_context.render_data.used / sizeof(Instance_Buffer_Element));
       ui_flatten_draw_layers();
 
-      /*
-      Vertex_Buffer_Element *triangles = push_array(&win32_global_state.render_context.triangle_render_data,
-                                                    Vertex_Buffer_Element,
-                                                    array_count(cube_vertices));
-      copy_memory_block(triangles, cube_vertices, sizeof(cube_vertices));
-
-      triangles = push_array(&win32_global_state.render_context.triangle_render_data,
-                             Vertex_Buffer_Element,
-                             array_count(cube_vertices));
-      copy_memory_block(triangles, cube_vertices, sizeof(cube_vertices));
-
-      for (u32 triangle_index = 0;
-           triangle_index < array_count(cube_vertices);
-           ++triangle_index)
-      {
-        triangles[triangle_index].position = add(triangles[triangle_index].position, V4(1.0, 0.0f, 0.0f, 0.0f));
-      }
-
-      triangles = push_array(&win32_global_state.render_context.triangle_render_data,
-                             Vertex_Buffer_Element,
-                             array_count(cube_vertices));
-      copy_memory_block(triangles, cube_vertices, sizeof(cube_vertices));
-
-      for (u32 triangle_index = 0;
-           triangle_index < array_count(cube_vertices);
-           ++triangle_index)
-      {
-        triangles[triangle_index].position = add(triangles[triangle_index].position, V4(1.0, 1.0f, 0.0f, 0.0f));
-      }
-      */
-
-      make_cylinder(&common_render->triangle_render_data, 1.0f, cylinder_top_radius, 1.0f, 16, 3);
+      make_cylinder(&common_render->triangle_render_data, 1.0f, cylinder_top_radius, 1.0f, 16, 1);
 
       // NOTE(antonio): instances
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -1186,10 +1157,10 @@ WinMain(HINSTANCE instance,
           constant_buffer_items.atlas_width   = (f32) atlas->bitmap.width;
           constant_buffer_items.atlas_height  = (f32) atlas->bitmap.height;
 
-          Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, -2.0f);
-          Matrix_f32_4x4 x_rotation  = matrix4x4_rotate_about_x(0.0f);
+          Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, -3.0f);
+          Matrix_f32_4x4 x_rotation  = matrix4x4_rotate_about_x(acc_time / 10.0f);
           Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(acc_time / 10.0f);
-          Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(0.0f / 7.0f);
+          Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(acc_time / 10.0f);
 
           constant_buffer_items.model      = matrix4x4_multiply(translation,
                                              matrix4x4_multiply(x_rotation,
@@ -1262,7 +1233,7 @@ WinMain(HINSTANCE instance,
                        "Expected vertex count to be divisible by 3 - "
                        "you realize you're drawing triangles, right?");
 
-        device_context->Draw(triangle_draw_call_count, 0);
+        // device_context->Draw(triangle_draw_call_count, 0);
       }
 
       {

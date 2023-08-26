@@ -30,7 +30,6 @@ PS_Input VS_Main(VS_Input input)
   PS_Input output;
 
   output.vertex = mul(global_data.projection, mul(global_data.view, mul(global_data.model, input.position)));
-  output.vertex.z = output.vertex.z * -1.0f;
 
   output.uv     = float2(input.uv.x, input.uv.y);
   output.color  = input.color;

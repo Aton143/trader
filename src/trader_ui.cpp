@@ -225,7 +225,7 @@ internal Panel *ui_make_panel(Axis_Split         split,
       3.0f,
     };
 
-    ui_make_widget(widget_flag_border_draggable | widget_flag_draw_background  | widget_flag_top_level,
+    ui_make_widget(widget_flag_border_draggable | widget_flag_draw_background,
                    size_flag_copy_parent_size_x | size_flag_copy_parent_size_y, 
                    string,
                    new_params_just_in_case.sizing,
@@ -1514,7 +1514,6 @@ internal void ui_prepare_render(Panel *panel, Widget *widgets, Rect_f32 rect)
     }
 
     V2_f32 cur_top_left = rect_get_top_left(&rect);
-    // rect_get_top_left(&ui_get_sentinel()->rectangle);
 
     // NOTE(antonio): resolve "implicit" sizes with current information, level-order 
     while (widget_queue.write != widget_queue.read)

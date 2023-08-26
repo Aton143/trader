@@ -124,12 +124,12 @@ global_const utf32 starting_code_point = 32;  // ' '
 global_const utf32 ending_code_point   = 126; // '~'
 
 // extern Asset_Handle render_make_texture(void *texture_data, u64 width, u64 height, u64 channels);
-internal Render_Context        *render_get_context(void);
-internal Common_Render_Context *render_get_common_context(void);
-internal void                   render_set_client_rect(Rect_f32 new_rect);
-internal Rect_f32               render_get_client_rect(void);
-internal Rect_f32               render_get_solid_color_rect(void);
-internal V2_f32                 render_get_solid_color_uv(void);
+internal inline Render_Context        *render_get_context(void);
+internal inline Common_Render_Context *render_get_common_context(void);
+internal inline void                   render_set_client_rect(Rect_f32 new_rect);
+internal inline Rect_f32               render_get_client_rect(void);
+internal inline Rect_f32               render_get_solid_color_rect(void);
+internal inline V2_f32                 render_get_solid_color_uv(void);
 
 internal void *render_load_vertex_shader(Handle *shader_handle,
                                          Vertex_Shader *shader,

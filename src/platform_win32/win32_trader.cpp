@@ -990,8 +990,10 @@ WinMain(HINSTANCE instance,
       (HCURSOR) LoadImage(NULL, MAKEINTRESOURCEW(IDC_IBEAM), IMAGE_CURSOR, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
 #pragma warning(default:4302)
 
-    f32 panel_floats[16]  = {1.00f};
+    f32 panel_floats[16]  = {0.25f};
     u32 panel_float_index = 0;
+
+    f32 cylinder_top_radius = 0.50f;
 
     // NOTE(antonio): experimental change
     win32_global_state.main_fiber_address = ConvertThreadToFiber(NULL);
@@ -1005,7 +1007,7 @@ WinMain(HINSTANCE instance,
 #include "../trader_cube_vertices.h"
     };
 
-    f32 acc_time = ((f32) max_i16) * 16.0f;
+    f32 acc_time = 0.0f;
 
     Matrix_f32_4x4 view       = matrix4x4_diagonals(1.0f, 1.0f, 1.0f, 1.0f);
     Matrix_f32_4x4 projection = matrix4x4_symmetric_projection(1.0f, 100.0f, 1.0f, 1.0f);
@@ -1119,14 +1121,16 @@ WinMain(HINSTANCE instance,
       ui_initialize_frame();
       panel_float_index = 0;
 
-      ui_push_background_color(rgba_from_u8(0, 0, 0, 255));
+      ui_push_background_color(rgba_from_u8(0, 0, 10, 255));
       ui_make_panel(axis_split_vertical, &panel_floats[panel_float_index++], string_literal_init_type("first", utf8));
       ui_do_string(string_literal_init_type("Hello World!", utf8));
+      ui_do_slider_f32(string_literal_init_type("Cylinder Top Radius", utf8), &cylinder_top_radius, 0.05f, 1.0f);
       ui_prepare_render_from_panels(ui_get_sentinel_panel(), client_rect);
 
       u32 initial_draw_count = (u32) (win32_global_state.render_context.render_data.used / sizeof(Instance_Buffer_Element));
       ui_flatten_draw_layers();
 
+      /*
       Vertex_Buffer_Element *triangles = push_array(&win32_global_state.render_context.triangle_render_data,
                                                     Vertex_Buffer_Element,
                                                     array_count(cube_vertices));
@@ -1155,6 +1159,9 @@ WinMain(HINSTANCE instance,
       {
         triangles[triangle_index].position = add(triangles[triangle_index].position, V4(1.0, 1.0f, 0.0f, 0.0f));
       }
+      */
+
+      make_cylinder(&common_render->triangle_render_data, 1.0f, cylinder_top_radius, 1.0f, 16, 3);
 
       // NOTE(antonio): instances
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -1179,17 +1186,20 @@ WinMain(HINSTANCE instance,
           constant_buffer_items.atlas_width   = (f32) atlas->bitmap.width;
           constant_buffer_items.atlas_height  = (f32) atlas->bitmap.height;
 
-          f32 normalized_sine = (sinf((acc_time / 10.0f) * tau_f32) + 1.0f) * 0.5f;
-          Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, (normalized_sine + 4.0f) * -1.0f);
-          Matrix_f32_4x4 x_rotation  = matrix4x4_rotate_about_x(acc_time / 17.0f);
-          Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(acc_time / 13.0f);
-          Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(acc_time / 7.0f);
+          Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, -2.0f);
+          Matrix_f32_4x4 x_rotation  = matrix4x4_rotate_about_x(0.0f);
+          Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(acc_time / 10.0f);
+          Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(0.0f / 7.0f);
 
-          constant_buffer_items.model      = matrix4x4_multiply(translation, matrix4x4_multiply(x_rotation, matrix4x4_multiply(y_rotation, z_rotation)));
+          constant_buffer_items.model      = matrix4x4_multiply(translation,
+                                             matrix4x4_multiply(x_rotation,
+                                             matrix4x4_multiply(y_rotation, z_rotation)));
+
           constant_buffer_items.view       = view;
           constant_buffer_items.projection = projection;
 
           acc_time += 1.0f / 60.0f;
+          if (acc_time > 10.0f) acc_time -= 10.0f;
         }
 
         {
@@ -1332,7 +1342,6 @@ WinMain(HINSTANCE instance,
 
         device_context->DrawInstanced(4, initial_draw_count, 0, 0);
 
-        /*
         for (u32 draw_layer_index = 0;
              draw_layer_index < array_count(ui->render_layers);
              ++draw_layer_index)
@@ -1343,7 +1352,6 @@ WinMain(HINSTANCE instance,
                                         0,
                                         ui->flattened_draw_layer_indices[draw_layer_index]);
         }
-        */
       }
 
 #if 0 && !SHIP_MODE

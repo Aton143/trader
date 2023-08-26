@@ -20,6 +20,12 @@ internal inline b32    approx_equal_f32(f32 a, f32 b);
 internal inline f32    absf(f32 a);
 internal inline f32    fmaddf(f32 m1, f32 m2, f32 a);
 
+internal inline f32    sin01f(f32 x);
+internal inline f32    cos01f(f32 x);
+
+internal inline f32    nsin01f(f32 x);
+internal inline f32    ncos01f(f32 x);
+
 typedef u32 Rectangle_Side;
 enum
 {
@@ -60,6 +66,7 @@ internal inline V3_f32 cross(V3_f32 u, V3_f32 v);
 
 internal inline f32 dot(V4_f32 u, V4_f32 v);
 internal inline V4_f32 add(V4_f32 u, V4_f32 v);
+internal inline V4_f32 scale(f32 scale, V4_f32 u);
 
 #define matrix_row_count(m) array_count((m)->rows)
 #define matrix_col_count(m) array_count((m)->row0.v)

@@ -31,7 +31,7 @@ internal inline V4_f32 wide_lerp(V4_f32 a, f32 t, V4_f32 b)
 }
 
 // from https://gist.github.com/XProger/433701300086245e0583
-internal f32 fast_powf(f32 a, f32 b) {
+internal inline f32 fast_powf(f32 a, f32 b) {
 	union
   {
     f32 d;
@@ -42,6 +42,38 @@ internal f32 fast_powf(f32 a, f32 b) {
 
 	return u.d;
 }
+
+internal inline f32 sin01f(f32 x)
+{
+  expect(is_between_inclusive(0.0f, x, 1.0f));
+  x *= tau_f32;
+  f32 res = sinf(x);
+  return(res);
+}
+
+internal inline f32 cos01f(f32 x)
+{
+  expect(is_between_inclusive(0.0f, x, 1.0f));
+  x *= tau_f32;
+  f32 res = cosf(x);
+  return(res);
+}
+
+internal inline f32 nsin01f(f32 x)
+{
+  f32 sin01 = sin01f(x);
+  f32 res = (sin01 + 1.0f) * 0.5f;
+  return(res);
+}
+
+internal inline f32 ns01f(f32 x)
+{
+  f32 cos01 = cos01f(x);
+  f32 res = (cos01 + 1.0f) * 0.5f;
+  return(res);
+}
+
+// internal inline f32    norm_cos01f(f32 x)
 
 internal inline V2_f32 line_get_closest_point_to_point(V2_f32 p, V2_f32 line_start, V2_f32 line_end)
 {
@@ -251,9 +283,21 @@ internal inline V4_f32 V4(f32 x, f32 y, f32 z, f32 w)
   return(res);
 }
 
+internal inline V4_f32 V4(V3_f32 u, f32 w)
+{
+  V4_f32 res = V4(u.x, u.y, u.z, w);
+  return(res);
+}
+
 internal inline V4_f32 add(V4_f32 u, V4_f32 v)
 {
   V4_f32 res = V4(u.x + v.x, u.y + v.y, u.z + v.z, u.w + v.w);
+  return(res);
+}
+
+internal inline V4_f32 scale(f32 scale, V4_f32 u)
+{
+  V4_f32 res = V4(scale * u.x, scale * u.y, scale * u.z, scale * u.w);
   return(res);
 }
 
@@ -297,7 +341,7 @@ internal inline Matrix_f32_4x4 matrix4x4_diagonals(f32 row0, f32 row1, f32 row2,
   return(mat);
 }
 
-// NOTE(antonio): z it bounded between [0, 1]
+// NOTE(antonio): z is bounded between [0, 1]
 internal inline Matrix_f32_4x4 matrix4x4_symmetric_projection(f32 near_plane, f32 far_plane, f32 top_bottom, f32 left_right)
 {
   Matrix_f32_4x4 mat = {};
@@ -375,9 +419,8 @@ internal inline Matrix_f32_4x4 matrix4x4_multiply(Matrix_f32_4x4 a, Matrix_f32_4
 
 internal inline Matrix_f32_4x4 matrix4x4_rotate_about_x(f32 amount)
 {
-  f32 to_rad = amount * tau_f32;
-  f32 sin = sinf(to_rad);
-  f32 cos = cosf(to_rad);
+  f32 sin = sin01f(amount);
+  f32 cos = cos01f(amount);
 
   Matrix_f32_4x4 res = matrix4x4_from_rows(V4(1.0f,  0.0f,  0.0f, 0.0f),
                                            V4(0.0f,  cos,  -sin,  0.0f),

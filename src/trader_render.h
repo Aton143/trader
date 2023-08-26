@@ -117,6 +117,8 @@ struct Common_Render_Context
 
 global_const u32 render_data_size          = mb(1);
 global_const u32 triangle_render_data_size = mb(1);
+global_const u32 vertices_per_triangle     = 3;
+global_const u32 vertices_per_quad         = 6;
 
 global_const utf32 starting_code_point = 32;  // ' '
 global_const utf32 ending_code_point   = 126; // '~'
@@ -127,6 +129,7 @@ internal Common_Render_Context *render_get_common_context(void);
 internal void                   render_set_client_rect(Rect_f32 new_rect);
 internal Rect_f32               render_get_client_rect(void);
 internal Rect_f32               render_get_solid_color_rect(void);
+internal V2_f32                 render_get_solid_color_uv(void);
 
 internal void *render_load_vertex_shader(Handle *shader_handle,
                                          Vertex_Shader *shader,

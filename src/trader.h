@@ -85,6 +85,7 @@ global u8 __debug_memory[1 << 20];
 global Text_Edit_Buffer debug_teb = make_text_edit_buffer({__debug_memory, array_count(__debug_memory), 0});
 
 #include "trader_render.cpp"
+#include "trader_shapes.cpp"
 #include "trader_ui.cpp"
 
 #include "trader_network.cpp"

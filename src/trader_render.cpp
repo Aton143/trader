@@ -404,7 +404,7 @@ internal void render_draw_text(Arena    *render_arena,
   *baseline_y = cur_pos.y;
 }
 
-internal Rect_f32 render_get_solid_color_rect(void)
+internal inline Rect_f32 render_get_solid_color_rect(void)
 {
   Texture_Atlas *atlas = render_get_common_context()->atlas;
 
@@ -417,6 +417,17 @@ internal Rect_f32 render_get_solid_color_rect(void)
 
   return(solid_color_rect);
 }
+
+internal inline V2_f32 render_get_solid_color_uv(void)
+{
+  Texture_Atlas *atlas = render_get_common_context()->atlas;
+
+  Rect_f32 solid_color_rect = render_get_solid_color_rect();
+  V2_f32 uv = V2(solid_color_rect.x0 / atlas->bitmap.width, 
+                 solid_color_rect.y0 / atlas->bitmap.height);
+  return(uv);
+}
+
 
 internal void render_push_line_instance(V2_f32 line_start, f32 length, f32 dir_x, f32 dir_y, RGBA_f32 color)
 {

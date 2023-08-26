@@ -16,15 +16,15 @@ internal inline f32 fast_powf(f32 a, f32 b);
 internal inline V2_f32 line_get_closest_point_to_point(V2_f32 p, V2_f32 line_start, V2_f32 line_end);
 internal inline f32    line_get_squared_distance_from_point(V2_f32 p, V2_f32 line_start, V2_f32 line_end);
 
-internal inline b32    approx_equal_f32(f32 a, f32 b);
-internal inline f32    absf(f32 a);
-internal inline f32    fmaddf(f32 m1, f32 m2, f32 a);
+internal inline b32 approx_equal_f32(f32 a, f32 b);
+internal inline f32 absf(f32 a);
+internal inline f32 fmaddf(f32 m1, f32 m2, f32 a);
 
-internal inline f32    sin01f(f32 x);
-internal inline f32    cos01f(f32 x);
+internal inline f32 sin01f(f32 x);
+internal inline f32 cos01f(f32 x);
 
-internal inline f32    nsin01f(f32 x);
-internal inline f32    ncos01f(f32 x);
+internal inline f32 nsin01f(f32 x);
+internal inline f32 ncos01f(f32 x);
 
 typedef u32 Rectangle_Side;
 enum
@@ -83,6 +83,11 @@ internal inline Matrix_f32_4x4 matrix4x4_multiply(Matrix_f32_4x4 a, Matrix_f32_4
 internal inline Matrix_f32_4x4 matrix4x4_rotate_about_x(f32 amount);
 internal inline Matrix_f32_4x4 matrix4x4_rotate_about_y(f32 amount);
 internal inline Matrix_f32_4x4 matrix4x4_rotate_about_z(f32 amount);
+internal        Matrix_f32_4x4 matrix4x4_rotate_about_v_rodrigues(V3_f32 v, f32 amount);
+
+internal inline Matrix_f32_4x4 matrix4x4_identity(void);
+internal inline Matrix_f32_4x4 add(Matrix_f32_4x4 a, Matrix_f32_4x4 b);
+internal inline Matrix_f32_4x4 scale(f32 scale, Matrix_f32_4x4 a);
 
 internal inline Rect_f32 translate(Rect_f32 rect, V2_f32 v);
 

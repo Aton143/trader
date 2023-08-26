@@ -994,6 +994,7 @@ WinMain(HINSTANCE instance,
     u32 panel_float_index = 0;
 
     f32 cylinder_top_radius = 0.50f;
+    f32 cylinder_sector_count = 3.0f;
 
     // NOTE(antonio): experimental change
     win32_global_state.main_fiber_address = ConvertThreadToFiber(NULL);
@@ -1125,14 +1126,15 @@ WinMain(HINSTANCE instance,
       ui_make_panel(axis_split_vertical, &panel_floats[panel_float_index++], string_literal_init_type("first", utf8));
       ui_do_string(string_literal_init_type("Hello World!", utf8));
       ui_do_formatted_string("Mouse (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
-      ui_do_slider_f32(string_literal_init_type("Cylinder Top Radius", utf8), &cylinder_top_radius, 0.05f, 1.0f);
+      ui_do_slider_f32(string_literal_init_type("Cylinder Top Radius", utf8), &cylinder_top_radius, 0.0f, 1.0f);
+      ui_do_slider_f32(string_literal_init_type("Cylinder Sector Count", utf8), &cylinder_sector_count, 3.0f, 100.0f);
 
       ui_prepare_render_from_panels(ui_get_sentinel_panel(), client_rect);
 
       u32 initial_draw_count = (u32) (win32_global_state.render_context.render_data.used / sizeof(Instance_Buffer_Element));
       ui_flatten_draw_layers();
 
-      make_cylinder(&common_render->triangle_render_data, 1.0f, cylinder_top_radius, 1.0f, 16, 1);
+      make_cylinder(&common_render->triangle_render_data, 1.0f, cylinder_top_radius, 1.0f, (i32) (cylinder_sector_count), 1);
 
       // NOTE(antonio): instances
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -1233,7 +1235,7 @@ WinMain(HINSTANCE instance,
                        "Expected vertex count to be divisible by 3 - "
                        "you realize you're drawing triangles, right?");
 
-        // device_context->Draw(triangle_draw_call_count, 0);
+        device_context->Draw(triangle_draw_call_count, 0);
       }
 
       {

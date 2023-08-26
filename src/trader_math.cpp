@@ -455,6 +455,61 @@ internal inline Matrix_f32_4x4 matrix4x4_rotate_about_z(f32 amount)
   return(res);
 }
 
+internal inline Matrix_f32_4x4 matrix4x4_identity(void)
+{
+  Matrix_f32_4x4 mat = matrix4x4_from_rows(V4(1.0f, 0.0f, 0.0f, 0.0f),
+                                           V4(0.0f, 1.0f, 0.0f, 0.0f),
+                                           V4(0.0f, 0.0f, 1.0f, 0.0f),
+                                           V4(0.0f, 0.0f, 0.0f, 1.0f));
+  return(mat);
+}
+
+// TODO(antonio): try quaternion version?
+// NOTE(antonio): https://math.stackexchange.com/questions/142821/matrix-for-rotation-around-a-vector
+internal Matrix_f32_4x4 matrix4x4_rotate_about_v_rodrigues(V3_f32 v, f32 amount)
+{
+  Matrix_f32_4x4 mat = {};
+
+  V3_f32 nv    = normalize(v);
+  f32    sine  = sin01f(amount);
+  f32    hsine = sin01f(amount * 0.5f);
+         hsine = 2.0f * hsine * hsine;
+
+  Matrix_f32_4x4 w = matrix4x4_from_rows(V4( 0.0f, -nv.z,  nv.y, 0.0f),
+                                         V4( nv.z,  0.0f, -nv.x, 0.0f),
+                                         V4(-nv.y,  nv.x,  0.0f, 0.0f),
+                                         V4( 0.0f,  0.0f,  0.0f, 1.0f));
+
+  mat = add(matrix4x4_identity(), scale(sine, w));
+  mat = add(mat, scale(hsine, matrix4x4_multiply(w, w)));
+
+  return(mat);
+}
+
+internal inline Matrix_f32_4x4 add(Matrix_f32_4x4 a, Matrix_f32_4x4 b)
+{
+  Matrix_f32_4x4 mat = {};
+
+  for (u32 i = 0; i < 16; ++i)
+  {
+    mat.values[i] = a.values[i] + b.values[i];
+  }
+
+  return(mat);
+}
+
+internal inline Matrix_f32_4x4 scale(f32 scale, Matrix_f32_4x4 a)
+{
+  Matrix_f32_4x4 mat = {};
+
+  for (u32 i = 0; i < 16; ++i)
+  {
+    mat.values[i] = scale * a.values[i];
+  }
+
+  return(mat);
+}
+
 internal inline Rect_f32 translate(Rect_f32 rect, V2_f32 v)
 {
   Rect_f32 res = {};

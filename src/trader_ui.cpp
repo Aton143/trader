@@ -1050,7 +1050,7 @@ internal void ui_do_slider_f32(String_Const_utf8 string, f32 *in_out_value, f32 
   Widget *slider_parent = panel_parent->current_parent->last_child;
   ui_push_parent(slider_parent);
 
-  ui_push_background_color(*in_out_value, *in_out_value, 0.0f, 1.0f);
+  ui_push_background_color(1.0f, 1.0f, 0.0f, 1.0f);
 
   slider_parent_to_hash.size--;
   String_Const_utf8 slider_to_hash = concat_string_to_c_string(ui->string_pool,

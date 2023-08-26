@@ -60,9 +60,9 @@ internal Vertex_Buffer_Element *make_cylinder(Arena *render_arena,
                                               u32    sector_count,
                                               u32    stack_count)
 {
-  expect(base_radius  > 0.0f);
-  expect(top_radius   > 0.0f);
-  expect(height       > 0.0f);
+  expect(base_radius  >= 0.0f);
+  expect(top_radius   >= 0.0f);
+  expect(height       >= 0.0f);
   expect(sector_count > 0);
   expect(stack_count  > 0);
 
@@ -167,6 +167,37 @@ internal Vertex_Buffer_Element *make_cylinder(Arena *render_arena,
       put_quad(&cur_vertex, tl, tr, bl, br, color);
     }
   }
+
+  return(vertices);
+}
+
+internal Vertex_Buffer_Element *make_cylinder_along_path(Arena  *render_data,
+                                                         V3_f32 *points,
+                                                         u32     point_count,
+                                                         f32     radius,
+                                                         u32     sector_count)
+{
+  expect(points != NULL);
+  expect(point_count > 1);
+  expect(radius >= 0.0f);
+
+  u32 vertex_count = (2 * vertices_per_triangle * sector_count) +
+                     (vertices_per_quad * sector_count * (point_count - 1));
+  Vertex_Buffer_Element *vertices = push_array(render_data, Vertex_Buffer_Element, vertex_count);
+
+#if 0
+  Vertex_Buffer_Element *cur_vertex = vertices;
+  f32 sector_angle_step = 1.0f / sector_count;
+
+  u32    i = 1;
+  V3_f32 v = subtract(points[i], points[i - 1]);
+
+  for (u32 sector_index = 0;
+       sector_index < sector_count;
+       ++sector_index)
+  {
+  }
+#endif
 
   return(vertices);
 }

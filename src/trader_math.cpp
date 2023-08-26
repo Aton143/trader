@@ -251,6 +251,12 @@ internal inline V4_f32 V4(f32 x, f32 y, f32 z, f32 w)
   return(res);
 }
 
+internal inline V4_f32 add(V4_f32 u, V4_f32 v)
+{
+  V4_f32 res = V4(u.x + v.x, u.y + v.y, u.z + v.z, u.w + v.w);
+  return(res);
+}
+
 internal inline V2_f32 wide_clamp(V2_f32 bottom, V2_f32 v, V2_f32 top)
 {
   V2_f32 res =

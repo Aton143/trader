@@ -1005,7 +1005,7 @@ WinMain(HINSTANCE instance,
 #include "../trader_cube_vertices.h"
     };
 
-    f32 acc_time = 0.0f;
+    f32 acc_time = ((f32) max_i16) * 16.0f;
 
     Matrix_f32_4x4 view       = matrix4x4_diagonals(1.0f, 1.0f, 1.0f, 1.0f);
     Matrix_f32_4x4 projection = matrix4x4_symmetric_projection(1.0f, 100.0f, 1.0f, 1.0f);
@@ -1132,6 +1132,30 @@ WinMain(HINSTANCE instance,
                                                     array_count(cube_vertices));
       copy_memory_block(triangles, cube_vertices, sizeof(cube_vertices));
 
+      triangles = push_array(&win32_global_state.render_context.triangle_render_data,
+                             Vertex_Buffer_Element,
+                             array_count(cube_vertices));
+      copy_memory_block(triangles, cube_vertices, sizeof(cube_vertices));
+
+      for (u32 triangle_index = 0;
+           triangle_index < array_count(cube_vertices);
+           ++triangle_index)
+      {
+        triangles[triangle_index].position = add(triangles[triangle_index].position, V4(1.0, 0.0f, 0.0f, 0.0f));
+      }
+
+      triangles = push_array(&win32_global_state.render_context.triangle_render_data,
+                             Vertex_Buffer_Element,
+                             array_count(cube_vertices));
+      copy_memory_block(triangles, cube_vertices, sizeof(cube_vertices));
+
+      for (u32 triangle_index = 0;
+           triangle_index < array_count(cube_vertices);
+           ++triangle_index)
+      {
+        triangles[triangle_index].position = add(triangles[triangle_index].position, V4(1.0, 1.0f, 0.0f, 0.0f));
+      }
+
       // NOTE(antonio): instances
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
       Constant_Buffer constant_buffer_items = {};
@@ -1156,16 +1180,16 @@ WinMain(HINSTANCE instance,
           constant_buffer_items.atlas_height  = (f32) atlas->bitmap.height;
 
           f32 normalized_sine = (sinf((acc_time / 10.0f) * tau_f32) + 1.0f) * 0.5f;
-          Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, (normalized_sine + 2.0f) * -1.0f);
-          Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(acc_time / 10.0f);
-          Matrix_f32_4x4 x_rotation  = matrix4x4_rotate_about_x(1.0f - (acc_time / 10.0f));
+          Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, (normalized_sine + 4.0f) * -1.0f);
+          Matrix_f32_4x4 x_rotation  = matrix4x4_rotate_about_x(acc_time / 17.0f);
+          Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(acc_time / 13.0f);
+          Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(acc_time / 7.0f);
 
-          constant_buffer_items.model      = matrix4x4_multiply(translation, matrix4x4_multiply(x_rotation, y_rotation));
+          constant_buffer_items.model      = matrix4x4_multiply(translation, matrix4x4_multiply(x_rotation, matrix4x4_multiply(y_rotation, z_rotation)));
           constant_buffer_items.view       = view;
           constant_buffer_items.projection = projection;
 
           acc_time += 1.0f / 60.0f;
-          if (acc_time > 10.0f) acc_time = 0.0f;
         }
 
         {
@@ -1228,11 +1252,7 @@ WinMain(HINSTANCE instance,
                        "Expected vertex count to be divisible by 3 - "
                        "you realize you're drawing triangles, right?");
 
-        // device_context->Draw(triangle_draw_call_count, 0);
-        for (int i = 0; i < 6; ++i)
-        {
-          device_context->Draw(6, 6 * i);
-        }
+        device_context->Draw(triangle_draw_call_count, 0);
       }
 
       {

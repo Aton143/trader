@@ -470,14 +470,13 @@ internal Matrix_f32_4x4 matrix4x4_rotate_about_v_rodrigues(V3_f32 v, f32 amount)
 {
   Matrix_f32_4x4 mat = {};
 
-  V3_f32 nv    = normalize(v);
   f32    sine  = sin01f(amount);
   f32    hsine = sin01f(amount * 0.5f);
          hsine = 2.0f * hsine * hsine;
 
-  Matrix_f32_4x4 w = matrix4x4_from_rows(V4( 0.0f, -nv.z,  nv.y, 0.0f),
-                                         V4( nv.z,  0.0f, -nv.x, 0.0f),
-                                         V4(-nv.y,  nv.x,  0.0f, 0.0f),
+  Matrix_f32_4x4 w = matrix4x4_from_rows(V4( 0.0f, -v.z,  v.y, 0.0f),
+                                         V4( v.z,  0.0f, -v.x, 0.0f),
+                                         V4(-v.y,  v.x,  0.0f, 0.0f),
                                          V4( 0.0f,  0.0f,  0.0f, 1.0f));
 
   mat = add(matrix4x4_identity(), scale(sine, w));
@@ -518,6 +517,15 @@ internal inline Rect_f32 translate(Rect_f32 rect, V2_f32 v)
   res.p1 = rect.p1 + v;
 
   return(res);
+}
+
+internal inline V4_f32 transform(Matrix_f32_4x4 a, V4_f32 v)
+{
+  V4_f32 result = V4(dot(a.rows[0], v),
+                     dot(a.rows[1], v),
+                     dot(a.rows[2], v),
+                     dot(a.rows[3], v));
+  return(result);
 }
 
 internal inline f32 absf(f32 a)

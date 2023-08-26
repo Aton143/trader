@@ -185,19 +185,52 @@ internal Vertex_Buffer_Element *make_cylinder_along_path(Arena  *render_data,
                      (vertices_per_quad * sector_count * (point_count - 1));
   Vertex_Buffer_Element *vertices = push_array(render_data, Vertex_Buffer_Element, vertex_count);
 
-#if 0
   Vertex_Buffer_Element *cur_vertex = vertices;
+  V2_f32 solid_color_uv = render_get_solid_color_uv();
+
   f32 sector_angle_step = 1.0f / sector_count;
 
+  V3_f32 cross_v = V3(0.0f, 1.0f, 0.0f);
+
   u32    i = 1;
-  V3_f32 v = subtract(points[i], points[i - 1]);
+  V4_f32 c = V4(points[i - 1], 1.0f);
+  V3_f32 v = normalize(subtract(points[i], points[i - 1]));
+  V3_f32 n = cross(v, V3(0.0f, 1.0f, 0.0f));
 
   for (u32 sector_index = 0;
        sector_index < sector_count;
        ++sector_index)
   {
+    f32 angle_start = sector_angle_step * sector_index;
+    f32 angle_end   = sector_angle_step * (sector_index + 1);
+
+    Matrix_f32_4x4 rotation_angle_start = matrix4x4_rotate_about_v_rodrigues(v, angle_start);
+    Matrix_f32_4x4 rotation_angle_end   = matrix4x4_rotate_about_v_rodrigues(v, angle_end);
+
+    V4_f32 v_start = transform(rotation_angle_start, V4(n, 0.0f));
+    V4_f32 v_end   = transform(rotation_angle_end,   V4(n, 0.0f));
+
+    *cur_vertex++ = 
+    {
+      c,
+      rgba_white,
+      solid_color_uv
+    };
+
+    *cur_vertex++ = 
+    {
+      add(c, scale(radius, v_start)),
+      rgba_white,
+      solid_color_uv
+    };
+
+    *cur_vertex++ = 
+    {
+      add(c, scale(radius, v_end)),
+      rgba_white,
+      solid_color_uv
+    };
   }
-#endif
 
   return(vertices);
 }

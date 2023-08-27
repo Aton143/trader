@@ -1,4 +1,5 @@
-foreign
+submodules
+
 tags.lock
 tags.temp
 tags.*

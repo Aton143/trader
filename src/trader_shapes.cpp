@@ -246,15 +246,17 @@ internal Vertex_Buffer_Element *make_cylinder_along_path(Arena  *render_data,
 
   swap(V4_f32 *, cur_ring, prev_ring);
 
-  /*
   u32 i = 1;
-  while (i < (point_count - 1))
+  while (i < point_count)
   {
     V3_f32 c = points[i];
 
-    V3_f32 to_c    = subtract(c, points[i - 1]);
-    V3_f32 to_next = subtract(points[i + 1], c);
-    V3_f32 plane_n = add(to_c, to_next);
+    V3_f32 to_c    = normalize(subtract(c, points[i - 1]));
+
+    V3_f32 next    = (i < (point_count - 1)) ? points[i + 1] : c;
+    V3_f32 to_next = subtract(next, c);
+
+    V3_f32 plane_n = normalize(add(to_c, to_next));
 
     f32 dot_to_c_plane_n = dot(to_c, plane_n);
     expect(dot_to_c_plane_n != 0.0f);
@@ -265,28 +267,27 @@ internal Vertex_Buffer_Element *make_cylinder_along_path(Arena  *render_data,
          sector_index < sector_count;
          ++sector_index)
     {
-      f32 si_t0 = dot(subtract(c, prev_ring[sector_index]), plane_n)     * dot_to_c_plane_n;
-      f32 si_t1 = dot(subtract(c, prev_ring[sector_index + 1]), plane_n) * dot_to_c_plane_n;
+      f32 si_t0 = dot(subtract(c, prev_ring[sector_index]._xyz),     plane_n) * dot_to_c_plane_n;
+      f32 si_t1 = dot(subtract(c, prev_ring[sector_index + 1]._xyz), plane_n) * dot_to_c_plane_n;
 
-      cur_ring[sector_index]     = add(scale(si_t0, to_c), prev_ring[sector_index]);
-      cur_ring[sector_index + 1] = add(scale(si_t1, to_c), prev_ring[sector_index + 1]);
+      cur_ring[sector_index]     = V4(add(scale(si_t0, to_c), prev_ring[sector_index]._xyz),     1.0f);
+      cur_ring[sector_index + 1] = V4(add(scale(si_t1, to_c), prev_ring[sector_index + 1]._xyz), 1.0f);
 
       RGBA_f32 color = scale((((f32) sector_index) / ((f32) sector_count)), rgba_white);
       color.a = 1.0f;
 
       put_quad(&cur_vertex,
-               V4(prev_ring[sector_index],     1.0f),
-               V4(prev_ring[sector_index + 1], 1.0f),
-               V4(cur_ring[sector_index],      1.0f),
-               V4(cur_ring[sector_index + 1],  1.0f),
+               prev_ring[sector_index],
+               prev_ring[sector_index + 1],
+               cur_ring[sector_index],
+               cur_ring[sector_index + 1],
                color);
     }
 
-    swap(V3_f32 *, cur_ring, prev_ring);
+    swap(V4_f32 *, cur_ring, prev_ring);
 
     i++;
   }
-  */
 
   return(vertices);
 }

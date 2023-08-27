@@ -993,7 +993,6 @@ WinMain(HINSTANCE instance,
     f32 panel_floats[16]  = {0.25f};
     u32 panel_float_index = 0;
 
-    f32 cylinder_top_radius = 0.50f;
     f32 cylinder_sector_count = 3.0f;
 
     // NOTE(antonio): experimental change
@@ -1013,8 +1012,9 @@ WinMain(HINSTANCE instance,
     Matrix_f32_4x4 view       = matrix4x4_diagonals(1.0f, 1.0f, 1.0f, 1.0f);
     Matrix_f32_4x4 projection = matrix4x4_symmetric_projection(1.0f, 100.0f, 1.0f, 1.0f);
 
-    V3_f32 points[] = {V3(0.0f, 0.0f, 0.0f), V3(0.0f, 0.0f, 0.5f), V3(0.0f, 0.5f, 0.5f)};
+    V3_f32 points[] = {V3(0.0f, 0.0f, 0.0f), V3(0.0f, 0.0f, 0.5f), V3(0.0f, 1.0f, 0.5f), V3(0.5f, 0.75f, 0.5f)};
     u32 sector_count = 16;
+    f32 point_count = (f32) array_count(points);
 
     while (global_running)
     {
@@ -1129,7 +1129,10 @@ WinMain(HINSTANCE instance,
       ui_make_panel(axis_split_vertical, &panel_floats[panel_float_index++], string_literal_init_type("first", utf8));
       ui_do_string(string_literal_init_type("Hello World!", utf8));
       ui_do_formatted_string("Mouse (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
-      ui_do_slider_f32(string_literal_init_type("Cylinder Top Radius", utf8), &cylinder_top_radius, 0.0f, 1.0f);
+
+      ui_do_formatted_string("Point count: %d", (i32) point_count);
+      ui_do_slider_f32(string_literal_init_type("Cylinder Top Radius", utf8), &point_count, 1.0f, (f32) array_count(points));
+
       ui_do_slider_f32(string_literal_init_type("Cylinder Sector Count", utf8), &cylinder_sector_count, 3.0f, 100.0f);
 
       ui_prepare_render_from_panels(ui_get_sentinel_panel(), client_rect);
@@ -1138,7 +1141,7 @@ WinMain(HINSTANCE instance,
       ui_flatten_draw_layers();
 
     // make_cylinder(&common_render->triangle_render_data, 1.0f, cylinder_top_radius, 1.0f, (i32) (cylinder_sector_count), 1);
-      make_cylinder_along_path(&common_render->triangle_render_data, points, array_count(points), 0.5f, sector_count);
+      make_cylinder_along_path(&common_render->triangle_render_data, points, (u32) point_count, 0.05f, sector_count);
 
       // NOTE(antonio): instances
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -1163,9 +1166,9 @@ WinMain(HINSTANCE instance,
           constant_buffer_items.atlas_width   = (f32) atlas->bitmap.width;
           constant_buffer_items.atlas_height  = (f32) atlas->bitmap.height;
 
-          Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, -1.0f);
+          Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, -2.0f);
           Matrix_f32_4x4 x_rotation  = matrix4x4_rotate_about_x(0.0f / 10.0f);
-          Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(0.0f / 10.0f);
+          Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(acc_time / 10.0f);
           Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(0.0f / 10.0f);
 
           constant_buffer_items.model      = matrix4x4_multiply(translation,
@@ -1239,8 +1242,8 @@ WinMain(HINSTANCE instance,
                        "Expected vertex count to be divisible by 3 - "
                        "you realize you're drawing triangles, right?");
 
-       //  device_context->Draw(triangle_draw_call_count, 0);
-        device_context->Draw(3 * sector_count, 0);
+        device_context->Draw(triangle_draw_call_count, 0);
+        // device_context->Draw(3 * sector_count, 0);
 
         /*
         for (u32 qi = 3 * sector_count;

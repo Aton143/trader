@@ -247,6 +247,12 @@ internal inline V3_f32 subtract(V3_f32 a, V3_f32 b)
   return(res);
 }
 
+internal inline V3_f32 add(V3_f32 u, V3_f32 v)
+{
+  V3_f32 res = V3(u.x + v.x, u.y + v.y, u.z + v.z);
+  return(res);
+}
+
 internal inline V3_f32 scale(f32 scale, V3_f32 v)
 {
   V3_f32 scaled = V3(scale * v.x, scale * v.y, scale * v.z);

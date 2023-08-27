@@ -1013,6 +1013,8 @@ WinMain(HINSTANCE instance,
     Matrix_f32_4x4 view       = matrix4x4_diagonals(1.0f, 1.0f, 1.0f, 1.0f);
     Matrix_f32_4x4 projection = matrix4x4_symmetric_projection(1.0f, 100.0f, 1.0f, 1.0f);
 
+    V3_f32 points[] = {V3(0.0f, 0.0f, 0.0f), V3(0.0f, 0.0f, 1.0f)};
+
     while (global_running)
     {
       TIMED_BLOCK_START();
@@ -1134,7 +1136,9 @@ WinMain(HINSTANCE instance,
       u32 initial_draw_count = (u32) (win32_global_state.render_context.render_data.used / sizeof(Instance_Buffer_Element));
       ui_flatten_draw_layers();
 
-      make_cylinder(&common_render->triangle_render_data, 1.0f, cylinder_top_radius, 1.0f, (i32) (cylinder_sector_count), 1);
+    // make_cylinder(&common_render->triangle_render_data, 1.0f, cylinder_top_radius, 1.0f, (i32) (cylinder_sector_count), 1);
+      make_cylinder_along_path(&common_render->triangle_render_data,
+                               points, array_count(points), 0.5f, 16);
 
       // NOTE(antonio): instances
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -1160,9 +1164,9 @@ WinMain(HINSTANCE instance,
           constant_buffer_items.atlas_height  = (f32) atlas->bitmap.height;
 
           Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, -3.0f);
-          Matrix_f32_4x4 x_rotation  = matrix4x4_rotate_about_x(acc_time / 10.0f);
-          Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(acc_time / 10.0f);
-          Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(acc_time / 10.0f);
+          Matrix_f32_4x4 x_rotation  = matrix4x4_rotate_about_x(0.0f / 10.0f);
+          Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(0.0f / 10.0f);
+          Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(0.0f / 10.0f);
 
           constant_buffer_items.model      = matrix4x4_multiply(translation,
                                              matrix4x4_multiply(x_rotation,

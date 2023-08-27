@@ -550,6 +550,8 @@ union V3_f32 {
   };
   f32 v[3];
 };
+
+#pragma pack(push, 1)
 union V4_f32 {
   struct {
     f32 x;
@@ -569,8 +571,14 @@ union V4_f32 {
     f32 l;
     f32 __a;
   };
+  struct {
+    V3_f32 _xyz;
+    f32    w;
+  };
+
   f32 v[4];
 };
+#pragma pack(pop)
 
 union Range_i32 {
   struct {

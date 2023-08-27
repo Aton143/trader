@@ -1013,7 +1013,8 @@ WinMain(HINSTANCE instance,
     Matrix_f32_4x4 view       = matrix4x4_diagonals(1.0f, 1.0f, 1.0f, 1.0f);
     Matrix_f32_4x4 projection = matrix4x4_symmetric_projection(1.0f, 100.0f, 1.0f, 1.0f);
 
-    V3_f32 points[] = {V3(0.0f, 0.0f, 0.0f), V3(0.0f, 0.0f, 1.0f)};
+    V3_f32 points[] = {V3(0.0f, 0.0f, 0.0f), V3(0.0f, 0.0f, 0.5f), V3(0.0f, 0.5f, 0.5f)};
+    u32 sector_count = 16;
 
     while (global_running)
     {
@@ -1137,8 +1138,7 @@ WinMain(HINSTANCE instance,
       ui_flatten_draw_layers();
 
     // make_cylinder(&common_render->triangle_render_data, 1.0f, cylinder_top_radius, 1.0f, (i32) (cylinder_sector_count), 1);
-      make_cylinder_along_path(&common_render->triangle_render_data,
-                               points, array_count(points), 0.5f, 16);
+      make_cylinder_along_path(&common_render->triangle_render_data, points, array_count(points), 0.5f, sector_count);
 
       // NOTE(antonio): instances
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -1239,7 +1239,17 @@ WinMain(HINSTANCE instance,
                        "Expected vertex count to be divisible by 3 - "
                        "you realize you're drawing triangles, right?");
 
-        device_context->Draw(triangle_draw_call_count, 0);
+       //  device_context->Draw(triangle_draw_call_count, 0);
+        device_context->Draw(3 * sector_count, 0);
+
+        /*
+        for (u32 qi = 3 * sector_count;
+             qi < triangle_draw_call_count;
+             qi += vertices_per_quad * sector_count)
+        {
+          device_context->Draw(vertices_per_quad * sector_count, qi);
+        }
+        */
       }
 
       {

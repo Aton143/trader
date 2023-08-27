@@ -209,13 +209,13 @@ internal Vertex_Buffer_Element *make_cylinder_along_path(Arena  *render_data,
     f32 angle_start = sector_angle_step * sector_index;
     f32 angle_end   = sector_angle_step * (sector_index + 1);
 
+    // TODO(antonio): too many copies!
     Matrix_f32_4x4 rotation_angle_start = matrix4x4_rotate_about_v_rodrigues(v, angle_start);
     Matrix_f32_4x4 rotation_angle_end   = matrix4x4_rotate_about_v_rodrigues(v, angle_end);
 
     V4_f32 v_start = transform(rotation_angle_start, V4(n, 0.0f));
     V4_f32 v_end   = transform(rotation_angle_end,   V4(n, 0.0f));
 
-    // TODO(antonio): too many copies!
     cur_ring[sector_index]     = add(c4, scale(radius, v_start))._xyz;
     cur_ring[sector_index + 1] = add(c4, scale(radius, v_end))._xyz;
 

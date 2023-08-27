@@ -267,7 +267,7 @@ internal inline f32 dot(V3_f32 u, V3_f32 v)
 
 internal inline V3_f32 normalize(V3_f32 u)
 {
-  f32 squared_length_rec = dot(u, u);
+  f32 squared_length_rec = sqrtf(dot(u, u));
   expect(squared_length_rec > 0.0f);
   squared_length_rec = 1.0f / squared_length_rec;
 
@@ -480,13 +480,15 @@ internal Matrix_f32_4x4 matrix4x4_rotate_about_v_rodrigues(V3_f32 v, f32 amount)
   f32    hsine = sin01f(amount * 0.5f);
          hsine = 2.0f * hsine * hsine;
 
-  Matrix_f32_4x4 w = matrix4x4_from_rows(V4( 0.0f, -v.z,  v.y, 0.0f),
-                                         V4( v.z,  0.0f, -v.x, 0.0f),
-                                         V4(-v.y,  v.x,  0.0f, 0.0f),
-                                         V4( 0.0f,  0.0f,  0.0f, 1.0f));
+  Matrix_f32_4x4 w = matrix4x4_from_rows(V4( 0.0f, -v.z,   v.y,  0.0f),
+                                         V4( v.z,   0.0f, -v.x,  0.0f),
+                                         V4(-v.y,   v.x,   0.0f, 0.0f),
+                                         V4( 0.0f,  0.0f,  0.0f, 0.0f));
 
   mat = add(matrix4x4_identity(), scale(sine, w));
   mat = add(mat, scale(hsine, matrix4x4_multiply(w, w)));
+
+  mat.row3.w = 1.0f;
 
   return(mat);
 }

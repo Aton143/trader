@@ -187,8 +187,8 @@ internal Vertex_Buffer_Element *make_cylinder_along_path(Arena  *render_data,
 
   Arena *temp_arena = get_temp_arena();
 
-  V3_f32 *prev_ring = push_array_zero(temp_arena, V3_f32, sector_count);
-  V3_f32 *cur_ring  = push_array_zero(temp_arena, V3_f32, sector_count);
+  V4_f32 *prev_ring = push_array_zero(temp_arena, V4_f32, sector_count);
+  V4_f32 *cur_ring  = push_array_zero(temp_arena, V4_f32, sector_count);
 
   Vertex_Buffer_Element *cur_vertex = vertices;
   V2_f32 solid_color_uv = render_get_solid_color_uv();
@@ -213,11 +213,11 @@ internal Vertex_Buffer_Element *make_cylinder_along_path(Arena  *render_data,
     Matrix_f32_4x4 rotation_angle_start = matrix4x4_rotate_about_v_rodrigues(v, angle_start);
     Matrix_f32_4x4 rotation_angle_end   = matrix4x4_rotate_about_v_rodrigues(v, angle_end);
 
-    V4_f32 v_start = transform(rotation_angle_start, V4(n, 0.0f));
-    V4_f32 v_end   = transform(rotation_angle_end,   V4(n, 0.0f));
+    V4_f32 v_start = transform(rotation_angle_start, V4(n, 1.0f));
+    V4_f32 v_end   = transform(rotation_angle_end,   V4(n, 1.0f));
 
-    cur_ring[sector_index]     = add(c4, scale(radius, v_start))._xyz;
-    cur_ring[sector_index + 1] = add(c4, scale(radius, v_end))._xyz;
+    cur_ring[sector_index]     = add(c4, scale(radius, v_start));
+    cur_ring[sector_index + 1] = add(c4, scale(radius, v_end));
 
     RGBA_f32 color = scale((((f32) sector_index) / ((f32) sector_count)), rgba_white);
     color.a = 1.0f;
@@ -231,21 +231,22 @@ internal Vertex_Buffer_Element *make_cylinder_along_path(Arena  *render_data,
 
     *cur_vertex++ = 
     {
-      V4(cur_ring[sector_index], 1.0f),
+      cur_ring[sector_index],
       color,
       solid_color_uv
     };
 
     *cur_vertex++ = 
     {
-      V4(cur_ring[sector_index + 1], 1.0f),
+      cur_ring[sector_index + 1],
       color,
       solid_color_uv
     };
   }
 
-  swap(V3_f32 *, cur_ring, prev_ring);
+  swap(V4_f32 *, cur_ring, prev_ring);
 
+  /*
   u32 i = 1;
   while (i < (point_count - 1))
   {
@@ -285,6 +286,7 @@ internal Vertex_Buffer_Element *make_cylinder_along_path(Arena  *render_data,
 
     i++;
   }
+  */
 
   return(vertices);
 }

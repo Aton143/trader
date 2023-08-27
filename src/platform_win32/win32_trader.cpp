@@ -1163,7 +1163,7 @@ WinMain(HINSTANCE instance,
           constant_buffer_items.atlas_width   = (f32) atlas->bitmap.width;
           constant_buffer_items.atlas_height  = (f32) atlas->bitmap.height;
 
-          Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, -3.0f);
+          Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, -1.0f);
           Matrix_f32_4x4 x_rotation  = matrix4x4_rotate_about_x(0.0f / 10.0f);
           Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(0.0f / 10.0f);
           Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(0.0f / 10.0f);

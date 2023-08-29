@@ -332,6 +332,8 @@ internal LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM
     case WM_SYSKEYDOWN:
     {
       b32 is_key_down = ((message == WM_KEYDOWN) || (message == WM_SYSKEYDOWN));
+      // b32 was_key_down = (((lparam >> 30)) & 1) == 0 ;
+
       if (wparam < 256)
       {
         ui_add_key_event(key_mod_event_control, is_vk_down(VK_CONTROL));
@@ -1133,7 +1135,8 @@ WinMain(HINSTANCE instance,
       ui_do_string(string_literal_init_type("Hello World!", utf8));
       ui_do_formatted_string("Mouse (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
 
-      ui_do_formatted_string("Player Rotation Speed: %f", player_context->rotation_speed);
+      ui_do_formatted_string("Player Max Rotation Speed: %f", player_context->rotation_max_speed);
+      ui_do_slider_f32(scu8l("Player Max Rotation Speed"), &player_context->rotation_max_speed, 0.0f, 0.05f);
 
       ui_prepare_render_from_panels(ui_get_sentinel_panel(), client_rect);
 
@@ -1337,6 +1340,7 @@ WinMain(HINSTANCE instance,
 
         device_context->DrawInstanced(4, initial_draw_count, 0, 0);
 
+        /*
         for (u32 draw_layer_index = 0;
              draw_layer_index < array_count(ui->render_layers);
              ++draw_layer_index)
@@ -1347,6 +1351,7 @@ WinMain(HINSTANCE instance,
                                         0,
                                         ui->flattened_draw_layer_indices[draw_layer_index]);
         }
+        */
       }
 
 #if 0 && !SHIP_MODE

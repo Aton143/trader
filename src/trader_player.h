@@ -4,26 +4,17 @@ typedef u16 Player_Input;
 enum
 {
   player_input_none,
+
   player_input_clockwise,
   player_input_counter_clockwise,
-};
 
-typedef u16 Player_Input_Flags;
-enum
-{
-  player_input_flags_none = 0,
-  player_input_flags_down = 1,
-};
-
-struct Player_Input_Event
-{
-  Player_Input       event;
-  Player_Input_Flags flags;
+  player_input_count,
 };
 
 struct Player_Context
 {
-  Ring_Buffer input_queue;
+  f32 inputs[player_input_count];
+
   f32 rotation_max_speed;
   f32 rotation_speed;
 

@@ -36,6 +36,7 @@ internal inline String_Const_utf8 concat_str(Arena *arena, String_Const_utf8 a, 
 internal inline String_Const_utf8 scu8(utf8 *string, u64 string_length);
 internal inline String_Const_utf8 scu8f(Arena *arena, char *format, ...);
 internal inline String_Const_utf8 scu8f(Arena *arena, i32 limit, char *format, ...);
+#define scu8l(str_lit) {(utf8 *) (str_lit), sizeof(str_lit) - 1}
 
 internal inline String_utf8 su8(String_Const_utf8 string);
 internal inline String_utf8 su8(utf8 *string);

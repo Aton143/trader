@@ -350,6 +350,7 @@ internal LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM
         if (key != key_event_none)
         {
           ui_add_key_event(key, is_key_down);
+          player_add_input(key, is_key_down);
         }
 
         /*
@@ -1016,6 +1017,8 @@ WinMain(HINSTANCE instance,
     // u32 sector_count = 4;
     f32 point_count = (f32) array_count(points);
 
+    Player_Context *player_context = player_get_context();
+
     while (global_running)
     {
       TIMED_BLOCK_START();
@@ -1119,6 +1122,8 @@ WinMain(HINSTANCE instance,
 #endif
       }
 
+      player_apply_input();
+
       Rect_f32 client_rect = render_get_client_rect();
       platform_collect_notifications();
 
@@ -1170,7 +1175,7 @@ WinMain(HINSTANCE instance,
           Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, -0.8f, -1.5f);
           Matrix_f32_4x4 x_rotation  = matrix4x4_rotate_about_x(0.0f / 10.0f);
           Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(0.0f / 10.0f);
-          Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(acc_time / 10.0f);
+          Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(player_context->rotation);
 
           /*
           constant_buffer_items.model = matrix4x4_multiply(translation,

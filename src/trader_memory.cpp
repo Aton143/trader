@@ -246,8 +246,8 @@ internal inline void *ring_buffer_pop(Ring_Buffer *rb, u64 size)
 }
 
 internal inline void ring_buffer_pop_and_put(Ring_Buffer *rb,
-                                             void       *data,
-                                             u64         size)
+                                             void        *data,
+                                             u64          size)
 {
   void *read = ring_buffer_pop(rb, size);
   copy_memory_block(data, read, size);

@@ -61,8 +61,9 @@ internal b32 platform_common_init(void)
                           array_count(default_font_heights),
                           512, 512);
 
-
-  global_control.input_queue = ring_buffer_make(__input_queue_buffer, sizeof(__input_queue_buffer));
+  Player_Context *player_context = player_get_context();
+  player_context->input_queue = ring_buffer_make(__input_queue_buffer, sizeof(__input_queue_buffer));
+  player_context->rotation_delta =  0.005f;
 
   return(result);
 }

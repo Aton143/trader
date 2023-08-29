@@ -69,6 +69,10 @@ internal inline V4_f32 add(V4_f32 u, V4_f32 v);
 internal inline V4_f32 scale(f32 scale, V4_f32 u);
 internal inline V4_f32 transform(Matrix_f32_4x4 a, V4_f32 v);
 
+internal inline V4_f32 reflect_about_xz(V4_f32 v);
+internal inline V4_f32 reflect_about_xy(V4_f32 v);
+internal inline V4_f32 reflect_about_yz(V4_f32 v);
+
 #define matrix_row_count(m) array_count((m)->rows)
 #define matrix_col_count(m) array_count((m)->row0.v)
 

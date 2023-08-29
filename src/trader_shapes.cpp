@@ -263,6 +263,9 @@ internal Vertex_Buffer_Element *make_cylinder_along_path(Arena  *render_data,
 
     dot_to_c_plane_n = 1.0f / dot_to_c_plane_n;
 
+    RGBA_f32 color = rgba_white;
+    color.a = 1.0f;
+
     for (u32 sector_index = 0;
          sector_index < sector_count;
          ++sector_index)
@@ -270,11 +273,30 @@ internal Vertex_Buffer_Element *make_cylinder_along_path(Arena  *render_data,
       f32 si_t0 = dot(subtract(c, prev_ring[sector_index]._xyz),     plane_n) * dot_to_c_plane_n;
       f32 si_t1 = dot(subtract(c, prev_ring[sector_index + 1]._xyz), plane_n) * dot_to_c_plane_n;
 
+#if 0
       cur_ring[sector_index]     = V4(add(scale(si_t0, to_c), prev_ring[sector_index]._xyz),     1.0f);
       cur_ring[sector_index + 1] = V4(add(scale(si_t1, to_c), prev_ring[sector_index + 1]._xyz), 1.0f);
 
-      RGBA_f32 color = scale((((f32) sector_index) / ((f32) sector_count)), rgba_white);
-      color.a = 1.0f;
+#else
+      // NOTE(antonio): see below for another solution
+      // v    - vector to plane
+      // p    - plane vector
+      // p[i] - previous vector
+      // c    - next center
+      // r    - radius
+      //
+      // p = t*v + p[i]
+      // p = r * ((p - c) / ||p-c||) + c
+
+      V3_f32 on_plane0 = add(scale(si_t0, to_c), prev_ring[sector_index]._xyz);
+      on_plane0 = add(scale(radius, normalize(subtract(on_plane0, c))), c);
+
+      V3_f32 on_plane1 = add(scale(si_t1, to_c), prev_ring[sector_index + 1]._xyz);
+      on_plane1 = add(scale(radius, normalize(subtract(on_plane1, c))), c);
+
+      cur_ring[sector_index]     = V4(on_plane0, 1.0f);
+      cur_ring[sector_index + 1] = V4(on_plane1, 1.0f);
+#endif
 
       put_quad(&cur_vertex,
                prev_ring[sector_index],
@@ -282,12 +304,72 @@ internal Vertex_Buffer_Element *make_cylinder_along_path(Arena  *render_data,
                cur_ring[sector_index],
                cur_ring[sector_index + 1],
                color);
+
+      color = wide_lerp(color, 0.5f, rgba(1.0f, 1.0f, 0.0, 1.0f));
     }
 
     swap(V4_f32 *, cur_ring, prev_ring);
 
     i++;
   }
+
+  return(vertices);
+}
+
+internal Vertex_Buffer_Element *make_player(Arena *render_data)
+{
+  const u32 player_triangle_count = 6;
+  u32 vertex_count = (vertices_per_triangle * player_triangle_count);
+
+  Vertex_Buffer_Element *vertices   = push_array(render_data, Vertex_Buffer_Element, vertex_count);
+  Vertex_Buffer_Element *cur_vertex = vertices; 
+
+  V2_f32 solid_color_uv = render_get_solid_color_uv();
+  RGBA_f32 color = rgba_white;
+
+  V4_f32 back_top = V4( 0.0f, 0.05f,  0.50f, 1.0f);
+  V4_f32 front    = V4( 0.0f, 0.0f,  -0.50f, 1.0f);
+  V4_f32 w0       = V4(-0.5f, 0.0f,   0.50f, 1.0f);
+
+  // LT Hull
+  *cur_vertex++ = {back_top, color, solid_color_uv};
+  *cur_vertex++ = {front,    color, solid_color_uv};
+  *cur_vertex++ = {w0,       color, solid_color_uv};
+
+  color = wide_lerp(color, 0.25f, rgba_red);
+
+  // LB Hull
+  *cur_vertex++ = {reflect_about_xz(back_top), color, solid_color_uv};
+  *cur_vertex++ = {front,                      color, solid_color_uv};
+  *cur_vertex++ = {w0,                         color, solid_color_uv};
+
+  color = wide_lerp(color, 0.25f, rgba_red);
+
+  // LBack Hull
+  *cur_vertex++ = {back_top,                   color, solid_color_uv};
+  *cur_vertex++ = {reflect_about_xz(back_top), color, solid_color_uv};
+  *cur_vertex++ = {w0,                         color, solid_color_uv};
+
+  color = rgba_white;
+
+  // RT Hull
+  *cur_vertex++ = {reflect_about_yz(back_top), color, solid_color_uv};
+  *cur_vertex++ = {reflect_about_yz(front),    color, solid_color_uv};
+  *cur_vertex++ = {reflect_about_yz(w0),       color, solid_color_uv};
+
+  color = wide_lerp(color, 0.25f, rgba_red);
+
+  // RB Hull
+  *cur_vertex++ = {reflect_about_yz(reflect_about_xz(back_top)), color, solid_color_uv};
+  *cur_vertex++ = {reflect_about_yz(front),                      color, solid_color_uv};
+  *cur_vertex++ = {reflect_about_yz(w0),                         color, solid_color_uv};
+
+  color = wide_lerp(color, 0.25f, rgba_red);
+
+  // RBack Hull
+  *cur_vertex++ = {reflect_about_yz(back_top),                   color, solid_color_uv};
+  *cur_vertex++ = {reflect_about_yz(reflect_about_xz(back_top)), color, solid_color_uv};
+  *cur_vertex++ = {reflect_about_yz(w0),                         color, solid_color_uv};
 
   return(vertices);
 }

@@ -1007,13 +1007,13 @@ WinMain(HINSTANCE instance,
 #include "../trader_cube_vertices.h"
     };
 
-    f32 acc_time = 9.0f;
+    f32 acc_time = 0.0f;
 
     Matrix_f32_4x4 view       = matrix4x4_diagonals(1.0f, 1.0f, 1.0f, 1.0f);
     Matrix_f32_4x4 projection = matrix4x4_symmetric_projection(1.0f, 100.0f, 1.0f, 1.0f);
 
     V3_f32 points[] = {V3(0.0f, 0.0f, 0.0f), V3(0.0f, 0.0f, 0.5f), V3(0.0f, 1.0f, 0.5f), V3(0.5f, 0.75f, 0.5f)};
-    u32 sector_count = 16;
+    // u32 sector_count = 4;
     f32 point_count = (f32) array_count(points);
 
     while (global_running)
@@ -1141,7 +1141,8 @@ WinMain(HINSTANCE instance,
       ui_flatten_draw_layers();
 
     // make_cylinder(&common_render->triangle_render_data, 1.0f, cylinder_top_radius, 1.0f, (i32) (cylinder_sector_count), 1);
-      make_cylinder_along_path(&common_render->triangle_render_data, points, (u32) point_count, 0.05f, sector_count);
+      //make_cylinder_along_path(&common_render->triangle_render_data, points, (u32) point_count, 0.05f, sector_count);
+      make_player(&common_render->triangle_render_data);
 
       // NOTE(antonio): instances
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -1166,14 +1167,18 @@ WinMain(HINSTANCE instance,
           constant_buffer_items.atlas_width   = (f32) atlas->bitmap.width;
           constant_buffer_items.atlas_height  = (f32) atlas->bitmap.height;
 
-          Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, -2.0f);
+          Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, -0.8f, -1.5f);
           Matrix_f32_4x4 x_rotation  = matrix4x4_rotate_about_x(0.0f / 10.0f);
-          Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(acc_time / 10.0f);
-          Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(0.0f / 10.0f);
+          Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(0.0f / 10.0f);
+          Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(acc_time / 10.0f);
 
-          constant_buffer_items.model      = matrix4x4_multiply(translation,
-                                             matrix4x4_multiply(x_rotation,
-                                             matrix4x4_multiply(y_rotation, z_rotation)));
+          /*
+          constant_buffer_items.model = matrix4x4_multiply(translation,
+                                        matrix4x4_multiply(x_rotation,
+                                        matrix4x4_multiply(y_rotation, z_rotation)));
+                                        */
+
+          constant_buffer_items.model = matrix4x4_multiply(z_rotation, translation);
 
           constant_buffer_items.view       = view;
           constant_buffer_items.projection = projection;

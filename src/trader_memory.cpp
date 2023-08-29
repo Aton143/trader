@@ -188,19 +188,20 @@ internal inline void *_arena_get_top(Arena *arena, u64 size)
 
 internal inline Ring_Buffer ring_buffer_make(Arena *arena, u64 size)
 {
-  Ring_Buffer ring_buffer = {};
+  Ring_Buffer ring_buffer;
 
   u8 *start = (u8 *) arena_push(arena, size);
-  if (start != NULL)
-  {
-    ring_buffer.start = ring_buffer.write = ring_buffer.read = start;
-    ring_buffer.size  = size;
-  }
-  else
-  {
-    expect_message(false, "expected to successfully make ring buffer");
-  }
+  ring_buffer = ring_buffer_make(start, size);
 
+  return(ring_buffer);
+}
+
+internal inline Ring_Buffer ring_buffer_make(u8 *buffer, u64 size)
+{
+  expect(buffer != NULL);
+  Ring_Buffer ring_buffer = {};
+  ring_buffer.start = ring_buffer.write = ring_buffer.read = buffer;
+  ring_buffer.size  = size;
   return(ring_buffer);
 }
 

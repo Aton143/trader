@@ -548,4 +548,20 @@ internal inline f32 fmaddf(f32 m1, f32 m2, f32 a)
   return(result);
 }
 
+internal inline V4_f32 reflect_about_xz(V4_f32 v)
+{
+  V4_f32 res = V4(v.x, -v.y, v.z, v.w);
+  return(res);
+}
 
+internal inline V4_f32 reflect_about_xy(V4_f32 v)
+{
+  V4_f32 res = V4(v.x, v.y, -v.z, v.w);
+  return(res);
+}
+
+internal inline V4_f32 reflect_about_yz(V4_f32 v)
+{
+  V4_f32 res = V4(-v.x, v.y, v.z, v.w);
+  return(res);
+}

@@ -68,6 +68,8 @@ global u8 __debug_memory[1 << 20];
 #include "trader_string_utilities.cpp"
 #include "trader_utils.cpp"
 
+#include "trader_player.cpp"
+
 #if OS_WINDOWS
 # include "platform_win32/win32_implementation.h"
 #elif OS_LINUX

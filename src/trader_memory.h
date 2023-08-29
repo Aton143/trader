@@ -108,7 +108,8 @@ struct Ring_Buffer
 };
 
 // TODO(antonio): is an arena the best place to get the memory from?
-internal inline Ring_Buffer ring_buffer_make(Arena *arena, u64 size);
+internal inline Ring_Buffer ring_buffer_make(Arena *arena,  u64 size);
+internal inline Ring_Buffer ring_buffer_make(u8    *buffer, u64 size);
 internal inline void        ring_buffer_reset(Ring_Buffer *rb);
 
 internal inline void *ring_buffer_push(Ring_Buffer *ring_buffer, u64 size);

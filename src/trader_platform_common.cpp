@@ -63,7 +63,9 @@ internal b32 platform_common_init(void)
 
   Player_Context *player_context = player_get_context();
   player_context->input_queue = ring_buffer_make(__input_queue_buffer, sizeof(__input_queue_buffer));
-  player_context->rotation_delta =  0.005f;
+
+  player_context->rotation_max_speed = 0.05f;
+  player_context->lerp_factor = 0.10f;
 
   return(result);
 }

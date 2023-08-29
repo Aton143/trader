@@ -1,6 +1,6 @@
 #ifndef TRADER_PLAYER_H
 
-typedef u32 Player_Input;
+typedef u16 Player_Input;
 enum
 {
   player_input_none,
@@ -8,11 +8,27 @@ enum
   player_input_counter_clockwise,
 };
 
+typedef u16 Player_Input_Flags;
+enum
+{
+  player_input_flags_none = 0,
+  player_input_flags_down = 1,
+};
+
+struct Player_Input_Event
+{
+  Player_Input       event;
+  Player_Input_Flags flags;
+};
+
 struct Player_Context
 {
   Ring_Buffer input_queue;
-  f32 rotation_delta;
+  f32 rotation_max_speed;
+  f32 rotation_speed;
+
   f32 rotation;
+  f32 lerp_factor;
 };
 
 global u8 __input_queue_buffer[128];

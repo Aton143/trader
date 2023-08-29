@@ -994,8 +994,6 @@ WinMain(HINSTANCE instance,
     f32 panel_floats[16]  = {0.25f};
     u32 panel_float_index = 0;
 
-    f32 cylinder_sector_count = 3.0f;
-
     // NOTE(antonio): experimental change
     win32_global_state.main_fiber_address = ConvertThreadToFiber(NULL);
     expect_message(win32_global_state.main_fiber_address != NULL, "expected to use fiber path");
@@ -1015,7 +1013,7 @@ WinMain(HINSTANCE instance,
 
     V3_f32 points[] = {V3(0.0f, 0.0f, 0.0f), V3(0.0f, 0.0f, 0.5f), V3(0.0f, 1.0f, 0.5f), V3(0.5f, 0.75f, 0.5f)};
     // u32 sector_count = 4;
-    f32 point_count = (f32) array_count(points);
+    // f32 point_count = (f32) array_count(points);
 
     Player_Context *player_context = player_get_context();
 
@@ -1135,10 +1133,7 @@ WinMain(HINSTANCE instance,
       ui_do_string(string_literal_init_type("Hello World!", utf8));
       ui_do_formatted_string("Mouse (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
 
-      ui_do_formatted_string("Point count: %d", (i32) point_count);
-      ui_do_slider_f32(string_literal_init_type("Cylinder Top Radius", utf8), &point_count, 1.0f, (f32) array_count(points));
-
-      ui_do_slider_f32(string_literal_init_type("Cylinder Sector Count", utf8), &cylinder_sector_count, 3.0f, 100.0f);
+      ui_do_formatted_string("Player Rotation Speed: %f", player_context->rotation_speed);
 
       ui_prepare_render_from_panels(ui_get_sentinel_panel(), client_rect);
 

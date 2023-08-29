@@ -565,3 +565,18 @@ internal inline V4_f32 reflect_about_yz(V4_f32 v)
   V4_f32 res = V4(-v.x, v.y, v.z, v.w);
   return(res);
 }
+
+internal inline V3_f32 triangle_normal_ccw(f32 *vertices, u32 to_next_vertex)
+{
+  u8 *v_ptr = (u8 *) vertices;
+
+  V3_f32 v0 = *((V3_f32 *) (v_ptr));
+  V3_f32 v1 = *((V3_f32 *) (v_ptr + (to_next_vertex)));
+  V3_f32 v2 = *((V3_f32 *) (v_ptr + (2 * to_next_vertex)));
+
+  V3_f32 v10 = subtract(v1, v0);
+  V3_f32 v20 = subtract(v2, v0);
+
+  V3_f32 res = normalize(cross(v10, v20));
+  return(res);
+}

@@ -346,30 +346,30 @@ internal Vertex_Buffer_Element *make_player(Arena *render_data)
   color = wide_lerp(color, 0.25f, rgba_red);
 
   // LBack Hull
-  *cur_vertex++ = {back_top,                   color, solid_color_uv};
   *cur_vertex++ = {reflect_about_xz(back_top), color, solid_color_uv};
+  *cur_vertex++ = {back_top,                   color, solid_color_uv};
   *cur_vertex++ = {w0,                         color, solid_color_uv};
 
   color = rgba_white;
 
   // RT Hull
-  *cur_vertex++ = {reflect_about_yz(back_top), color, solid_color_uv};
-  *cur_vertex++ = {reflect_about_yz(front),    color, solid_color_uv};
-  *cur_vertex++ = {reflect_about_yz(w0),       color, solid_color_uv};
+  *cur_vertex++ = {front,                color, solid_color_uv};
+  *cur_vertex++ = {back_top,             color, solid_color_uv};
+  *cur_vertex++ = {reflect_about_yz(w0), color, solid_color_uv};
 
   color = wide_lerp(color, 0.25f, rgba_red);
 
   // RB Hull
-  *cur_vertex++ = {reflect_about_yz(reflect_about_xz(back_top)), color, solid_color_uv};
-  *cur_vertex++ = {reflect_about_yz(front),                      color, solid_color_uv};
-  *cur_vertex++ = {reflect_about_yz(w0),                         color, solid_color_uv};
+  *cur_vertex++ = {front,                      color, solid_color_uv};
+  *cur_vertex++ = {reflect_about_xz(back_top), color, solid_color_uv};
+  *cur_vertex++ = {reflect_about_yz(w0),       color, solid_color_uv};
 
   color = wide_lerp(color, 0.25f, rgba_red);
 
   // RBack Hull
-  *cur_vertex++ = {reflect_about_yz(back_top),                   color, solid_color_uv};
-  *cur_vertex++ = {reflect_about_yz(reflect_about_xz(back_top)), color, solid_color_uv};
-  *cur_vertex++ = {reflect_about_yz(w0),                         color, solid_color_uv};
+  *cur_vertex++ = {back_top,                   color, solid_color_uv};
+  *cur_vertex++ = {reflect_about_xz(back_top), color, solid_color_uv};
+  *cur_vertex++ = {reflect_about_yz(w0),       color, solid_color_uv};
 
   return(vertices);
 }

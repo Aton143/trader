@@ -11,6 +11,7 @@ struct VS_Input
 {
   float4 position: POSITION;
   float4 color:    COLOR;
+  float4 normal:   NORMAL;
   float2 uv:       TEXCOORD;
 };
 

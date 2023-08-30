@@ -1,6 +1,6 @@
 #include "trader_render.h"
 
-internal b32 render_atlas_initialize(Arena         *arena,
+b32 render_atlas_initialize(Arena         *arena,
                                      Texture_Atlas *atlas,
                                      File_Buffer   *font_data,
                                      f32           *font_heights,
@@ -136,32 +136,32 @@ internal b32 render_atlas_initialize(Arena         *arena,
   return(result);
 }
 
-internal Common_Render_Context *render_get_common_context(void)
+Common_Render_Context *render_get_common_context(void)
 {
   Common_Render_Context *common = (Common_Render_Context *) render_get_context();
   return(common);
 }
 
-internal void render_set_client_rect(Rect_f32 new_rect)
+void render_set_client_rect(Rect_f32 new_rect)
 {
   Common_Render_Context *render = render_get_common_context();
   render->client_rect = new_rect;
 }
 
-internal Rect_f32 render_get_client_rect(void)
+Rect_f32 render_get_client_rect(void)
 {
   Common_Render_Context *render = render_get_common_context();
   return(render->client_rect);
 }
 
-internal Vertex_Buffer_Element *render_push_triangles(u64 triangle_count)
+Vertex_Buffer_Element *render_push_triangles(u64 triangle_count)
 {
   Vertex_Buffer_Element *data_to_fill =
     push_array(&render_get_common_context()->triangle_render_data, Vertex_Buffer_Element, 3 * triangle_count);
   return(data_to_fill);
 }
 
-internal void render_data_to_lines(V2_f32 *points, u64 point_count)
+void render_data_to_lines(V2_f32 *points, u64 point_count)
 {
   Vertex_Buffer_Element *vertices = render_push_triangles((point_count - 1) * 2);
   Vertex_Buffer_Element *cur_vert = vertices;
@@ -203,56 +203,56 @@ internal void render_data_to_lines(V2_f32 *points, u64 point_count)
 
       // TL
       *cur_vert++ =
-      {
-        V4(tl.x, tl.y, 0.5f, 1.0f),
-        rgba(1.0f, 1.0f, 1.0, 1.0f),
-        V2(solid_color_rect.x0, solid_color_rect.y0)
-      };
+        vbe(
+            V4(tl.x, tl.y, 0.5f, 1.0f),
+            rgba(1.0f, 1.0f, 1.0, 1.0f),
+            V2(solid_color_rect.x0, solid_color_rect.y0)
+           );
 
       // BL
       *cur_vert++ =
-      {
-        V4(bl.x, bl.y, 0.5f, 1.0f),
-        rgba(1.0f, 1.0f, 1.0, 1.0f),
-        V2(solid_color_rect.x0, solid_color_rect.y1)
-      };
+        vbe(
+            V4(bl.x, bl.y, 0.5f, 1.0f),
+            rgba(1.0f, 1.0f, 1.0, 1.0f),
+            V2(solid_color_rect.x0, solid_color_rect.y1)
+           );
 
       // TR
       *cur_vert++ =
-      {
-        V4(tr.x, tr.y, 0.5f, 1.0f),
-        rgba(1.0f, 1.0f, 1.0, 1.0f),
-        V2(solid_color_rect.x1, solid_color_rect.y0)
-      };
+        vbe(
+            V4(tr.x, tr.y, 0.5f, 1.0f),
+            rgba(1.0f, 1.0f, 1.0, 1.0f),
+            V2(solid_color_rect.x1, solid_color_rect.y0)
+           );
 
       // BL
       *cur_vert++ =
-      {
-        V4(bl.x, bl.y, 0.5f, 1.0f),
-        rgba(1.0f, 1.0f, 1.0, 1.0f),
-        V2(solid_color_rect.x0, solid_color_rect.y1)
-      };
+        vbe(
+            V4(bl.x, bl.y, 0.5f, 1.0f),
+            rgba(1.0f, 1.0f, 1.0, 1.0f),
+            V2(solid_color_rect.x0, solid_color_rect.y1)
+           );
 
       // TR
       *cur_vert++ =
-      {
-        V4(tr.x, tr.y, 0.5f, 1.0f),
-        rgba(1.0f, 1.0f, 1.0, 1.0f),
-        V2(solid_color_rect.x1, solid_color_rect.y0)
-      };
+        vbe(
+            V4(tr.x, tr.y, 0.5f, 1.0f),
+            rgba(1.0f, 1.0f, 1.0, 1.0f),
+            V2(solid_color_rect.x1, solid_color_rect.y0)
+           );
 
       // BR
       *cur_vert++ =
-      {
-        V4(br.x, br.y, 0.5f, 1.0f),
-        rgba(1.0f, 1.0f, 1.0, 1.0f),
-        V2(solid_color_rect.x1, solid_color_rect.y1)
-      };
+        vbe(
+            V4(br.x, br.y, 0.5f, 1.0f),
+            rgba(1.0f, 1.0f, 1.0, 1.0f),
+            V2(solid_color_rect.x1, solid_color_rect.y1)
+           );
     }
   }
 }
 
-internal void render_get_text_dimensions(f32 *x, f32 *y, Rect_f32 bounds, String_Const_utf8 string, i64 up_to)
+void render_get_text_dimensions(f32 *x, f32 *y, Rect_f32 bounds, String_Const_utf8 string, i64 up_to)
 {
   expect(x != NULL);
   expect(y != NULL);
@@ -296,7 +296,7 @@ internal void render_get_text_dimensions(f32 *x, f32 *y, Rect_f32 bounds, String
   *y = cur_pos.y + font_scale;
 }
 
-internal void render_draw_text(Arena    *render_arena,
+void render_draw_text(Arena    *render_arena,
                                f32      *baseline_x,
                                f32      *baseline_y,
                                RGBA_f32  color,
@@ -404,7 +404,7 @@ internal void render_draw_text(Arena    *render_arena,
   *baseline_y = cur_pos.y;
 }
 
-internal inline Rect_f32 render_get_solid_color_rect(void)
+Rect_f32 render_get_solid_color_rect(void)
 {
   Texture_Atlas *atlas = render_get_common_context()->atlas;
 
@@ -418,7 +418,7 @@ internal inline Rect_f32 render_get_solid_color_rect(void)
   return(solid_color_rect);
 }
 
-internal inline V2_f32 render_get_solid_color_uv(void)
+V2_f32 render_get_solid_color_uv(void)
 {
   Texture_Atlas *atlas = render_get_common_context()->atlas;
 
@@ -429,7 +429,7 @@ internal inline V2_f32 render_get_solid_color_uv(void)
 }
 
 
-internal void render_push_line_instance(V2_f32 line_start, f32 length, f32 dir_x, f32 dir_y, RGBA_f32 color)
+void render_push_line_instance(V2_f32 line_start, f32 length, f32 dir_x, f32 dir_y, RGBA_f32 color)
 {
   expect(xorb(dir_x != 0.0f, dir_y != 0.0f));
 
@@ -452,7 +452,7 @@ internal void render_push_line_instance(V2_f32 line_start, f32 length, f32 dir_x
   draw->uv       = render_get_solid_color_rect();
 }
 
-internal i64 render_get_packed_char_start(f32 font_height)
+i64 render_get_packed_char_start(f32 font_height)
 {
   Texture_Atlas *atlas = render_get_common_context()->atlas;
 
@@ -477,5 +477,17 @@ internal i64 render_get_packed_char_start(f32 font_height)
   }
 
   return(found ? result : -1);
+}
+
+Vertex_Buffer_Element vbe(V4_f32 position, RGBA_f32 color, V2_f32 uv, V4_f32 normal)
+{
+  Vertex_Buffer_Element res; 
+
+  res.position = position;
+  res.color    = color;
+  res.normal   = normal;
+  res.uv       = uv;
+
+  return(res);
 }
 

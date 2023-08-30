@@ -63,6 +63,7 @@ struct Vertex_Buffer_Element
 {
   V4_f32   position;
   RGBA_f32 color;
+  V4_f32   normal;
   V2_f32   uv;
 };
 
@@ -149,7 +150,7 @@ internal void  render_push_line_instance(V2_f32 line_start, f32 length, f32 dir_
 
 internal void  render_create_cubemap(Bitmap *bitmaps, u32 bitmap_count, void *out_textures);
 
-// internal Vertex_Buffer_Element render_vertex(V4_f32 position, RGBA_f32 color, 
+internal inline Vertex_Buffer_Element vbe(V4_f32 position, RGBA_f32 color, V2_f32 uv, V4_f32 normal = v4_zero);
 internal Vertex_Buffer_Element *render_push_triangles(u64 triangle_count);
 internal void render_data_to_lines(V2_f32 *points, u64 point_count);
 

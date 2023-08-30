@@ -817,6 +817,9 @@ WinMain(HINSTANCE instance,
           "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
           D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
         }, {
+          "NORMAL", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
+          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
+        }, {
           "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0,
           D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
         },
@@ -941,6 +944,9 @@ WinMain(HINSTANCE instance,
       expect(SUCCEEDED(result));
     }
 
+    ID3D11ShaderResourceView *cubemap_texture_view = NULL;
+    render_create_cubemap(skybox_bitmaps, array_count(skybox_bitmaps), &cubemap_texture_view);
+
     ID3D11Buffer *constant_buffer = NULL;
     {
       D3D11_BUFFER_DESC constant_buffer_description = {};
@@ -1038,7 +1044,9 @@ WinMain(HINSTANCE instance,
 
     Vertex_Buffer_Element cube_vertices[] = 
     {
+#define CUBE_VERTEX(...) vbe(__VA_ARGS__)
 #include "../trader_cube_vertices.h"
+#undef CUBE_VERTEX
     };
 
     f32 acc_time = 0.0f;

@@ -580,6 +580,8 @@ union V4_f32 {
 };
 #pragma pack(pop)
 
+global_const V4_f32 v4_zero = {};
+
 union Range_i32 {
   struct {
     i32 min;
@@ -934,7 +936,6 @@ struct Thread_Context
 {
   Temp_Arena local_temp_arena;
 };
-
 
 #define TRADER_BASE_DEFINES_H
 #endif

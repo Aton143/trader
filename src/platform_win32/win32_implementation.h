@@ -1287,28 +1287,52 @@ internal void win32_load_skybox(Bitmap *bitmaps)
 
 internal void render_create_cubemap(Bitmap *bitmaps, u32 bitmap_count, void *out_textures)
 {
+  expect(bitmap_count > 0); 
+
   ID3D11ShaderResourceView **texture_views = (ID3D11ShaderResourceView **) out_textures;
   ID3D11Texture2D *cube_texture = NULL;
 
-  D3D11_TEXTURE2D_DESC texture_description;
+  Render_Context *render = render_get_context();
+
+  D3D11_TEXTURE2D_DESC texture_desc = {};
   {
-    texture_description.Width              = (UINT) bitmaps->width;
-    texture_description.Height             = (UINT) bitmaps->height;
-    texture_description.MipLevels          = 1;
-    texture_description.ArraySize          = 6;
-    texture_description.Format             = DXGI_FORMAT_R8G8B8A8_UNORM ;
-    texture_description.CPUAccessFlags     = 0;
-    texture_description.SampleDesc.Count   = 1;
-    texture_description.SampleDesc.Quality = 0;
-    texture_description.Usage              = D3D11_USAGE_DEFAULT;
-    texture_description.BindFlags          = D3D11_BIND_SHADER_RESOURCE;
-    texture_description.CPUAccessFlags     = 0;
-    texture_description.MiscFlags          = D3D11_RESOURCE_MISC_TEXTURECUBE;
+    texture_desc.Width              = (UINT) bitmaps->width;
+    texture_desc.Height             = (UINT) bitmaps->height;
+    texture_desc.MipLevels          = 1;
+    texture_desc.ArraySize          = 6;
+    texture_desc.Format             = DXGI_FORMAT_R8G8B8A8_UNORM ;
+    texture_desc.CPUAccessFlags     = 0;
+    texture_desc.SampleDesc.Count   = 1;
+    texture_desc.SampleDesc.Quality = 0;
+    texture_desc.Usage              = D3D11_USAGE_DEFAULT;
+    texture_desc.BindFlags          = D3D11_BIND_SHADER_RESOURCE;
+    texture_desc.CPUAccessFlags     = 0;
+    texture_desc.MiscFlags          = D3D11_RESOURCE_MISC_TEXTURECUBE;
   }
 
-  unused(texture_views);
-  unused(cube_texture);
-  unused(bitmap_count);
+  D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+  {
+    srv_desc.Format                      = texture_desc.Format;
+    srv_desc.ViewDimension               = D3D11_SRV_DIMENSION_TEXTURECUBE;
+    srv_desc.TextureCube.MipLevels       = texture_desc.MipLevels;
+    srv_desc.TextureCube.MostDetailedMip = 0;
+  }
+
+  D3D11_SUBRESOURCE_DATA subresource_data[6] = {};
+  for (u32 face_index = 0;
+       face_index < array_count(subresource_data);
+       ++face_index)
+  {
+    subresource_data[face_index].pSysMem          = bitmaps[face_index].data; 
+    subresource_data[face_index].SysMemPitch      = ((UINT) bitmaps[face_index].width) * bitmaps[face_index].channels; 
+    subresource_data[face_index].SysMemSlicePitch = 0;
+  }
+
+  HRESULT result = render->device->CreateTexture2D(&texture_desc, subresource_data, &cube_texture);
+  expect(SUCCEEDED(result));
+
+  result = render->device->CreateShaderResourceView(cube_texture, &srv_desc, texture_views);
+  expect(SUCCEEDED(result));
 }
 
 #define WIN32_IMPLEMENTATION_H

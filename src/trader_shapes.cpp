@@ -7,47 +7,47 @@ internal void put_quad(Vertex_Buffer_Element **vertices, V4_f32 tl, V4_f32 tr, V
 
   // NOTE(antonio): top triangle
   *cur_vertex++ = 
-  {
-    tl,
-    color,
-    solid_color_uv
-  };
+    vbe(
+        tl,
+        color,
+        solid_color_uv
+       );
 
   *cur_vertex++ = 
-  {
-    tr,
-    color,
-    solid_color_uv
-  };
+    vbe(
+        tr,
+        color,
+        solid_color_uv
+       );
 
   *cur_vertex++ = 
-  {
-    bl,
-    color,
-    solid_color_uv
-  };
+    vbe(
+        bl,
+        color,
+        solid_color_uv
+       );
 
   // NOTE(antonio): tom triangle
   *cur_vertex++ = 
-  {
-    tr,
-    color,
-    solid_color_uv
-  };
+    vbe(
+        tr,
+        color,
+        solid_color_uv
+       );
 
   *cur_vertex++ = 
-  {
-    bl,
-    color,
-    solid_color_uv
-  };
+    vbe(
+        bl,
+        color,
+        solid_color_uv
+       );
 
   *cur_vertex++ = 
-  {
-    br,
-    color,
-    solid_color_uv
-  };
+    vbe(
+        br,
+        color,
+        solid_color_uv
+       );
 
   *vertices = cur_vertex;
 }
@@ -89,67 +89,67 @@ internal Vertex_Buffer_Element *make_cylinder(Arena *render_arena,
     f32 cosine_end   = cos01f(angle_end);
 
     V4_f32 top_start = V4(cosine_start * top_radius,
-                           height / 2.0f,
-                           sine_start * top_radius, 1.0f);
+                          height / 2.0f,
+                          sine_start * top_radius, 1.0f);
 
     V4_f32 top_end = V4(cosine_end * top_radius,
-                           height / 2.0f,
-                           sine_end * top_radius, 1.0f);
+                        height / 2.0f,
+                        sine_end * top_radius, 1.0f);
 
     V4_f32 base_start = V4(cosine_start * base_radius,
                            -height / 2.0f,
                            sine_start * base_radius, 1.0f);
 
     V4_f32 base_end = V4(cosine_end * base_radius,
-                           -height / 2.0f,
-                           sine_end * base_radius, 1.0f);
+                         -height / 2.0f,
+                         sine_end * base_radius, 1.0f);
 
     V4_f32 color = scale(angle_start, rgba_white);
     color.w = 1.0f;
 
     // NOTE(antonio): top
     *cur_vertex++ = 
-    {
-      V4(0.0f, top_start.y, 0, 1.0f),
-      color,
-      solid_color_uv
-    };
+      vbe(
+          V4(0.0f, top_start.y, 0, 1.0f),
+          color,
+          solid_color_uv
+         );
 
     *cur_vertex++ = 
-    {
-      V4(top_start.x, top_start.y, top_start.z, 1.0f),
-      color,
-      solid_color_uv
-    };
+      vbe(
+          V4(top_start.x, top_start.y, top_start.z, 1.0f),
+          color,
+          solid_color_uv
+         );
 
     *cur_vertex++ = 
-    {
-      V4(top_end.x, top_start.y, top_end.z, 1.0f),
-      color,
-      solid_color_uv
-    };
+      vbe(
+          V4(top_end.x, top_start.y, top_end.z, 1.0f),
+          color,
+          solid_color_uv
+         );
 
     // NOTE(antonio): bottom
     *cur_vertex++ = 
-    {
-      V4(0.0f, base_start.y, 0, 1.0f),
-      color,
-      solid_color_uv
-    };
+      vbe(
+          V4(0.0f, base_start.y, 0, 1.0f),
+          color,
+          solid_color_uv
+         );
 
     *cur_vertex++ = 
-    {
-      V4(base_start.x, base_start.y, base_start.z, 1.0f),
-      color,
-      solid_color_uv
-    };
+      vbe(
+          V4(base_start.x, base_start.y, base_start.z, 1.0f),
+          color,
+          solid_color_uv
+         );
 
     *cur_vertex++ = 
-    {
-      V4(base_end.x, base_start.y, base_end.z, 1.0f),
-      color,
-      solid_color_uv
-    };
+      vbe(
+          V4(base_end.x, base_start.y, base_end.z, 1.0f),
+          color,
+          solid_color_uv
+         );
 
     for (u32 stack_index = 0;
          stack_index < stack_count;
@@ -223,25 +223,25 @@ internal Vertex_Buffer_Element *make_cylinder_along_path(Arena  *render_data,
     color.a = 1.0f;
 
     *cur_vertex++ = 
-    {
+      vbe(
       c4,
       color,
       solid_color_uv
-    };
+      );
 
     *cur_vertex++ = 
-    {
+      vbe(
       cur_ring[sector_index],
       color,
       solid_color_uv
-    };
+      );
 
     *cur_vertex++ = 
-    {
+      vbe(
       cur_ring[sector_index + 1],
       color,
       solid_color_uv
-    };
+      );
   }
 
   swap(V4_f32 *, cur_ring, prev_ring);
@@ -332,44 +332,44 @@ internal Vertex_Buffer_Element *make_player(Arena *render_data)
   V4_f32 w0       = V4(-0.5f, 0.0f,   0.50f, 1.0f);
 
   // LT Hull
-  *cur_vertex++ = {back_top, color, solid_color_uv};
-  *cur_vertex++ = {front,    color, solid_color_uv};
-  *cur_vertex++ = {w0,       color, solid_color_uv};
+  *cur_vertex++ = vbe(back_top, color, solid_color_uv);
+  *cur_vertex++ = vbe(front,    color, solid_color_uv);
+  *cur_vertex++ = vbe(w0,       color, solid_color_uv);
 
   color = wide_lerp(color, 0.25f, rgba_red);
 
   // LB Hull
-  *cur_vertex++ = {reflect_about_xz(back_top), color, solid_color_uv};
-  *cur_vertex++ = {front,                      color, solid_color_uv};
-  *cur_vertex++ = {w0,                         color, solid_color_uv};
+  *cur_vertex++ = vbe(reflect_about_xz(back_top), color, solid_color_uv);
+  *cur_vertex++ = vbe(front,                      color, solid_color_uv);
+  *cur_vertex++ = vbe(w0,                         color, solid_color_uv);
 
   color = wide_lerp(color, 0.25f, rgba_red);
 
   // LBack Hull
-  *cur_vertex++ = {reflect_about_xz(back_top), color, solid_color_uv};
-  *cur_vertex++ = {back_top,                   color, solid_color_uv};
-  *cur_vertex++ = {w0,                         color, solid_color_uv};
+  *cur_vertex++ = vbe(reflect_about_xz(back_top), color, solid_color_uv);
+  *cur_vertex++ = vbe(back_top,                   color, solid_color_uv);
+  *cur_vertex++ = vbe(w0,                         color, solid_color_uv);
 
   color = rgba_white;
 
   // RT Hull
-  *cur_vertex++ = {front,                color, solid_color_uv};
-  *cur_vertex++ = {back_top,             color, solid_color_uv};
-  *cur_vertex++ = {reflect_about_yz(w0), color, solid_color_uv};
+  *cur_vertex++ = vbe(front,                color, solid_color_uv);
+  *cur_vertex++ = vbe(back_top,             color, solid_color_uv);
+  *cur_vertex++ = vbe(reflect_about_yz(w0), color, solid_color_uv);
 
   color = wide_lerp(color, 0.25f, rgba_red);
 
   // RB Hull
-  *cur_vertex++ = {front,                      color, solid_color_uv};
-  *cur_vertex++ = {reflect_about_xz(back_top), color, solid_color_uv};
-  *cur_vertex++ = {reflect_about_yz(w0),       color, solid_color_uv};
+  *cur_vertex++ = vbe(front,                      color, solid_color_uv);
+  *cur_vertex++ = vbe(reflect_about_xz(back_top), color, solid_color_uv);
+  *cur_vertex++ = vbe(reflect_about_yz(w0),       color, solid_color_uv);
 
   color = wide_lerp(color, 0.25f, rgba_red);
 
   // RBack Hull
-  *cur_vertex++ = {back_top,                   color, solid_color_uv};
-  *cur_vertex++ = {reflect_about_xz(back_top), color, solid_color_uv};
-  *cur_vertex++ = {reflect_about_yz(w0),       color, solid_color_uv};
+  *cur_vertex++ = vbe(back_top,                   color, solid_color_uv);
+  *cur_vertex++ = vbe(reflect_about_xz(back_top), color, solid_color_uv);
+  *cur_vertex++ = vbe(reflect_about_yz(w0),       color, solid_color_uv);
 
   return(vertices);
 }

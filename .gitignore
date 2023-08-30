@@ -12,6 +12,9 @@ build
 build/*
 tags
 
+assets/skybox
+assets/skybox/*
+
 # ---> Vim
 # Swap
 [._]*.s[a-v][a-z]

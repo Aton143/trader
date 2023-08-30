@@ -31,7 +31,7 @@ internal Handle *make_handle(String_Const_utf8 id, Handle_Kind kind, Handle *pre
       {
         String_Const_utf8 file_name = platform_get_file_name_from_path(&id);
 
-        result->id   = id;
+        result->id   = file_name;
         result->kind = kind;
 
         global_asset_pool.free_list_head = global_asset_pool.free_list_head->next;

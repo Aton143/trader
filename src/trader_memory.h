@@ -20,7 +20,7 @@ global_const void *global_memory_start_addr = NULL;
 global_const void *global_memory_start_addr = (void *) tb(2);
 #endif
 
-global_const u64 global_memory_size = mb(8);
+global_const u64 global_memory_size = mb(128);
 global_const u64 global_temp_arena_size = mb(32);
 
 internal inline i64 copy_memory_block(void *dest, void *source, i64 byte_count);

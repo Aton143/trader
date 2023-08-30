@@ -116,43 +116,6 @@ internal u32 win32_network_thread(void *arg)
                                                 &tls_socket,
                                                 &receive_buffer,
                                                 &header);
-
-  /*
-  switch (header.opcode)
-  {
-    case websocket_opcode_continuation:
-    {
-
-    } break;
-    case websocket_opcode_text:
-    {
-
-    } break;
-    case websocket_opcode_binary:
-    {
-
-    } break;
-    case websocket_opcode_close:
-    {
-
-    } break;
-    case websocket_opcode_ping:
-    {
-      net_result = network_websocket_send_simple(&network_state, &tls_socket, &receive_buffer, websocket_opcode_pong);
-      expect(net_result == network_ok);
-    } break;
-    case websocket_opcode_pong:
-    {
-      net_result = network_websocket_receive_simple(&network_state, &tls_socket, &receive_buffer, &header);
-      expect(net_result == network_ok);
-    } break;
-    default:
-    {
-      meta_log_char("WebSocket: unknown opcode: %d\n", header.opcode);
-    } break;
-  }
-  */
-
   return(0);
 }
 
@@ -287,8 +250,6 @@ internal LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM
         (f32) mouse_pos.x - ui->mouse_pos.x,
         (f32) mouse_pos.y - ui->mouse_pos.y,
       };
-
-      printf("Mouse delta: %f %f\n", ui->mouse_delta.x, ui->mouse_delta.y);
 
       ui->mouse_pos = 
       {
@@ -555,6 +516,9 @@ WinMain(HINSTANCE instance,
                           512, 512);
 
   Texture_Atlas *atlas = win32_global_state.render_context.atlas;
+
+  Bitmap skybox_bitmaps[6];
+  win32_load_skybox(skybox_bitmaps);
 
   {
     WNDCLASSEXW window_class = {};
@@ -1202,13 +1166,13 @@ WinMain(HINSTANCE instance,
       ui_push_background_color(rgba_from_u8(0, 0, 100, 255));
       ui_make_panel(axis_split_vertical, &panel_floats[panel_float_index++], string_literal_init_type("first", utf8));
       ui_do_string(string_literal_init_type("Hello World!", utf8));
-      ui_do_formatted_string("Mouse (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
+      ui_do_formatted_string("Mouse: (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
 
-      ui_do_formatted_string("Raw Input Mouse (%.0f, %.0f)",
+      ui_do_formatted_string("Raw Input Mouse: (%.0f, %.0f)",
                              global_player_context.mouse_pos.x,
                              global_player_context.mouse_pos.y);
 
-      ui_do_formatted_string("Raw Input Mouse Delta (%.0f, %.0f)",
+      ui_do_formatted_string("Raw Input Mouse Delta: (%.0f, %.0f)",
                              global_player_context.mouse_delta.x,
                              global_player_context.mouse_delta.y);
 

@@ -1231,5 +1231,85 @@ internal u64 platform_get_processor_time_stamp(void)
   return(ts);
 }
 
+internal void win32_load_skybox(Bitmap *bitmaps)
+{
+  Arena *temp_arena = get_temp_arena();
+  u64 prev_used = temp_arena->used;
+
+  local_persist String_Const_utf8 skybox_file_paths[]
+  {
+    scu8l("..\\assets\\skybox\\back.jpg"),
+    scu8l("..\\assets\\skybox\\bottom.jpg"),
+    scu8l("..\\assets\\skybox\\top.jpg"),
+    scu8l("..\\assets\\skybox\\left.jpg"),
+    scu8l("..\\assets\\skybox\\right.jpg"),
+    scu8l("..\\assets\\skybox\\front.jpg"),
+  };
+
+  for (u32 path_index = 0;
+       path_index < array_count(skybox_file_paths);
+       ++path_index)
+  {
+    Bitmap *cur_bitmap = bitmaps + path_index;
+
+    String_Const_utf8 *cur_path = skybox_file_paths + path_index;
+    File_Buffer        cur_file_buf = platform_open_and_read_entire_file(temp_arena, cur_path->str, cur_path->size);
+
+    int width, height;
+
+    u8 *data = (u8 *) stbi_load_from_memory(cur_file_buf.data, (int) cur_file_buf.used,
+                                            &width, &height, (int *) &cur_bitmap->channels, 4);
+
+    cur_bitmap->width  = (f32) width;
+    cur_bitmap->height = (f32) height;
+
+    u8 *image = (u8 *) arena_push(&win32_global_state.global_arena, 4 * sizeof(u8) * width * height);
+
+    for (i32 row = 0; row < height; ++row)
+    {
+      u32 data_pos  = 3 * (row * width);
+      u32 image_pos = 4 * (row * width);
+
+      for (i32 col = 0; col < width; ++col)
+      {
+        image[image_pos++] = data[data_pos++];
+        image[image_pos++] = data[data_pos++];
+        image[image_pos++] = data[data_pos++];
+        image[image_pos++] = 255;
+      }
+    }
+
+    cur_bitmap->data = image;
+
+    temp_arena->used = prev_used;
+  }
+}
+
+internal void render_create_cubemap(Bitmap *bitmaps, u32 bitmap_count, void *out_textures)
+{
+  ID3D11ShaderResourceView **texture_views = (ID3D11ShaderResourceView **) out_textures;
+  ID3D11Texture2D *cube_texture = NULL;
+
+  D3D11_TEXTURE2D_DESC texture_description;
+  {
+    texture_description.Width              = (UINT) bitmaps->width;
+    texture_description.Height             = (UINT) bitmaps->height;
+    texture_description.MipLevels          = 1;
+    texture_description.ArraySize          = 6;
+    texture_description.Format             = DXGI_FORMAT_R8G8B8A8_UNORM ;
+    texture_description.CPUAccessFlags     = 0;
+    texture_description.SampleDesc.Count   = 1;
+    texture_description.SampleDesc.Quality = 0;
+    texture_description.Usage              = D3D11_USAGE_DEFAULT;
+    texture_description.BindFlags          = D3D11_BIND_SHADER_RESOURCE;
+    texture_description.CPUAccessFlags     = 0;
+    texture_description.MiscFlags          = D3D11_RESOURCE_MISC_TEXTURECUBE;
+  }
+
+  unused(texture_views);
+  unused(cube_texture);
+  unused(bitmap_count);
+}
+
 #define WIN32_IMPLEMENTATION_H
 #endif

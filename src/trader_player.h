@@ -20,6 +20,9 @@ struct Player_Context
 
   f32 rotation;
   f32 lerp_factor;
+
+  V2_f32 mouse_pos;
+  V2_f32 mouse_delta;
 };
 
 global u8 __input_queue_buffer[128];

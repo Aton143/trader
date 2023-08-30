@@ -1,4 +1,5 @@
 #define WIN32_LEAN_AND_MEAN
+#define VC_EXTRALEAN
 #define NO_MIN_MAX
 #define UNICODE
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
@@ -7,6 +8,7 @@
 
 #include <windows.h>
 #include <windowsx.h>
+#include <winuser.h>
 
 #include <memoryapi.h>
 #include <sysinfoapi.h>
@@ -184,6 +186,46 @@ internal LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM
 
   switch (message)
   {
+    case WM_INPUT:
+    {
+      // NOTE(antonio): https://gist.github.com/luluco250/ac79d72a734295f167851ffdb36d77ee 
+      // RAWINPUT does not guarantee that accumulated deltas will be consistent, unlike WM_MOUSEDATA
+      // This requires some care
+
+      local_persist RAWINPUT raw_input[1];
+      u32 size = sizeof(raw_input);
+      HRAWINPUT raw_input_handle = (HRAWINPUT) lparam;
+
+      UINT return_code = GetRawInputData(raw_input_handle, RID_INPUT, raw_input, &size, sizeof(RAWINPUTHEADER));
+      if (return_code == (UINT) -1)
+      {
+        platform_debug_print_system_error();
+      }
+
+      if (raw_input->header.dwType == RIM_TYPEMOUSE)
+      {
+        RAWMOUSE *mouse_data = &raw_input->data.mouse;
+
+        if ((mouse_data->usFlags & MOUSE_MOVE_ABSOLUTE) == MOUSE_MOVE_ABSOLUTE)
+        {
+          b32 virtual_desktop = (mouse_data->usFlags & MOUSE_VIRTUAL_DESKTOP) == MOUSE_VIRTUAL_DESKTOP;
+
+          f32 width  = (f32) GetSystemMetrics(virtual_desktop ? SM_CXVIRTUALSCREEN : SM_CXSCREEN);
+          f32 height = (f32) GetSystemMetrics(virtual_desktop ? SM_CYVIRTUALSCREEN : SM_CYSCREEN);
+
+          global_player_context.mouse_pos = V2((mouse_data->lLastX / 65535.0f) * width,
+                                               (mouse_data->lLastY / 65535.0f) * height);
+        }
+        else if ((mouse_data->usFlags & MOUSE_MOVE_RELATIVE) == MOUSE_MOVE_RELATIVE)
+        {
+          V2_f32 mouse_delta = V2((f32) mouse_data->lLastX, (f32) mouse_data->lLastY);
+
+          global_player_context.mouse_delta = mouse_delta;
+          global_player_context.mouse_pos   = add(global_player_context.mouse_pos, mouse_delta);
+        }
+      }
+    } break;
+
     case WM_GETMINMAXINFO:
     {
       MINMAXINFO *window_tracking_info = (MINMAXINFO *) lparam;
@@ -548,6 +590,33 @@ WinMain(HINSTANCE instance,
     {
       MessageBoxA(0, "CreateWindowEx failed", "Fatal Error", MB_OK);
       return GetLastError();
+    }
+  }
+
+  // NOTE(antonio): ****RAWINPUT****
+  // https://www.asciiart.eu/animals/reptiles/dinosaurs
+  {
+#ifndef HID_USAGE_PAGE_GENERIC
+#define HID_USAGE_PAGE_GENERIC ((u16) 0x01)
+#endif
+#ifndef HID_USAGE_GENERIC_MOUSE
+#define HID_USAGE_GENERIC_MOUSE ((u16) 0x02)
+#endif
+
+    local_persist RAWINPUTDEVICE raw_input_registrations[] =
+    {
+      {
+        HID_USAGE_PAGE_GENERIC,
+        HID_USAGE_GENERIC_MOUSE,
+        RIDEV_INPUTSINK,
+        win32_global_state.window_handle,
+      }
+    };
+
+    u32 count = array_count(raw_input_registrations);
+    if (!RegisterRawInputDevices(raw_input_registrations, count, sizeof(raw_input_registrations[0])))
+    {
+      platform_debug_print_system_error();
     }
   }
 
@@ -1135,6 +1204,14 @@ WinMain(HINSTANCE instance,
       ui_do_string(string_literal_init_type("Hello World!", utf8));
       ui_do_formatted_string("Mouse (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
 
+      ui_do_formatted_string("Raw Input Mouse (%.0f, %.0f)",
+                             global_player_context.mouse_pos.x,
+                             global_player_context.mouse_pos.y);
+
+      ui_do_formatted_string("Raw Input Mouse Delta (%.0f, %.0f)",
+                             global_player_context.mouse_delta.x,
+                             global_player_context.mouse_delta.y);
+
       ui_do_formatted_string("Player Max Rotation Speed: %f", player_context->rotation_max_speed);
       ui_do_slider_f32(scu8l("Player Max Rotation Speed"), &player_context->rotation_max_speed, 0.0f, 0.05f);
 
@@ -1340,7 +1417,6 @@ WinMain(HINSTANCE instance,
 
         device_context->DrawInstanced(4, initial_draw_count, 0, 0);
 
-        /*
         for (u32 draw_layer_index = 0;
              draw_layer_index < array_count(ui->render_layers);
              ++draw_layer_index)
@@ -1351,7 +1427,6 @@ WinMain(HINSTANCE instance,
                                         0,
                                         ui->flattened_draw_layer_indices[draw_layer_index]);
         }
-        */
       }
 
 #if 0 && !SHIP_MODE

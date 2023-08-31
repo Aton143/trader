@@ -507,6 +507,7 @@ internal b32 platform_did_file_change(utf8 *file_name, u64 file_name_length)
       u64 min_length = min(file_name_length, array_count(win32_global_state.changed_files[0]));
       if (!compare_memory_block(file_name, cur_changed_file, min_length))
       {
+        zero_memory_block(cur_changed_file, array_count(win32_global_state.changed_files[0]));
         file_changed = true;
         break;
       }
@@ -1238,12 +1239,12 @@ internal void win32_load_skybox(Bitmap *bitmaps)
 
   local_persist String_Const_utf8 skybox_file_paths[]
   {
-    scu8l("..\\assets\\skybox\\back.jpg"),
-    scu8l("..\\assets\\skybox\\bottom.jpg"),
-    scu8l("..\\assets\\skybox\\top.jpg"),
-    scu8l("..\\assets\\skybox\\left.jpg"),
     scu8l("..\\assets\\skybox\\right.jpg"),
+    scu8l("..\\assets\\skybox\\left.jpg"),
+    scu8l("..\\assets\\skybox\\top.jpg"),
+    scu8l("..\\assets\\skybox\\bottom.jpg"),
     scu8l("..\\assets\\skybox\\front.jpg"),
+    scu8l("..\\assets\\skybox\\back.jpg"),
   };
 
   for (u32 path_index = 0;
@@ -1258,29 +1259,31 @@ internal void win32_load_skybox(Bitmap *bitmaps)
     int width, height;
 
     u8 *data = (u8 *) stbi_load_from_memory(cur_file_buf.data, (int) cur_file_buf.used,
-                                            &width, &height, (int *) &cur_bitmap->channels, 4);
+                                            &width, &height, (int *) NULL, 4);
 
-    cur_bitmap->width  = (f32) width;
-    cur_bitmap->height = (f32) height;
+    cur_bitmap->channels = 4;
+    cur_bitmap->width    = (f32) width;
+    cur_bitmap->height   = (f32) height;
 
+    /*
     u8 *image = (u8 *) arena_push(&win32_global_state.global_arena, 4 * sizeof(u8) * width * height);
+
+    u32 data_pos  = 0;
+    u32 image_pos = 0;
 
     for (i32 row = 0; row < height; ++row)
     {
-      u32 data_pos  = 3 * (row * width);
-      u32 image_pos = 4 * (row * width);
-
       for (i32 col = 0; col < width; ++col)
       {
-        image[image_pos++] = data[data_pos++];
-        image[image_pos++] = data[data_pos++];
-        image[image_pos++] = data[data_pos++];
         image[image_pos++] = 255;
+        image[image_pos++] = data[data_pos++];
+        image[image_pos++] = data[data_pos++];
+        image[image_pos++] = data[data_pos++];
       }
     }
+    */
 
-    cur_bitmap->data = image;
-
+    cur_bitmap->data = data;
     temp_arena->used = prev_used;
   }
 }

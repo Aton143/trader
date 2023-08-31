@@ -791,6 +791,26 @@ WinMain(HINSTANCE instance,
       expect(SUCCEEDED(result));
     }
 
+    ID3D11SamplerState *cubemap_sampler_state = NULL;
+    {
+      D3D11_SAMPLER_DESC sampler_description = {};
+
+      sampler_description.Filter         = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+      sampler_description.AddressU       = D3D11_TEXTURE_ADDRESS_CLAMP;
+      sampler_description.AddressV       = D3D11_TEXTURE_ADDRESS_CLAMP;
+      sampler_description.AddressW       = D3D11_TEXTURE_ADDRESS_CLAMP;
+      sampler_description.BorderColor[0] = 1.0f;
+      sampler_description.BorderColor[1] = 1.0f;
+      sampler_description.BorderColor[2] = 1.0f;
+      sampler_description.BorderColor[3] = 1.0f;
+      sampler_description.ComparisonFunc = D3D11_COMPARISON_NEVER;
+      sampler_description.MinLOD         = 0;
+      sampler_description.MaxLOD         = D3D11_FLOAT32_MAX;
+
+      HRESULT result = device->CreateSamplerState(&sampler_description, &cubemap_sampler_state);
+      expect(SUCCEEDED(result));
+    }
+
     ID3D11BlendState *transparent_blend_state = NULL;
     {
       D3D11_BLEND_DESC blend_description = {};
@@ -1200,8 +1220,11 @@ WinMain(HINSTANCE instance,
         render_load_pixel_shader(triangle_shader_source_handle, &triangle_pixel_shader);
         device_context->PSSetShader(triangle_pixel_shader.shader, NULL, 0);
 
-        device_context->PSSetShaderResources(0, 1, &font_texture_view);
-        device_context->PSSetSamplers(0, 1, &sampler_state);
+        ID3D11ShaderResourceView *texture_views[] = {font_texture_view, cubemap_texture_view};
+        device_context->PSSetShaderResources(0, array_count(texture_views), texture_views);
+
+        ID3D11SamplerState *sampler_states[] = {sampler_state, cubemap_sampler_state};
+        device_context->PSSetSamplers(0, array_count(sampler_states), sampler_states);
 
         device_context->GSSetShader(NULL, NULL, 0);
         device_context->HSSetShader(NULL, NULL, 0);
@@ -1313,6 +1336,7 @@ WinMain(HINSTANCE instance,
 
         device_context->DrawInstanced(4, initial_draw_count, 0, 0);
 
+        /*
         for (u32 draw_layer_index = 0;
              draw_layer_index < array_count(ui->render_layers);
              ++draw_layer_index)
@@ -1323,6 +1347,7 @@ WinMain(HINSTANCE instance,
                                         0,
                                         ui->flattened_draw_layer_indices[draw_layer_index]);
         }
+        */
       }
 
 #if 0 && !SHIP_MODE

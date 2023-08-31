@@ -19,6 +19,7 @@ struct PS_Input
 {
   float4 vertex: SV_POSITION;
   float4 color:  COLOR;
+  float4 normal: NORMAL;
   float2 uv:     TEXCOORD;
 };
 
@@ -34,6 +35,7 @@ PS_Input VS_Main(VS_Input input)
 
   output.uv     = float2(input.uv.x, input.uv.y);
   output.color  = input.color;
+  output.normal = float4(mul(global_data.projection, mul(global_data.view, mul(global_data.model, input.normal))).xyz, 1.0f);
 
   return(output);
 }
@@ -42,7 +44,7 @@ float4 PS_Main(PS_Input input): SV_Target
 {
   float alpha_sample = global_texture.Sample(global_sampler, input.uv).r;
   float3 combined    = float3(input.color.rgb) * alpha_sample;
-  float4 out_color   = float4(combined, alpha_sample);
+  float4 out_color   = float4(input.normal.xyz, alpha_sample);
   out_color = pow(out_color, 1.0f / 2.2f);
   return out_color;
 }

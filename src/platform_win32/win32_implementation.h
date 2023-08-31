@@ -454,8 +454,6 @@ internal void platform_collect_notifications(void)
                                 0);
     if (completion_status)
     {
-      zero_struct(win32_global_state.changed_files);
-
       i32 cur_index = 0;
       FILE_NOTIFY_INFORMATION *cur = (FILE_NOTIFY_INFORMATION *) win32_global_state._changed_files;
 
@@ -507,7 +505,6 @@ internal b32 platform_did_file_change(utf8 *file_name, u64 file_name_length)
       u64 min_length = min(file_name_length, array_count(win32_global_state.changed_files[0]));
       if (!compare_memory_block(file_name, cur_changed_file, min_length))
       {
-        zero_memory_block(cur_changed_file, array_count(win32_global_state.changed_files[0]));
         file_changed = true;
         break;
       }

@@ -1398,6 +1398,7 @@ WinMain(HINSTANCE instance,
 
       // Post-frame
       win32_global_state.focus_event = focus_event_none;
+      zero_struct(win32_global_state.changed_files);
 
       ui->mouse_delta            = {0.0f, 0.0f};
       ui->mouse_wheel_delta      = {0.0f, 0.0f};

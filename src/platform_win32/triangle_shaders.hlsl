@@ -44,7 +44,6 @@ PS_Input VS_Main(VS_Input input)
   output.color  = input.color;
   output.normal = float4(mul(transpose(inverse(global_data.model)), input.normal).xyz, 1.0f);
 
-
   return(output);
 }
 
@@ -64,6 +63,7 @@ float4 PS_Main(PS_Input input): SV_Target
   out_color = pow(out_color, 1.0f / 2.2f);
   return out_color;
 }
+
 
 float4x4 inverse(float4x4 m)
 {

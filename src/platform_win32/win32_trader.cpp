@@ -46,79 +46,6 @@ internal b32 is_vk_down(i32 vk)
   return(vk_down);
 }
 
-internal u32 win32_network_thread(void *arg)
-{
-  Thread_Context *net_thread_context = (Thread_Context *) arg;
-  expect(net_thread_context != NULL);
-
-  Network_State network_state = {};
-  network_startup(&network_state);
-
-  String_Const_utf8 host_name = string_literal_init_type("echo.websocket.events", utf8);
-  // String_Const_utf8 host_name = string_literal_init_type("finnhub.io", utf8);
-
-  String_Const_utf8 query_path = string_literal_init_type("", utf8);
-
-  u16 port = 443;
-
-  Socket tls_socket;
-  Network_Return_Code net_result = network_connect(&network_state, &tls_socket, host_name, port);
-  expect(net_result == network_ok);
-
-  Buffer request_header = stack_alloc_buffer(1024);
-  zero_buffer(&request_header);
-
-  request_header.used =
-    (u64) stbsp_snprintf((char *) request_header.data,
-                         (int)    request_header.size,
-                         "GET / HTTP/1.1\r\n"
-                         //" GET /api/v1/search?q=apple HTTP/1.1\r\n"
-                         // "Host: %s:443\r\n"
-                         "Host: %s\r\n"
-                         // "Accept: text/*\r\n"
-                         "Accept-Encoding: identity\r\n"
-                         "Upgrade: websocket\r\n"
-                         "Connection: Upgrade\r\n"
-                         "Sec-WebSocket-Key: x3JJHMbDL1EzLkh9GBhXDw==\r\n"
-                         "Sec-WebSocket-Version: 13\r\n"
-                         "\r\n",
-                         (char *) host_name.str);
-
-  net_result = network_send_simple(&network_state, &tls_socket, &request_header);
-  expect(net_result == network_ok);
-
-  Buffer receive_buffer = stack_alloc_buffer(2048);
-  zero_buffer(&receive_buffer);
-
-  net_result = network_receive_simple(&network_state, &tls_socket, &receive_buffer);
-  expect(net_result == network_ok);
-
-  i32 disable_nagle = 1;
-  i32 disable_nagle_res = setsockopt(tls_socket.socket,
-                                     IPPROTO_TCP,
-                                     TCP_NODELAY,
-                                     (char *) &disable_nagle,
-                                     sizeof(disable_nagle));
-  expect(disable_nagle_res == 0);
-
-  Buffer to_send = buffer_from_string_literal_type("Vete a la chingada!");
-  net_result = network_websocket_send_simple(net_thread_context,
-                                             &network_state,
-                                             &tls_socket,
-                                             &to_send,
-                                             websocket_opcode_text);
-  expect(net_result == network_ok);
-
-  WebSocket_Frame_Header header;
-  zero_buffer(&receive_buffer);
-  net_result = network_websocket_receive_simple(net_thread_context,
-                                                &network_state,
-                                                &tls_socket,
-                                                &receive_buffer,
-                                                &header);
-  return(0);
-}
-
 internal void win32_message_fiber(void *args)
 {
   unused(args);
@@ -583,9 +510,6 @@ WinMain(HINSTANCE instance,
       platform_debug_print_system_error();
     }
   }
-
-  // Thread_Handle network_thread = platform_create_thread(&win32_network_thread, &thread_contexts[1]);
-  // unused(network_thread);
 
   if (ShowWindow(win32_global_state.window_handle, SW_NORMAL) && UpdateWindow(win32_global_state.window_handle))
   {

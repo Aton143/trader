@@ -332,44 +332,50 @@ internal Vertex_Buffer_Element *make_player(Arena *render_data)
   V4_f32 w0       = V4(-0.5f, 0.0f,   0.50f, 1.0f);
 
   // LT Hull
-  *cur_vertex++ = vbe(back_top, color, solid_color_uv);
-  *cur_vertex++ = vbe(front,    color, solid_color_uv);
-  *cur_vertex++ = vbe(w0,       color, solid_color_uv);
+  V4_f32 normal = V4(triangle_normal_ccw(back_top._xyz, front._xyz, w0._xyz), 1.0f);
+  *cur_vertex++ = vbe(back_top, color, solid_color_uv, normal);
+  *cur_vertex++ = vbe(front,    color, solid_color_uv, normal);
+  *cur_vertex++ = vbe(w0,       color, solid_color_uv, normal);
 
   color = wide_lerp(color, 0.25f, rgba_red);
+  normal = V4(triangle_normal_ccw(reflect_about_xz(back_top)._xyz, front._xyz, w0._xyz), 1.0f);
 
   // LB Hull
-  *cur_vertex++ = vbe(reflect_about_xz(back_top), color, solid_color_uv);
-  *cur_vertex++ = vbe(front,                      color, solid_color_uv);
-  *cur_vertex++ = vbe(w0,                         color, solid_color_uv);
+  *cur_vertex++ = vbe(reflect_about_xz(back_top), color, solid_color_uv, normal);
+  *cur_vertex++ = vbe(front,                      color, solid_color_uv, normal);
+  *cur_vertex++ = vbe(w0,                         color, solid_color_uv, normal);
 
   color = wide_lerp(color, 0.25f, rgba_red);
+  normal = V4(triangle_normal_ccw(reflect_about_xz(back_top)._xyz, back_top._xyz, w0._xyz), 1.0f);
 
   // LBack Hull
-  *cur_vertex++ = vbe(reflect_about_xz(back_top), color, solid_color_uv);
-  *cur_vertex++ = vbe(back_top,                   color, solid_color_uv);
-  *cur_vertex++ = vbe(w0,                         color, solid_color_uv);
+  *cur_vertex++ = vbe(reflect_about_xz(back_top), color, solid_color_uv, normal);
+  *cur_vertex++ = vbe(back_top,                   color, solid_color_uv, normal);
+  *cur_vertex++ = vbe(w0,                         color, solid_color_uv, normal);
 
   color = rgba_white;
+  normal = V4(triangle_normal_ccw(front._xyz, back_top._xyz, reflect_about_yz(w0)._xyz), 1.0f);
 
   // RT Hull
-  *cur_vertex++ = vbe(front,                color, solid_color_uv);
-  *cur_vertex++ = vbe(back_top,             color, solid_color_uv);
-  *cur_vertex++ = vbe(reflect_about_yz(w0), color, solid_color_uv);
+  *cur_vertex++ = vbe(front,                color, solid_color_uv, normal);
+  *cur_vertex++ = vbe(back_top,             color, solid_color_uv, normal);
+  *cur_vertex++ = vbe(reflect_about_yz(w0), color, solid_color_uv, normal);
 
   color = wide_lerp(color, 0.25f, rgba_red);
+  normal = V4(triangle_normal_ccw(front._xyz, reflect_about_xz(back_top)._xyz, reflect_about_yz(w0)._xyz), 1.0f);
 
   // RB Hull
-  *cur_vertex++ = vbe(front,                      color, solid_color_uv);
-  *cur_vertex++ = vbe(reflect_about_xz(back_top), color, solid_color_uv);
-  *cur_vertex++ = vbe(reflect_about_yz(w0),       color, solid_color_uv);
+  *cur_vertex++ = vbe(front,                      color, solid_color_uv, normal);
+  *cur_vertex++ = vbe(reflect_about_xz(back_top), color, solid_color_uv, normal);
+  *cur_vertex++ = vbe(reflect_about_yz(w0),       color, solid_color_uv, normal);
 
   color = wide_lerp(color, 0.25f, rgba_red);
+  normal = V4(triangle_normal_ccw(back_top._xyz, reflect_about_xz(back_top)._xyz, reflect_about_yz(w0)._xyz), 1.0f);
 
   // RBack Hull
-  *cur_vertex++ = vbe(back_top,                   color, solid_color_uv);
-  *cur_vertex++ = vbe(reflect_about_xz(back_top), color, solid_color_uv);
-  *cur_vertex++ = vbe(reflect_about_yz(w0),       color, solid_color_uv);
+  *cur_vertex++ = vbe(back_top,                   color, solid_color_uv, normal);
+  *cur_vertex++ = vbe(reflect_about_xz(back_top), color, solid_color_uv, normal);
+  *cur_vertex++ = vbe(reflect_about_yz(w0),       color, solid_color_uv, normal);
 
   return(vertices);
 }

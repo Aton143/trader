@@ -566,6 +566,12 @@ internal inline V4_f32 reflect_about_yz(V4_f32 v)
   return(res);
 }
 
+internal inline V3_f32 triangle_normal_ccw(V3_f32 v0, V3_f32 v1, V3_f32 v2)
+{
+  V3_f32 in[3] = {v0, v1, v2};
+  return(triangle_normal_ccw((f32 *) &in, sizeof(in[0])));
+}
+
 internal inline V3_f32 triangle_normal_ccw(f32 *vertices, u32 to_next_vertex)
 {
   u8 *v_ptr = (u8 *) vertices;

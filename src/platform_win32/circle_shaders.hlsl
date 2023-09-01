@@ -17,10 +17,11 @@ struct VS_Input
 
 struct PS_Input
 {
-  float4 vertex: SV_POSITION;
-  float4 color:  COLOR;
-  float3 center: CENTER;
-  float  radius: RADIUS;
+  float4 vertex:   SV_POSITION;
+  float4 color:    COLOR;
+  float2 position: POSITION;
+  float2 center:   CENTER;
+  float  radius:   RADIUS;
 };
 
 Vertex_Global_Data global_data;
@@ -31,7 +32,7 @@ SamplerState       global_sampler: register(s0);
 // < 0 if inside
 // 0 if on edge
 // > 0 if outside
-float sdf_circle(float3 pos, float3 center, float radius)
+float sdf_circle(float2 pos, float2 center, float radius)
 {
   float dist_from_center = length(pos - center);
   return(dist_from_center - radius);
@@ -43,8 +44,9 @@ PS_Input VS_Main(VS_Input input) {
   output.vertex   = mul(global_data.projection, mul(global_data.view, input.position));
 
   output.color  = input.color;
-  output.center = input.normal.xyz;
+  output.center = input.normal.xy;
   output.radius = input.normal.w;
+  output.position = output.vertex;
 
   return(output);
 }
@@ -52,8 +54,9 @@ PS_Input VS_Main(VS_Input input) {
 float4 PS_Main(PS_Input input): SV_Target
 {
   float4 out_color = input.color;
+  out_color.rgb *= out_color.a;
 
-  float circle_sdf = sdf_circle(input.vertex.xyz, input.center, input.radius);
+  float circle_sdf = sdf_circle(input.position.xy, input.center.xy, input.radius);
   if (circle_sdf >= 0.0f)
   {
     out_color *= 0.0f;

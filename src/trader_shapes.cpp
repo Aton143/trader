@@ -390,8 +390,6 @@ Render_Position make_circle_particles(Arena *render_data, Circle_Particle *parti
        ++particle_index)
   {
     Circle_Particle *cur_particle = particles + particle_index;
-
-    cur_particle->lifetime -= dt;
     alive_count += (cur_particle->lifetime > 0.0f);
   }
 
@@ -420,7 +418,7 @@ Render_Position make_circle_particles(Arena *render_data, Circle_Particle *parti
       V4_f32 bl = V4(add(c, blp), 1.0f);
       V4_f32 br = V4(add(c, brp), 1.0f);
       
-      RGBA_f32 color  = wide_lerp(cur_particle->cur_color, 0.05f, cur_particle->end_color);
+      RGBA_f32 color  = wide_lerp(cur_particle->cur_color, 0.10f, cur_particle->end_color);
       V4_f32   normal = V4(c, r);
 
       *cur_vertex++ = vbe(tl, color, V2(0.0f, 0.0f), normal);
@@ -431,7 +429,9 @@ Render_Position make_circle_particles(Arena *render_data, Circle_Particle *parti
       *cur_vertex++ = vbe(bl, color, V2(0.0f, 0.0f), normal);
       *cur_vertex++ = vbe(br, color, V2(0.0f, 0.0f), normal);
 
-      cur_particle->cur_color = color;
+      cur_particle->cur_color  = color;
+      cur_particle->lifetime  -= dt;
+      cur_particle->center     = add(cur_particle->center, scale(dt, cur_particle->velocity));
     }
   }
 

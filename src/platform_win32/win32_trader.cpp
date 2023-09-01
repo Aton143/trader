@@ -1017,9 +1017,13 @@ WinMain(HINSTANCE instance,
     Player_Context *player_context = player_get_context();
     Circle_Particle circle_particles[] = 
     {
-      {rgba_white, V4(1.0f, 1.0f, 0.0f, 1.0f), V3(0.0f, 0.0f, -2.0f), 0.25f, 1.0f}
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
     };
-    unused(circle_particles);
 
     while (global_running)
     {

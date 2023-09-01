@@ -6,6 +6,8 @@ struct Circle_Particle
   RGBA_f32 end_color;
 
   V3_f32   center;
+  V3_f32   velocity;
+
   f32      radius;
   f32      lifetime;
 };

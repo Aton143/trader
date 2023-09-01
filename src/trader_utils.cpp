@@ -71,6 +71,20 @@ internal u32 rng_get_random32(void)
   return(result);
 }
 
+internal f32 rng_get_random_01_f32(void)
+{
+  u32 random_u16 = rng_get_random32() >> 16;
+  f32 result = ((f32) random_u16) / ((f32) max_u16);
+  return(result);
+}
+
+internal f32 rng_get_random_between_f32(f32 min, f32 max)
+{
+  expect(min <= max);
+  f32 result = lerpf(min, rng_get_random_01_f32(), max);
+  return(result);
+}
+
 internal u64 rng_fill_buffer(u8 *buffer, u64 buffer_length)
 {
   u32 *buffer32 = (u32 *) buffer;

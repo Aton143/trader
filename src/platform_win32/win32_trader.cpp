@@ -995,8 +995,8 @@ WinMain(HINSTANCE instance,
 
     f32 acc_time = 0.0f;
 
-    Matrix_f32_4x4 view       = matrix4x4_diagonals(1.0f, 1.0f, 1.0f, 1.0f);
     Matrix_f32_4x4 projection = matrix4x4_symmetric_projection(1.0f, 100.0f, 1.0f, 1.0f);
+    Matrix_f32_4x4 view       = matrix4x4_diagonals(1.0f, 1.0f, 1.0f, 1.0f);
 
     V3_f32 points[] = {V3(0.0f, 0.0f, 0.0f), V3(0.0f, 0.0f, 0.5f), V3(0.0f, 1.0f, 0.5f), V3(0.5f, 0.75f, 0.5f)};
     // u32 sector_count = 4;
@@ -1127,9 +1127,6 @@ WinMain(HINSTANCE instance,
       ui_do_formatted_string("Raw Input Mouse Delta: (%.0f, %.0f)",
                              global_player_context.mouse_delta.x,
                              global_player_context.mouse_delta.y);
-
-      ui_do_formatted_string("Player Max Rotation Speed: %f", player_context->rotation_max_speed);
-      ui_do_slider_f32(scu8l("Player Max Rotation Speed"), &player_context->rotation_max_speed, 0.0f, 0.05f);
 
       ui_prepare_render_from_panels(ui_get_sentinel_panel(), client_rect);
 
@@ -1398,7 +1395,20 @@ WinMain(HINSTANCE instance,
 
       // Post-frame
       win32_global_state.focus_event = focus_event_none;
-      zero_struct(win32_global_state.changed_files);
+
+      for (u32 file_index = 0;
+           file_index < array_count(win32_global_state.changed_files);
+           ++file_index)
+      {
+        if (win32_global_state.changed_files[file_index][0] != '\0')
+        {
+          zero_struct(win32_global_state.changed_files);
+        }
+        else
+        {
+          break;
+        }
+      }
 
       ui->mouse_delta            = {0.0f, 0.0f};
       ui->mouse_wheel_delta      = {0.0f, 0.0f};

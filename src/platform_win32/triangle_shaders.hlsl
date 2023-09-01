@@ -42,16 +42,20 @@ PS_Input VS_Main(VS_Input input)
 
   output.uv     = float2(input.uv.x, input.uv.y);
   output.color  = input.color;
-  output.normal = float4(mul(transpose(inverse(global_data.model)), input.normal).xyz, 1.0f);
+  output.normal = float4(mul(
+                             transpose(inverse(
+                                                 global_data.model
+                             )),
+                             input.normal).xyz, 1.0f);
 
   return(output);
 }
 
 float4 PS_Main(PS_Input input): SV_Target
 {
-  float3 camera_pos = float3(1.0f, 1.0f, 1.0f);
+  float3 camera_pos = float3(0.0f, 0.0f, 1.0f);
   float3 dir        = normalize(input.position.xyz - camera_pos);
-  float3 reflected  = reflect(dir, input.normal.xyz);
+  float3 reflected  = reflect(dir, normalize(input.normal.xyz));
   float4 out_color  = float4(cubemap.Sample(global_cubemap_sampler, reflected).xyz, 1.0f);
 
 /*

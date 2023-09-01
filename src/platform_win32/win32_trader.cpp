@@ -722,12 +722,24 @@ WinMain(HINSTANCE instance,
       string_literal_init_type("..\\src\\platform_win32\\triangle_shaders.hlsl", utf8);
     Handle *triangle_shader_source_handle = make_handle(triangle_shader_source_path, Handle_Kind_File);
 
+    String_Const_utf8 circle_shader_source_path = 
+      string_literal_init_type("..\\src\\platform_win32\\circle_shaders.hlsl", utf8);
+    Handle *circle_shader_source_handle = make_handle(circle_shader_source_path, Handle_Kind_File);
+
     Vertex_Shader triangle_vertex_shader = {};
     Pixel_Shader  triangle_pixel_shader = {};
+
+    Vertex_Shader circle_vertex_shader = {};
+    Pixel_Shader  circle_pixel_shader = {};
 
     ID3DBlob *triangle_vertex_shader_blob =
       (ID3DBlob *) render_load_vertex_shader(triangle_shader_source_handle, &triangle_vertex_shader, true);
     render_load_pixel_shader(triangle_shader_source_handle, &triangle_pixel_shader, true);
+
+    ID3DBlob *circle_vertex_shader_blob =
+      (ID3DBlob *) render_load_vertex_shader(circle_shader_source_handle, &circle_vertex_shader, true);
+    render_load_pixel_shader(circle_shader_source_handle, &circle_pixel_shader, true);
+    safe_release(circle_vertex_shader_blob);
 
     ID3D11InputLayout *triangle_input_layout = NULL;
     {
@@ -1003,6 +1015,11 @@ WinMain(HINSTANCE instance,
     // f32 point_count = (f32) array_count(points);
 
     Player_Context *player_context = player_get_context();
+    Circle_Particle circle_particles[] = 
+    {
+      {rgba_white, V4(1.0f, 1.0f, 0.0f, 1.0f), V3(0.0f, 0.0f, -2.0f), 0.25f, 1.0f}
+    };
+    unused(circle_particles);
 
     while (global_running)
     {
@@ -1135,7 +1152,9 @@ WinMain(HINSTANCE instance,
 
     // make_cylinder(&common_render->triangle_render_data, 1.0f, cylinder_top_radius, 1.0f, (i32) (cylinder_sector_count), 1);
       //make_cylinder_along_path(&common_render->triangle_render_data, points, (u32) point_count, 0.05f, sector_count);
-      make_player(&common_render->triangle_render_data);
+      Render_Position player_rp = make_player(&common_render->triangle_render_data);
+      Render_Position circle_rp =
+        make_circle_particles(&common_render->triangle_render_data, circle_particles, array_count(circle_particles));
 
       // NOTE(antonio): instances
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -1236,14 +1255,7 @@ WinMain(HINSTANCE instance,
         D3D11_RECT scissor_rectangle = {(LONG) 0, (LONG) 0, (LONG) client_rect.x1, (LONG) client_rect.y1};
         device_context->RSSetScissorRects(1, &scissor_rectangle);
 
-        u32 triangle_draw_call_count = 
-          (u32) (win32_global_state.render_context.triangle_render_data.used / sizeof(Vertex_Buffer_Element));
-
-        expect_message((triangle_draw_call_count % 3) == 0, 
-                       "Expected vertex count to be divisible by 3 - "
-                       "you realize you're drawing triangles, right?");
-
-        device_context->Draw(triangle_draw_call_count, 0);
+        device_context->Draw(player_rp.count, player_rp.start_pos);
         // device_context->Draw(3 * sector_count, 0);
 
         /*
@@ -1254,6 +1266,15 @@ WinMain(HINSTANCE instance,
           device_context->Draw(vertices_per_quad * sector_count, qi);
         }
         */
+
+        render_load_vertex_shader(circle_shader_source_handle, &circle_vertex_shader);
+        device_context->VSSetShader(circle_vertex_shader.shader, NULL, 0);
+        device_context->VSSetConstantBuffers(0, 1, &constant_buffer);
+
+        render_load_pixel_shader(circle_shader_source_handle, &circle_pixel_shader);
+        device_context->PSSetShader(circle_pixel_shader.shader, NULL, 0);
+
+        device_context->Draw(circle_rp.count, circle_rp.start_pos);
       }
 
       {

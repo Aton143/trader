@@ -64,7 +64,7 @@ float sdf_rounded_rect(float2 sample_pos,
                        float  r)
 {
   float2 d2 = abs(sample_pos - rect_center) - rect_half_size + float2(r, r);
-  return length(max(d2, float2(0.0f, 0.0f))) /*+ min(max(d2.x, d2.y), 0.0) */ - r;
+  return(length(max(d2, float2(0.0f, 0.0f))) /*+ min(max(d2.x, d2.y), 0.0) */ - r);
 }
 
 PS_Input VS_Main(VS_Input input)

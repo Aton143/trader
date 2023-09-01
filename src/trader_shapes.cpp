@@ -1,6 +1,6 @@
 #include "trader_shapes.h"
 
-internal void put_quad(Vertex_Buffer_Element **vertices, V4_f32 tl, V4_f32 tr, V4_f32 bl, V4_f32 br, RGBA_f32 color)
+void put_quad(Vertex_Buffer_Element **vertices, V4_f32 tl, V4_f32 tr, V4_f32 bl, V4_f32 br, RGBA_f32 color)
 {
   Vertex_Buffer_Element *cur_vertex = *vertices;
   V2_f32 solid_color_uv = render_get_solid_color_uv();
@@ -53,12 +53,12 @@ internal void put_quad(Vertex_Buffer_Element **vertices, V4_f32 tl, V4_f32 tr, V
 }
 
 // NOTE(antonio): TRIANGLE FAN? 
-internal Vertex_Buffer_Element *make_cylinder(Arena *render_arena,
-                                              f32    base_radius,
-                                              f32    top_radius,
-                                              f32    height,
-                                              u32    sector_count,
-                                              u32    stack_count)
+Vertex_Buffer_Element *make_cylinder(Arena *render_arena,
+                                     f32    base_radius,
+                                     f32    top_radius,
+                                     f32    height,
+                                     u32    sector_count,
+                                     u32    stack_count)
 {
   expect(base_radius  >= 0.0f);
   expect(top_radius   >= 0.0f);
@@ -171,11 +171,11 @@ internal Vertex_Buffer_Element *make_cylinder(Arena *render_arena,
   return(vertices);
 }
 
-internal Vertex_Buffer_Element *make_cylinder_along_path(Arena  *render_data,
-                                                         V3_f32 *points,
-                                                         u32     point_count,
-                                                         f32     radius,
-                                                         u32     sector_count)
+Vertex_Buffer_Element *make_cylinder_along_path(Arena  *render_data,
+                                                V3_f32 *points,
+                                                u32     point_count,
+                                                f32     radius,
+                                                u32     sector_count)
 {
   expect(points != NULL);
   expect(point_count > 1);
@@ -316,13 +316,13 @@ internal Vertex_Buffer_Element *make_cylinder_along_path(Arena  *render_data,
   return(vertices);
 }
 
-internal Vertex_Buffer_Element *make_player(Arena *render_data)
+Render_Position make_player(Arena *render_data)
 {
   const u32 player_triangle_count = 6;
   u32 vertex_count = (vertices_per_triangle * player_triangle_count);
 
-  Vertex_Buffer_Element *vertices   = push_array(render_data, Vertex_Buffer_Element, vertex_count);
-  Vertex_Buffer_Element *cur_vertex = vertices; 
+  Render_Position rp = {(u32) (render_data->used / sizeof(Vertex_Buffer_Element)), vertex_count};
+  Vertex_Buffer_Element *cur_vertex = push_array(render_data, Vertex_Buffer_Element, rp.count);
 
   V2_f32 solid_color_uv = render_get_solid_color_uv();
   RGBA_f32 color = rgba_white;
@@ -377,5 +377,63 @@ internal Vertex_Buffer_Element *make_player(Arena *render_data)
   *cur_vertex++ = vbe(reflect_about_xz(back_top), color, solid_color_uv, normal);
   *cur_vertex++ = vbe(reflect_about_yz(w0),       color, solid_color_uv, normal);
 
-  return(vertices);
+  return(rp);
+}
+
+Render_Position make_circle_particles(Arena *render_data, Circle_Particle *particles, u32 count)
+{
+  u32 alive_count = 0;
+  f32 dt = (f32) platform_get_global_state()->dt;
+
+  for (u32 particle_index = 0;
+       particle_index < count;
+       ++particle_index)
+  {
+    Circle_Particle *cur_particle = particles + particle_index;
+
+    cur_particle->lifetime -= dt;
+    alive_count += (cur_particle->lifetime > 0.0f);
+  }
+
+  Render_Position rp = {(u32) (render_data->used / sizeof(Vertex_Buffer_Element)), alive_count * vertices_per_quad};
+
+  Vertex_Buffer_Element *cur_vertex;
+  cur_vertex = push_array(render_data, Vertex_Buffer_Element, rp.count);
+
+  for (u32 particle_index = 0;
+       particle_index < alive_count;
+       ++particle_index)
+  {
+    Circle_Particle *cur_particle = particles + particle_index;
+    if (cur_particle->lifetime > 0.0f)
+    {
+      V3_f32 c = cur_particle->center;
+      f32    r = cur_particle->radius;
+
+      V3_f32 tlp = V3(-r,  r, 0.0f);
+      V3_f32 trp = V3( r,  r, 0.0f);
+      V3_f32 blp = V3(-r, -r, 0.0f);
+      V3_f32 brp = V3( r, -r, 0.0f);
+
+      V4_f32 tl = V4(add(c, tlp), 1.0f);
+      V4_f32 tr = V4(add(c, trp), 1.0f);
+      V4_f32 bl = V4(add(c, blp), 1.0f);
+      V4_f32 br = V4(add(c, brp), 1.0f);
+      
+      RGBA_f32 color  = wide_lerp(cur_particle->cur_color, 0.05f, cur_particle->end_color);
+      V4_f32   normal = V4(c, r);
+
+      *cur_vertex++ = vbe(tl, color, V2(0.0f, 0.0f), normal);
+      *cur_vertex++ = vbe(bl, color, V2(0.0f, 0.0f), normal);
+      *cur_vertex++ = vbe(tr, color, V2(0.0f, 0.0f), normal);
+
+      *cur_vertex++ = vbe(tr, color, V2(0.0f, 0.0f), normal);
+      *cur_vertex++ = vbe(bl, color, V2(0.0f, 0.0f), normal);
+      *cur_vertex++ = vbe(br, color, V2(0.0f, 0.0f), normal);
+
+      cur_particle->cur_color = color;
+    }
+  }
+
+  return(rp);
 }

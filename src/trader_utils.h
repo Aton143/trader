@@ -19,5 +19,9 @@ internal f32 abs(f32 a);
 internal u64 difference_with_wrap(u64 a, u64 b);
 internal b32 xorb(b32 a, b32 b);
 
+internal inline u16 popcount16(u16 n);
+internal inline u32 popcount32(u32 n);
+internal inline u64 popcount64(u64 n);
+
 #define TRADER_UTILS_H
 #endif

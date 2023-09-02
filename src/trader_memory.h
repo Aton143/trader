@@ -8,6 +8,26 @@
 
 #include "trader_platform.h"
 
+struct Bucket_Array_Meta
+{
+  u64 alignment_data;
+  u64 alignment_header;
+  u32 first_bucket;
+};
+
+// NOTE(antonio):
+// header_size | size | header bytes | data ...
+struct Bucket_Array
+{
+  u16 data_size;
+  u16 header_size;
+  u32 next_bucket_id;
+
+  u8  data[1];
+};
+
+global_const u32 last_bucket_id = (u32) -1;
+
 // TODO(antonio): store_ptr/load_ptr versions
 // i.e. ring_buffer_append(..., &widget) caused issues in the past
 
@@ -41,6 +61,7 @@ internal inline i64 compare_memory_block(void *a, void *b, i64 byte_count);
 #define compare_struct_shallow(a, b) compare_memory_block(a, b, sizeof(*a))
 
 internal inline Arena arena_alloc(u64 size, u64 alignment, void *start);
+internal inline Arena arena_make(void *start, u64 size, u64 alignment);
 unimplemented void arena_release(Arena *arena);
 
 internal inline Arena *get_temp_arena(Thread_Context *context = thread_contexts);

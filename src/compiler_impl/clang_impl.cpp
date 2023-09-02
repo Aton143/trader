@@ -20,5 +20,23 @@ inline internal u64 byte_swap_64(u64 val)
   return(swapped);
 }
 
+u16 popcount16(u16 n)
+{
+  u16 res = __builtin_popcount((unsigned int) n);
+  return(res);
+}
+
+u32 popcount32(u32 n)
+{
+  u32 res = __builtin_popcount((unsigned int) n);
+  return(res);
+}
+
+u64 popcount64(u64 n)
+{
+  u64 res = __builtin_popcountll((unsigned long long) n);
+  return(res);
+}
+
 #define CLANG_IMPL_H
 #endif

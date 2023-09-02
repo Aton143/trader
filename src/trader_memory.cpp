@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include "trader_memory.h"
 
-internal inline i64 copy_memory_block(void *dest, void *source, i64 byte_count)
+i64 copy_memory_block(void *dest, void *source, i64 byte_count)
 {
   u8 *dest_bytes = (u8 *) dest;
   u8 *source_bytes = (u8 *) source;
@@ -15,7 +15,7 @@ internal inline i64 copy_memory_block(void *dest, void *source, i64 byte_count)
   return(byte_index);
 }
 
-internal inline i64 set_memory_block(void *dest, u8 val, i64 byte_count)
+i64 set_memory_block(void *dest, u8 val, i64 byte_count)
 {
   u8 *dest_bytes = (u8 *) dest;
 
@@ -30,7 +30,7 @@ internal inline i64 set_memory_block(void *dest, u8 val, i64 byte_count)
   return(byte_index);
 }
 
-internal inline i64 move_memory_block(void *dest, void *source, i64 byte_count)
+i64 move_memory_block(void *dest, void *source, i64 byte_count)
 {
   u8 *from = (u8 *) source;
   u8 *to   = (u8 *) dest;
@@ -75,7 +75,7 @@ internal inline i64 move_memory_block(void *dest, void *source, i64 byte_count)
   return(byte_count);
 }
 
-internal inline i64 compare_memory_block(void *a, void *b, i64 byte_count)
+i64 compare_memory_block(void *a, void *b, i64 byte_count)
 {
   i64 result = 0;
 
@@ -98,7 +98,7 @@ internal inline i64 compare_memory_block(void *a, void *b, i64 byte_count)
   return(result);
 }
 
-internal inline void *arena_push(Arena *arena, u64 size)
+void *arena_push(Arena *arena, u64 size)
 {
   void *memory_given_back = NULL;
 
@@ -114,7 +114,7 @@ internal inline void *arena_push(Arena *arena, u64 size)
   return(memory_given_back);
 }
 
-internal inline void *arena_push_zero(Arena *arena, u64 size)
+void *arena_push_zero(Arena *arena, u64 size)
 {
   void *memory_given_back = arena_push(arena, size);
 
@@ -126,7 +126,7 @@ internal inline void *arena_push_zero(Arena *arena, u64 size)
   return(memory_given_back);
 }
 
-internal Arena push_arena(Arena *arena, u64 size, u64 alignment)
+Arena push_arena(Arena *arena, u64 size, u64 alignment)
 {
   expect(arena != NULL);
   expect((arena->size - arena->used) >= size);
@@ -142,12 +142,12 @@ internal Arena push_arena(Arena *arena, u64 size, u64 alignment)
   return(created_arena);
 }
 
-internal inline void arena_pop(Arena *arena, u64 size)
+void arena_pop(Arena *arena, u64 size)
 {
   arena->used -= size;
 }
 
-internal inline void *arena_append(Arena *arena, void *data, u64 size)
+void *arena_append(Arena *arena, void *data, u64 size)
 {
   void *result = NULL;
 
@@ -165,14 +165,14 @@ internal inline void *arena_append(Arena *arena, void *data, u64 size)
   return(result);
 }
 
-internal inline u64 arena_get_remaining_size(Arena *arena)
+u64 arena_get_remaining_size(Arena *arena)
 {
   expect(arena != NULL);
   u64 remaining_size = arena->size - arena->used;
   return(remaining_size);
 }
 
-internal inline void *_arena_get_top(Arena *arena, u64 size)
+void *_arena_get_top(Arena *arena, u64 size)
 {
   void *result = NULL;
 
@@ -186,7 +186,7 @@ internal inline void *_arena_get_top(Arena *arena, u64 size)
   return(result);
 }
 
-internal inline Ring_Buffer ring_buffer_make(Arena *arena, u64 size)
+Ring_Buffer ring_buffer_make(Arena *arena, u64 size)
 {
   Ring_Buffer ring_buffer;
 
@@ -196,7 +196,7 @@ internal inline Ring_Buffer ring_buffer_make(Arena *arena, u64 size)
   return(ring_buffer);
 }
 
-internal inline Ring_Buffer ring_buffer_make(u8 *buffer, u64 size)
+Ring_Buffer ring_buffer_make(u8 *buffer, u64 size)
 {
   expect(buffer != NULL);
   Ring_Buffer ring_buffer = {};
@@ -205,12 +205,12 @@ internal inline Ring_Buffer ring_buffer_make(u8 *buffer, u64 size)
   return(ring_buffer);
 }
 
-internal inline void ring_buffer_reset(Ring_Buffer *rb)
+void ring_buffer_reset(Ring_Buffer *rb)
 {
   rb->read = rb->write = rb->start;
 }
 
-internal inline void *ring_buffer_push(Ring_Buffer *rb, u64 size)
+void *ring_buffer_push(Ring_Buffer *rb, u64 size)
 {
   expect_message(((rb->size % size) == 0), "expected ring buffer size to be a multiple of input");
 
@@ -224,14 +224,14 @@ internal inline void *ring_buffer_push(Ring_Buffer *rb, u64 size)
   return(result);
 }
 
-internal inline void *ring_buffer_append(Ring_Buffer *rb, void *data, u64 size)
+void *ring_buffer_append(Ring_Buffer *rb, void *data, u64 size)
 {
   void *result = ring_buffer_push(rb, size);
   copy_memory_block(result, data, size);
   return(result);
 }
 
-internal inline void *ring_buffer_pop(Ring_Buffer *rb, u64 size)
+void *ring_buffer_pop(Ring_Buffer *rb, u64 size)
 {
   expect_message(((rb->size % size) == 0), "expcted ring buffer size to be a multiple of input");
 
@@ -245,15 +245,13 @@ internal inline void *ring_buffer_pop(Ring_Buffer *rb, u64 size)
   return(result);
 }
 
-internal inline void ring_buffer_pop_and_put(Ring_Buffer *rb,
-                                             void        *data,
-                                             u64          size)
+void ring_buffer_pop_and_put(Ring_Buffer *rb, void *data, u64 size)
 {
   void *read = ring_buffer_pop(rb, size);
   copy_memory_block(data, read, size);
 }
 
-internal inline Arena *get_temp_arena(Thread_Context *context)
+Arena *get_temp_arena(Thread_Context *context)
 {
   Temp_Arena *temp_arena = &context->local_temp_arena;
 
@@ -269,7 +267,7 @@ internal inline Arena *get_temp_arena(Thread_Context *context)
   return(&temp_arena->arena);
 }
 
-internal Arena arena_alloc(u64 size, u64 alignment, void *start)
+Arena arena_alloc(u64 size, u64 alignment, void *start)
 {
   Arena arena = {};
 
@@ -285,7 +283,23 @@ internal Arena arena_alloc(u64 size, u64 alignment, void *start)
   return(arena);
 }
 
-internal inline Arena get_rest_of_temp_arena(f32 rest, Thread_Context *context)
+Arena arena_make(void *start, u64 size, u64 alignment)
+{
+  Arena arena = {};
+
+  expect(start != NULL);
+  expect(size > 0);
+  expect(popcount64(alignment) == 1);
+
+  arena.start     = (u8 *) start;
+  arena.used      = 0;
+  arena.size      = size;
+  arena.alignment = alignment;
+    
+  return(arena);
+}
+
+Arena get_rest_of_temp_arena(f32 rest, Thread_Context *context)
 {
   expect(is_between_inclusive(0.0f, rest, 1.0f));
   expect(context != NULL);
@@ -304,13 +318,13 @@ internal inline Arena get_rest_of_temp_arena(f32 rest, Thread_Context *context)
   return(res);
 }
 
-internal inline u64 get_temp_arena_used(Thread_Context *context)
+u64 get_temp_arena_used(Thread_Context *context)
 {
   Temp_Arena *temp_arena = &context->local_temp_arena;
   return(temp_arena->arena.used);
 }
 
-internal void set_temp_arena_wait(u64 wait, Thread_Context *context)
+void set_temp_arena_wait(u64 wait, Thread_Context *context)
 {
   context->local_temp_arena.wait = wait;
 }

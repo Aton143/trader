@@ -1,12 +1,12 @@
 #include "trader_utils.h"
 
-internal inline b32 is_in_buffer(Buffer *buf, i64 pos)
+b32 is_in_buffer(Buffer *buf, i64 pos)
 {
   b32 is_in = (0 <= pos) && (pos <= ((i64) buf->used));
   return(is_in);
 }
 
-internal inline u32 count_set_bits(u64 bits)
+u32 count_set_bits(u64 bits)
 {
     u32 count = 0;
     while (bits != 0)
@@ -44,7 +44,7 @@ global u32 rng_state[16] =
 global u32 rng_index = 0;
 
 // return 32 bit random number
-internal u32 WELLRNG512(void)
+u32 WELLRNG512(void)
 {
   u32 a, b, c, d;
   a = rng_state[rng_index];
@@ -60,32 +60,39 @@ internal u32 WELLRNG512(void)
   return rng_state[rng_index];
 }
 
-internal void rng_init(void)
+void rng_init(void)
 {
   rng_index = 0;
 }
 
-internal u32 rng_get_random32(void)
+u32 rng_get_random32(void)
 {
   u32 result = WELLRNG512();
   return(result);
 }
 
-internal f32 rng_get_random_01_f32(void)
+f32 rng_get_random_01_f32(void)
 {
   u32 random_u16 = rng_get_random32() >> 16;
   f32 result = ((f32) random_u16) / ((f32) max_u16);
   return(result);
 }
 
-internal f32 rng_get_random_between_f32(f32 min, f32 max)
+f32 rng_get_random_between_f32(f32 min, f32 max)
 {
   expect(min <= max);
   f32 result = lerpf(min, rng_get_random_01_f32(), max);
   return(result);
 }
 
-internal u64 rng_fill_buffer(u8 *buffer, u64 buffer_length)
+u32 rng_get_random_between_end_exclusive_u32(u32 min, u32 max)
+{
+  expect(max < (1 << 23));
+  u32 res = (u32) rng_get_random_between_f32((f32) min, (f32) (max));
+  return(res);
+}
+
+u64 rng_fill_buffer(u8 *buffer, u64 buffer_length)
 {
   u32 *buffer32 = (u32 *) buffer;
   u64 length32 = buffer_length / sizeof(*buffer32);
@@ -110,7 +117,7 @@ internal u64 rng_fill_buffer(u8 *buffer, u64 buffer_length)
   return(buffer_length);
 }
 
-internal u16 fletcher_sum(u8 *data, u32 count)
+u16 fletcher_sum(u8 *data, u32 count)
 {
    u8 sum1 = 0;
    u8 sum2 = 0;
@@ -126,7 +133,7 @@ internal u16 fletcher_sum(u8 *data, u32 count)
    return((sum2 << 8) | sum1);
 }
 
-internal u64 hash_mix(u64 value)
+u64 hash_mix(u64 value)
 {
  value ^= value >> 23;
  value *= 0x2127599bf4325c37ULL;
@@ -134,7 +141,7 @@ internal u64 hash_mix(u64 value)
  return(value);
 }
 
-internal u64 hash(u8 *buffer, u64 length)
+u64 hash(u8 *buffer, u64 length)
 {
   u64 multiplier = 0x880355f21e6d1965ULL;
   u64 *buffer_position = (u64 *) buffer;
@@ -169,13 +176,13 @@ internal u64 hash(u8 *buffer, u64 length)
   return(hash_mix(result));
 }
 
-internal u64 hash_c_string(char *str)
+u64 hash_c_string(char *str)
 {
   return(hash((u8 *) str, c_string_length(str)));
 }
 
 // TODO(antonio): this of course doesn't really make sense
-internal u64 difference_with_wrap(u64 a, u64 b)
+u64 difference_with_wrap(u64 a, u64 b)
 {
   u64 b_a_diff;
 
@@ -191,7 +198,7 @@ internal u64 difference_with_wrap(u64 a, u64 b)
   return(b_a_diff);
 }
 
-internal b32 xorb(b32 a, b32 b)
+b32 xorb(b32 a, b32 b)
 {
   b32 res = (!!a) ^ (!!b); 
   return(res);

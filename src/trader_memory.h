@@ -179,5 +179,7 @@ internal inline void bucket_list_put_back(Bucket_List *meta, Bucket *put);
 internal inline void *bucket_list_get_data_start(Bucket_List *meta, Bucket *bucket);
 internal inline void *bucket_list_get_header_start(Bucket_List *meta, Bucket *bucket);
 
+internal inline u32 bucket_list_get_count_fits_in_data(Bucket_List *meta, u32 size);
+
 #define TRADER_MEMORY_H
 #endif

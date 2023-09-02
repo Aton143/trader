@@ -11,6 +11,12 @@ internal u32 WELLRNG512(void);
 internal void rng_init(void);
 internal u32 rng_get_random32(void);
 internal u64 rng_fill_buffer(u8 *buffer, u64 buffer_length);
+internal inline f32 rng_get_random_01_f32(void);
+internal inline f32 rng_get_random_between_f32(f32 min, f32 max);
+internal inline u32 rng_get_random_between_end_exclusive_u32(u32 min, u32 max);
+#define rng_get_random_rgba_f32(end_alpha) \
+  rgba(rng_get_random_01_f32(), rng_get_random_01_f32(), rng_get_random_01_f32(), end_alpha)
+
 internal u16 fletcher_sum(u8 *data, u32 count);
 internal u64 hash_mix(u64 value);
 internal u64 hash(u8 *buffer, u64 length);

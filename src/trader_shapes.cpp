@@ -380,6 +380,47 @@ Render_Position make_player(Arena *render_data)
   return(rp);
 }
 
+internal void batch_make_circle_particles(Bucket_List *bucket_list,
+                                          f32 min_lifetime,
+                                          f32 max_lifetime,
+                                          u32 min_count,
+                                          u32 max_count)
+{
+  expect(bucket_list != NULL);
+  expect(min_lifetime <= max_lifetime);
+  expect(min_count <= max_count);
+
+  u32 count_per_bucket = bucket_list_get_count_fits_in_data(bucket_list, sizeof(Circle_Particle));
+  u32 count = rng_get_random_between_end_exclusive_u32(min_count, max_count + 1);
+
+  while (count >- 0)
+  {
+    Bucket *cur_bucket = bucket_list_get_new_and_update(bucket_list);
+
+    Circle_Particle_Header *header = (Circle_Particle_Header *) bucket_list_get_header_start(bucket_list, cur_bucket);
+    header->max_lifetime = max_lifetime;
+
+    Circle_Particle *particles = (Circle_Particle *) bucket_list_get_data_start(bucket_list, cur_bucket);
+    u32 cur_count = (count > count_per_bucket) ? count_per_bucket : count;
+
+    for (u32 particle_index = 0;
+         particle_index < cur_count;
+         ++particle_index)
+    {
+      Circle_Particle *cur = particles + particle_index;
+
+      cur->cur_color = rgba_white;
+      cur->end_color = rng_get_random_rgba_f32(0.0f);
+      cur->center    = V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f);
+      cur->velocity  = V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f);
+      cur->radius    = rng_get_random_between_f32(0.01f, 0.07f);
+      cur->lifetime  = rng_get_random_between_f32(min_lifetime, max_lifetime);
+    }
+
+    count -= cur_count;
+  }
+}
+
 Render_Position make_circle_particles(Arena *render_data, Circle_Particle *particles, u32 count)
 {
   u32 alive_count = 0;

@@ -460,3 +460,13 @@ void *bucket_list_get_data_start(Bucket_List *meta, Bucket *bucket)
   res = ((u8 *) bucket) + data_start;
   return(res);
 }
+
+u32 bucket_list_get_count_fits_in_data(Bucket_List *meta, u32 size)
+{
+  u32 count;
+
+  u32 data_size = meta->bucket_max_size - (u32) ((uintptr_t) bucket_list_get_data_start(meta, NULL));
+  count = data_size / size;
+
+  return(count);
+}

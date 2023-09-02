@@ -393,15 +393,17 @@ internal void batch_make_circle_particles(Bucket_List *bucket_list,
   u32 count_per_bucket = bucket_list_get_count_fits_in_data(bucket_list, sizeof(Circle_Particle));
   u32 count = rng_get_random_between_end_exclusive_u32(min_count, max_count + 1);
 
-  while (count >- 0)
+  while (count > 0)
   {
-    Bucket *cur_bucket = bucket_list_get_new_and_update(bucket_list);
+    u32 cur_count = (count > count_per_bucket) ? count_per_bucket : count;
+
+    Bucket *cur_bucket = bucket_list_get_new_and_update(bucket_list, cur_count * sizeof(Circle_Particle));
+    expect(cur_bucket != NULL);
 
     Circle_Particle_Header *header = (Circle_Particle_Header *) bucket_list_get_header_start(bucket_list, cur_bucket);
     header->max_lifetime = max_lifetime;
 
     Circle_Particle *particles = (Circle_Particle *) bucket_list_get_data_start(bucket_list, cur_bucket);
-    u32 cur_count = (count > count_per_bucket) ? count_per_bucket : count;
 
     for (u32 particle_index = 0;
          particle_index < cur_count;
@@ -421,31 +423,33 @@ internal void batch_make_circle_particles(Bucket_List *bucket_list,
   }
 }
 
-Render_Position make_circle_particles(Arena *render_data, Circle_Particle *particles, u32 count)
+Render_Position render_and_update_particles(Arena *render_data, Bucket_List **bucket_lists, u32 count)
 {
-  u32 alive_count = 0;
+  expect(count > 0);
+
   f32 dt = (f32) platform_get_global_state()->dt;
+  Render_Position rp = {(u32) (render_data->used / sizeof(Vertex_Buffer_Element)), 0};
 
-  for (u32 particle_index = 0;
-       particle_index < count;
-       ++particle_index)
+  Bucket_List *cur_list = bucket_lists[0];
+  Bucket *cur_bucket  = bucket_list_get_first(cur_list);
+  Bucket *prev_bucket = NULL;
+
+  while (cur_bucket != NULL)
   {
-    Circle_Particle *cur_particle = particles + particle_index;
-    alive_count += (cur_particle->lifetime > 0.0f);
-  }
+    u32 particle_count = cur_bucket->data_size / sizeof(Circle_Particle);
+    rp.count += particle_count;
 
-  Render_Position rp = {(u32) (render_data->used / sizeof(Vertex_Buffer_Element)), alive_count * vertices_per_quad};
+    Vertex_Buffer_Element *cur_vertex;
+    cur_vertex = push_array(render_data, Vertex_Buffer_Element, particle_count);
 
-  Vertex_Buffer_Element *cur_vertex;
-  cur_vertex = push_array(render_data, Vertex_Buffer_Element, rp.count);
+    Circle_Particle_Header *header = (Circle_Particle_Header *) bucket_list_get_header_start(cur_list, cur_bucket);
+    Circle_Particle *particles = (Circle_Particle *) bucket_list_get_data_start(cur_list, cur_bucket);
 
-  for (u32 particle_index = 0;
-       particle_index < alive_count;
-       ++particle_index)
-  {
-    Circle_Particle *cur_particle = particles + particle_index;
-    if (cur_particle->lifetime > 0.0f)
+    for (u32 particle_index = 0;
+         particle_index < particle_count;
+         ++particle_index)
     {
+      Circle_Particle *cur_particle = particles + particle_index;
       V3_f32 c = cur_particle->center;
       f32    r = cur_particle->radius;
 
@@ -458,7 +462,7 @@ Render_Position make_circle_particles(Arena *render_data, Circle_Particle *parti
       V4_f32 tr = V4(add(c, trp), 1.0f);
       V4_f32 bl = V4(add(c, blp), 1.0f);
       V4_f32 br = V4(add(c, brp), 1.0f);
-      
+
       RGBA_f32 color  = wide_lerp(cur_particle->cur_color, 0.10f, cur_particle->end_color);
       V4_f32   normal = V4(c, r);
 
@@ -474,6 +478,19 @@ Render_Position make_circle_particles(Arena *render_data, Circle_Particle *parti
       cur_particle->lifetime  -= dt;
       cur_particle->center     = add(cur_particle->center, scale(dt, cur_particle->velocity));
     }
+
+    Bucket *next_bucket = bucket_list_get_from_id(cur_list, cur_bucket->next_bucket_id);
+
+    header->max_lifetime -= dt;
+    if (header->max_lifetime < 0.0f)
+    {
+      if (prev_bucket && next_bucket)
+      {
+        prev_bucket->next_bucket_id = bucket_list_get_id(cur_list, next_bucket);
+      }
+    }
+
+    cur_bucket = next_bucket;
   }
 
   return(rp);

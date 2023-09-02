@@ -369,7 +369,7 @@ Bucket_List bucket_list_make(void              *memory,
   cur = (Bucket *) mem;
   cur->next_bucket_id = bucket_list_invalid_id;
 
-  bucket_meta_info.first_bucket   = 0;
+  bucket_meta_info.first_bucket   = bucket_list_invalid_id;
   bucket_meta_info.next_available = 0;
 
   return(bucket_meta_info);
@@ -409,12 +409,13 @@ Bucket *bucket_list_get_first(Bucket_List *meta)
   return(first);
 }
 
-Bucket *bucket_list_get_new_and_update(Bucket_List *meta)
+Bucket *bucket_list_get_new_and_update(Bucket_List *meta, u32 data_size)
 {
   Bucket *res = bucket_list_get_from_id(meta, meta->next_available);
 
   if (res != NULL)
   {
+    res->data_size = data_size;
     meta->next_available = res->next_bucket_id;
   }
   else
@@ -425,12 +426,28 @@ Bucket *bucket_list_get_new_and_update(Bucket_List *meta)
   return(res);
 }
 
+internal inline u32 bucket_list_get_id(Bucket_List *meta, Bucket *bucket)
+{
+  u32 id;
+
+  if (bucket != NULL) 
+  {
+    id = (u32) ((((uintptr_t) bucket) - ((uintptr_t) meta->memory)) / meta->bucket_max_size);
+  }
+  else
+  {
+    id = bucket_list_invalid_id;
+  }
+
+  return(id);
+}
+
 void bucket_list_put_back(Bucket_List *meta, Bucket *put)
 {
-  u32 cur_id  = (u32) ((((uintptr_t) put) - ((uintptr_t) meta->memory)) / meta->bucket_max_size);
+  u32 cur_id  = bucket_list_get_id(meta, put);
   u32 next_id = meta->next_available;
 
-  put->next_bucket_id = next_id;
+  put->next_bucket_id  = next_id;
   meta->next_available = cur_id;
 }
 

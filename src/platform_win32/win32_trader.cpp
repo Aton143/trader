@@ -1024,15 +1024,6 @@ WinMain(HINSTANCE instance,
     batch_make_circle_particles(&particle_buckets, 1.0f, 2.0f, 100, 200);
 
     Player_Context *player_context = player_get_context();
-    Circle_Particle circle_particles[] = 
-    {
-      {
-        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
-        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
-        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
-        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
-      },
-    };
 
     while (global_running)
     {
@@ -1166,8 +1157,7 @@ WinMain(HINSTANCE instance,
     // make_cylinder(&common_render->triangle_render_data, 1.0f, cylinder_top_radius, 1.0f, (i32) (cylinder_sector_count), 1);
       //make_cylinder_along_path(&common_render->triangle_render_data, points, (u32) point_count, 0.05f, sector_count);
       Render_Position player_rp = make_player(&common_render->triangle_render_data);
-      Render_Position circle_rp =
-        make_circle_particles(&common_render->triangle_render_data, circle_particles, array_count(circle_particles));
+      Render_Position circle_rp = {};
 
       // NOTE(antonio): instances
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};

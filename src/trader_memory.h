@@ -7,31 +7,35 @@
 #endif
 
 #include "trader_platform.h"
+#include "trader_utils.h"
 
 struct Bucket_Array_Meta
 {
-  u64 alignment_data;
-  u64 alignment_header;
-  u32 first_bucket;
+  String_Const_utf8 tag;
+
+  u8  *memory;
+  u32  first_bucket;
+  u32  next_available;
+  u16  alignment;
+  u16  header_size;
 };
 
 // NOTE(antonio):
 // header_size | size | header bytes | data ...
 struct Bucket_Array
 {
-  u16 data_size;
-  u16 header_size;
   u32 next_bucket_id;
+  u32 data_size;
 
   u8  data[1];
 };
 
-global_const u32 last_bucket_id = (u32) -1;
+global_const u32 invalid_bucket_id = (u32) -1;
 
 // TODO(antonio): store_ptr/load_ptr versions
 // i.e. ring_buffer_append(..., &widget) caused issues in the past
 
-global_const u32            thread_count = 2;
+global_const u32            thread_count                  = 2;
 global       Thread_Context thread_contexts[thread_count] = {};
 
 #if SHIP_MODE
@@ -40,7 +44,7 @@ global_const void *global_memory_start_addr = NULL;
 global_const void *global_memory_start_addr = (void *) tb(2);
 #endif
 
-global_const u64 global_memory_size = mb(128);
+global_const u64 global_memory_size     = mb(128);
 global_const u64 global_temp_arena_size = mb(32);
 
 internal inline i64 copy_memory_block(void *dest, void *source, i64 byte_count);
@@ -149,9 +153,13 @@ internal inline void ring_buffer_pop_and_put(Ring_Buffer *ring_buffer,
                                              u64          size);
 #define ring_buffer_pop_and_put_struct(rb, copy) ring_buffer_pop_and_put(rb, copy, sizeof(*(copy)))
 
-internal inline u16 byte_swap_16(u16 val);
-internal inline u32 byte_swap_32(u32 val);
-internal inline u64 byte_swap_64(u64 val);
+internal inline Bucket_Array_Meta bucket_array_make(void              *memory,
+                                                    String_Const_utf8  tag,
+                                                    u64                total_size,
+                                                    u32                data_size,
+                                                    u16                header_size,
+                                                    u16                alignment,
+                                                    u32                count);
 
 #define TRADER_MEMORY_H
 #endif

@@ -23,5 +23,9 @@ internal inline u16 popcount16(u16 n);
 internal inline u32 popcount32(u32 n);
 internal inline u64 popcount64(u64 n);
 
+internal inline u16 byte_swap16(u16 val);
+internal inline u32 byte_swap32(u32 val);
+internal inline u64 byte_swap64(u64 val);
+
 #define TRADER_UTILS_H
 #endif

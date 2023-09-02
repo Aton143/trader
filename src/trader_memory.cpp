@@ -329,3 +329,22 @@ void set_temp_arena_wait(u64 wait, Thread_Context *context)
   context->local_temp_arena.wait = wait;
 }
 
+Bucket_Array_Meta bucket_array_make(void              *memory,
+                                    u64                total_size,
+                                    u32                data_size,
+                                    u16                header_size,
+                                    u16                alignment,
+                                    u32                count,
+                                    String_Const_utf8  tag)
+{
+  unused(memory);
+  unused(tag);
+  unused(total_size);
+  unused(data_size);
+  unused(header_size);
+  unused(alignment);
+  unused(count);
+
+  Bucket_Array_Meta bucket_meta_info = {};
+  return(bucket_meta_info);
+}

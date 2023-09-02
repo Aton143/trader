@@ -33,7 +33,7 @@ struct Bucket_Array
   u8  data[1];
 };
 
-global_const u32 invalid_bucket_id = (u32) -1;
+global_const u32 bucket_array_invalid_id = (u32) -1;
 
 // TODO(antonio): store_ptr/load_ptr versions
 // i.e. ring_buffer_append(..., &widget) caused issues in the past
@@ -164,7 +164,13 @@ internal inline Bucket_Array_Meta bucket_array_make(void              *memory,
                                                     u16                alignment,
                                                     u32                count);
 
+internal inline Bucket_Array *bucket_array_get_from_id(Bucket_Array_Meta *meta, u32 id);
+internal inline Bucket_Array *bucket_array_get_first(Bucket_Array_Meta *meta);
+internal inline Bucket_Array *bucket_array_get_new_and_update(Bucket_Array_Meta *meta);
+internal inline void bucket_array_put_back(Bucket_Array_Meta *meta, Bucket_Array *put);
+
 internal inline void *bucket_array_get_data_start(Bucket_Array_Meta *meta);
+internal inline void *bucket_array_get_header_start(Bucket_Array_Meta *meta);
 
 #define TRADER_MEMORY_H
 #endif

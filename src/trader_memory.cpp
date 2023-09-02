@@ -374,11 +374,71 @@ Bucket_Array_Meta bucket_array_make(void              *memory,
   return(bucket_meta_info);
 }
 
+Bucket_Array *bucket_array_get_from_id(Bucket_Array_Meta *meta, u32 id)
+{
+  Bucket_Array *res = NULL;
+
+  expect(meta != NULL);
+
+  if (id != bucket_array_invalid_id)
+  {
+    res = (Bucket_Array *) (meta->memory + (id * meta->bucket_max_size));
+    expect((uintptr_t) res < ((uintptr_t) (meta->memory + meta->total_size)));
+  }
+
+  return(res);
+}
+
+Bucket_Array *bucket_array_get_first(Bucket_Array_Meta *meta)
+{
+  Bucket_Array *first = bucket_array_get_from_id(meta, meta->first_bucket);
+  expect(first != NULL);
+  return(first);
+}
+
+Bucket_Array *bucket_array_get_new_and_update(Bucket_Array_Meta *meta)
+{
+  Bucket_Array *res = bucket_array_get_from_id(meta, meta->next_available);
+
+  if (res != NULL)
+  {
+    meta->next_available = res->next_bucket_id;
+  }
+  else
+  {
+    expect(meta->next_available == bucket_array_invalid_id);
+  }
+
+  return(res);
+}
+
+void bucket_array_put_back(Bucket_Array_Meta *meta, Bucket_Array *put)
+{
+  u32 cur_id  = (u32) ((((uintptr_t) put) - ((uintptr_t) meta->memory)) / meta->bucket_max_size);
+  u32 next_id = meta->next_available;
+
+  put->next_bucket_id = next_id;
+  meta->next_available = cur_id;
+}
+
+void *bucket_array_get_header_start(Bucket_Array_Meta *meta, Bucket_Array *bucket_array)
+{
+  u8 *res;
+
+  expect(meta != NULL);
+
+  u32 bucket_start_size = member_size(Bucket_Array, next_bucket_id) + member_size(Bucket_Array, data_size);
+  u32 header_start      = align(bucket_start_size, meta->alignment);
+  res = header_start + ((u8 *) bucket_array);
+
+  return(res);
+}
+
 void *bucket_array_get_data_start(Bucket_Array_Meta *meta, Bucket_Array *bucket_array)
 {
   u8 *res;
 
-  expect(meta         != NULL);
+  expect(meta != NULL);
 
   u32 bucket_start_size = member_size(Bucket_Array, next_bucket_id) + member_size(Bucket_Array, data_size);
   u32 header_start      = align(bucket_start_size, meta->alignment);

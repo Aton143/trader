@@ -14,13 +14,16 @@ struct Bucket_Array_Meta
   String_Const_utf8 tag;
 
   u8  *memory;
+  u64  total_size;
+  u32  bucket_max_size;
+
   u32  first_bucket;
   u32  next_available;
   u16  alignment;
   u16  header_size;
 };
 
-// NOTE(antonio):
+// NOTE(antonio): in-memory data
 // header_size | size | header bytes | data ...
 struct Bucket_Array
 {
@@ -160,6 +163,8 @@ internal inline Bucket_Array_Meta bucket_array_make(void              *memory,
                                                     u16                header_size,
                                                     u16                alignment,
                                                     u32                count);
+
+internal inline void *bucket_array_get_data_start(Bucket_Array_Meta *meta);
 
 #define TRADER_MEMORY_H
 #endif

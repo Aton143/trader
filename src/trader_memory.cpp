@@ -331,20 +331,59 @@ void set_temp_arena_wait(u64 wait, Thread_Context *context)
 
 Bucket_Array_Meta bucket_array_make(void              *memory,
                                     u64                total_size,
+                                    u32                bucket_max_size,
                                     u32                data_size,
                                     u16                header_size,
                                     u16                alignment,
-                                    u32                count,
                                     String_Const_utf8  tag)
 {
-  unused(memory);
-  unused(tag);
-  unused(total_size);
-  unused(data_size);
-  unused(header_size);
-  unused(alignment);
-  unused(count);
-
   Bucket_Array_Meta bucket_meta_info = {};
+  u8 *mem = (u8 *) memory;
+
+  expect(memory != NULL);
+  expect((total_size > 0));
+  expect(data_size > 0);
+  expect((total_size % bucket_max_size) == 0); // can be relaxed
+  expect((bucket_max_size % alignment) == 0);
+  expect(popcount16(alignment) == 1);
+
+  bucket_meta_info.tag             = tag;
+
+  bucket_meta_info.memory          = mem;
+  bucket_meta_info.total_size      = total_size;
+  bucket_meta_info.bucket_max_size = bucket_max_size;
+
+  bucket_meta_info.header_size     = header_size;
+  bucket_meta_info.alignment       = alignment;
+
+  u32 bucket_count = (u32) (total_size / bucket_max_size);
+  Bucket_Array *cur;
+
+  for (u32 bucket_id = 0;
+       bucket_id < (bucket_count - 1);
+       ++bucket_id)
+  {
+    cur = (Bucket_Array *) mem;
+    cur->next_bucket_id = bucket_id + 1;
+    cur += bucket_max_size;
+  }
+
+  bucket_meta_info.first_bucket   = 0;
+  bucket_meta_info.next_available = 0;
+
   return(bucket_meta_info);
+}
+
+void *bucket_array_get_data_start(Bucket_Array_Meta *meta, Bucket_Array *bucket_array)
+{
+  u8 *res;
+
+  expect(meta         != NULL);
+
+  u32 bucket_start_size = member_size(Bucket_Array, next_bucket_id) + member_size(Bucket_Array, data_size);
+  u32 header_start      = align(bucket_start_size, meta->alignment);
+  u32 data_start        = align(header_start + meta->header_size, meta->alignment);
+
+  res = ((u8 *) bucket_array) + data_start;
+  return(res);
 }

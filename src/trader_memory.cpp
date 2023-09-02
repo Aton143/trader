@@ -406,7 +406,6 @@ Bucket *bucket_list_get_from_id(Bucket_List *meta, u32 id)
 Bucket *bucket_list_get_first(Bucket_List *meta)
 {
   Bucket *first = bucket_list_get_from_id(meta, meta->first_bucket);
-  expect(first != NULL);
   return(first);
 }
 
@@ -416,15 +415,13 @@ Bucket *bucket_list_get_new_and_update(Bucket_List *meta, u32 data_size)
 
   if (res != NULL)
   {
-    res->data_size = data_size;
-
-    if (meta->cur_count == 0)
-    {
-      meta->first_bucket = meta->next_available;
-    }
-
     meta->next_available = res->next_bucket_id;
     meta->cur_count++;
+
+    res->next_bucket_id = meta->first_bucket;
+    meta->first_bucket  = bucket_list_get_id(meta, res);
+
+    res->data_size      = data_size;
   }
   else
   {
@@ -459,7 +456,6 @@ void bucket_list_put_back(Bucket_List *meta, Pair_u32 *ids, u32 count)
   u32 id_index = 0;
   while (id_index < count)
   {
-
     u32 range_start = id_index;
     u32 range_end   = range_start;
 
@@ -501,6 +497,9 @@ void bucket_list_put_back(Bucket_List *meta, Pair_u32 *ids, u32 count)
     {
       meta->first_bucket = bucket_list_invalid_id;
     }
+
+    bucket_list_get_from_id(meta, range_end)->next_bucket_id = meta->next_available;
+    meta->next_available = range_start;
 
     id_index = range_start + 1;
   }

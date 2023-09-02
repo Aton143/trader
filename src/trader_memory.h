@@ -173,7 +173,7 @@ internal inline Bucket_List bucket_list_make(Arena             *arena,
                                              u16                alignment,
                                              String_Const_utf8  tag);
 
-internal inline u32 bucket_list_get_id(Bucket_List *meta, u32 id);
+internal inline u32 bucket_list_get_id(Bucket_List *meta, Bucket *bucket);
 internal inline Bucket *bucket_list_get_from_id(Bucket_List *meta, u32 id);
 internal inline Bucket *bucket_list_get_first(Bucket_List *meta);
 internal inline Bucket *bucket_list_get_new_and_update(Bucket_List *meta, u32 data_size);

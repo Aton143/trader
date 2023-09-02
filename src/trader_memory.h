@@ -9,7 +9,7 @@
 #include "trader_platform.h"
 #include "trader_utils.h"
 
-struct Bucket_Array_Meta
+struct Bucket_List
 {
   String_Const_utf8 tag;
 
@@ -25,7 +25,7 @@ struct Bucket_Array_Meta
 
 // NOTE(antonio): in-memory data
 // header_size | size | header bytes | data ...
-struct Bucket_Array
+struct Bucket
 {
   u32 next_bucket_id;
   u32 data_size;
@@ -33,7 +33,7 @@ struct Bucket_Array
   u8  data[1];
 };
 
-global_const u32 bucket_array_invalid_id = (u32) -1;
+global_const u32 bucket_list_invalid_id = (u32) -1;
 
 // TODO(antonio): store_ptr/load_ptr versions
 // i.e. ring_buffer_append(..., &widget) caused issues in the past
@@ -156,21 +156,28 @@ internal inline void ring_buffer_pop_and_put(Ring_Buffer *ring_buffer,
                                              u64          size);
 #define ring_buffer_pop_and_put_struct(rb, copy) ring_buffer_pop_and_put(rb, copy, sizeof(*(copy)))
 
-internal inline Bucket_Array_Meta bucket_array_make(void              *memory,
-                                                    String_Const_utf8  tag,
-                                                    u64                total_size,
-                                                    u32                data_size,
-                                                    u16                header_size,
-                                                    u16                alignment,
-                                                    u32                count);
+internal inline Bucket_List bucket_list_make(void              *memory,
+                                             u64                total_size,
+                                             u32                bucket_max_size,
+                                             u16                header_size,
+                                             u16                alignment,
+                                             String_Const_utf8  tag);
 
-internal inline Bucket_Array *bucket_array_get_from_id(Bucket_Array_Meta *meta, u32 id);
-internal inline Bucket_Array *bucket_array_get_first(Bucket_Array_Meta *meta);
-internal inline Bucket_Array *bucket_array_get_new_and_update(Bucket_Array_Meta *meta);
-internal inline void bucket_array_put_back(Bucket_Array_Meta *meta, Bucket_Array *put);
+internal inline Bucket_List bucket_list_make(Arena             *arena,
+                                             u64                total_size,
+                                             u32                bucket_max_size,
+                                             u16                header_size,
+                                             u16                alignment,
+                                             String_Const_utf8  tag);
 
-internal inline void *bucket_array_get_data_start(Bucket_Array_Meta *meta);
-internal inline void *bucket_array_get_header_start(Bucket_Array_Meta *meta);
+
+internal inline Bucket *bucket_list_get_from_id(Bucket_List *meta, u32 id);
+internal inline Bucket *bucket_list_get_first(Bucket_List *meta);
+internal inline Bucket *bucket_list_get_new_and_update(Bucket_List *meta);
+internal inline void bucket_list_put_back(Bucket_List *meta, Bucket *put);
+
+internal inline void *bucket_list_get_data_start(Bucket_List *meta, Bucket *bucket);
+internal inline void *bucket_list_get_header_start(Bucket_List *meta, Bucket *bucket);
 
 #define TRADER_MEMORY_H
 #endif

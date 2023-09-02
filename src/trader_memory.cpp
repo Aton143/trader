@@ -329,20 +329,18 @@ void set_temp_arena_wait(u64 wait, Thread_Context *context)
   context->local_temp_arena.wait = wait;
 }
 
-Bucket_Array_Meta bucket_array_make(void              *memory,
-                                    u64                total_size,
-                                    u32                bucket_max_size,
-                                    u32                data_size,
-                                    u16                header_size,
-                                    u16                alignment,
-                                    String_Const_utf8  tag)
+Bucket_List bucket_list_make(void              *memory,
+                             u64                total_size,
+                             u32                bucket_max_size,
+                             u16                header_size,
+                             u16                alignment,
+                             String_Const_utf8  tag)
 {
-  Bucket_Array_Meta bucket_meta_info = {};
+  Bucket_List bucket_meta_info = {};
   u8 *mem = (u8 *) memory;
 
   expect(memory != NULL);
   expect((total_size > 0));
-  expect(data_size > 0);
   expect((total_size % bucket_max_size) == 0); // can be relaxed
   expect((bucket_max_size % alignment) == 0);
   expect(popcount16(alignment) == 1);
@@ -357,16 +355,19 @@ Bucket_Array_Meta bucket_array_make(void              *memory,
   bucket_meta_info.alignment       = alignment;
 
   u32 bucket_count = (u32) (total_size / bucket_max_size);
-  Bucket_Array *cur;
+  Bucket *cur;
 
   for (u32 bucket_id = 0;
        bucket_id < (bucket_count - 1);
        ++bucket_id)
   {
-    cur = (Bucket_Array *) mem;
+    cur = (Bucket *) mem;
     cur->next_bucket_id = bucket_id + 1;
-    cur += bucket_max_size;
+    mem += bucket_max_size;
   }
+
+  cur = (Bucket *) mem;
+  cur->next_bucket_id = bucket_list_invalid_id;
 
   bucket_meta_info.first_bucket   = 0;
   bucket_meta_info.next_available = 0;
@@ -374,31 +375,43 @@ Bucket_Array_Meta bucket_array_make(void              *memory,
   return(bucket_meta_info);
 }
 
-Bucket_Array *bucket_array_get_from_id(Bucket_Array_Meta *meta, u32 id)
+Bucket_List bucket_list_make(Arena             *arena,
+                                    u64                total_size,
+                                    u32                bucket_max_size,
+                                    u16                header_size,
+                                    u16                alignment,
+                                    String_Const_utf8  tag)
 {
-  Bucket_Array *res = NULL;
+  u8 *memory = (u8 *) arena_push(arena, total_size);
+  Bucket_List meta = bucket_list_make(memory, total_size, bucket_max_size, header_size, alignment, tag);
+  return(meta);
+}
+
+Bucket *bucket_list_get_from_id(Bucket_List *meta, u32 id)
+{
+  Bucket *res = NULL;
 
   expect(meta != NULL);
 
-  if (id != bucket_array_invalid_id)
+  if (id != bucket_list_invalid_id)
   {
-    res = (Bucket_Array *) (meta->memory + (id * meta->bucket_max_size));
+    res = (Bucket *) (meta->memory + (id * meta->bucket_max_size));
     expect((uintptr_t) res < ((uintptr_t) (meta->memory + meta->total_size)));
   }
 
   return(res);
 }
 
-Bucket_Array *bucket_array_get_first(Bucket_Array_Meta *meta)
+Bucket *bucket_list_get_first(Bucket_List *meta)
 {
-  Bucket_Array *first = bucket_array_get_from_id(meta, meta->first_bucket);
+  Bucket *first = bucket_list_get_from_id(meta, meta->first_bucket);
   expect(first != NULL);
   return(first);
 }
 
-Bucket_Array *bucket_array_get_new_and_update(Bucket_Array_Meta *meta)
+Bucket *bucket_list_get_new_and_update(Bucket_List *meta)
 {
-  Bucket_Array *res = bucket_array_get_from_id(meta, meta->next_available);
+  Bucket *res = bucket_list_get_from_id(meta, meta->next_available);
 
   if (res != NULL)
   {
@@ -406,13 +419,13 @@ Bucket_Array *bucket_array_get_new_and_update(Bucket_Array_Meta *meta)
   }
   else
   {
-    expect(meta->next_available == bucket_array_invalid_id);
+    expect(meta->next_available == bucket_list_invalid_id);
   }
 
   return(res);
 }
 
-void bucket_array_put_back(Bucket_Array_Meta *meta, Bucket_Array *put)
+void bucket_list_put_back(Bucket_List *meta, Bucket *put)
 {
   u32 cur_id  = (u32) ((((uintptr_t) put) - ((uintptr_t) meta->memory)) / meta->bucket_max_size);
   u32 next_id = meta->next_available;
@@ -421,29 +434,29 @@ void bucket_array_put_back(Bucket_Array_Meta *meta, Bucket_Array *put)
   meta->next_available = cur_id;
 }
 
-void *bucket_array_get_header_start(Bucket_Array_Meta *meta, Bucket_Array *bucket_array)
+void *bucket_list_get_header_start(Bucket_List *meta, Bucket *bucket)
 {
   u8 *res;
 
   expect(meta != NULL);
 
-  u32 bucket_start_size = member_size(Bucket_Array, next_bucket_id) + member_size(Bucket_Array, data_size);
+  u32 bucket_start_size = member_size(Bucket, next_bucket_id) + member_size(Bucket, data_size);
   u32 header_start      = align(bucket_start_size, meta->alignment);
-  res = header_start + ((u8 *) bucket_array);
+  res = header_start + ((u8 *) bucket);
 
   return(res);
 }
 
-void *bucket_array_get_data_start(Bucket_Array_Meta *meta, Bucket_Array *bucket_array)
+void *bucket_list_get_data_start(Bucket_List *meta, Bucket *bucket)
 {
   u8 *res;
 
   expect(meta != NULL);
 
-  u32 bucket_start_size = member_size(Bucket_Array, next_bucket_id) + member_size(Bucket_Array, data_size);
+  u32 bucket_start_size = member_size(Bucket, next_bucket_id) + member_size(Bucket, data_size);
   u32 header_start      = align(bucket_start_size, meta->alignment);
   u32 data_start        = align(header_start + meta->header_size, meta->alignment);
 
-  res = ((u8 *) bucket_array) + data_start;
+  res = ((u8 *) bucket) + data_start;
   return(res);
 }

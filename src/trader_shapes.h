@@ -1,5 +1,10 @@
 #ifndef TRADER_SHAPES_H
 
+struct Circle_Particle_Header
+{
+  f32 max_lifetime;
+};
+
 struct Circle_Particle
 {
   RGBA_f32 cur_color;
@@ -24,7 +29,7 @@ internal Vertex_Buffer_Element *make_cylinder(Arena *, f32, f32, f32, u32, u32);
 internal Vertex_Buffer_Element *make_cylinder_along_path(Arena *, V3_f32 *, u32, f32, u32);
 internal Render_Position make_player(Arena *);
 
-internal Render_Position make_circle_particles(Arena *, Circle_Particle *, u32);
+internal Render_Position render_and_update_particles(Arena *, Bucket_List **, u32);
 
 #define TRADER_SHAPES_H
 #endif

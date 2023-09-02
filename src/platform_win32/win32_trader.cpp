@@ -1014,6 +1014,17 @@ WinMain(HINSTANCE instance,
     // u32 sector_count = 4;
     // f32 point_count = (f32) array_count(points);
 
+    /*
+    Bucket_List particle_buckets = bucket_list_make(global_arena, 
+                                                    mb(1),
+                                                    kb(1),
+                                                    sizeof(Circle_Particle_Header),
+                                                    16,
+                                                    scu8l("Circle Particles"));
+    unused(particle_buckets);
+    */
+
+
     Player_Context *player_context = player_get_context();
     Circle_Particle circle_particles[] = 
     {

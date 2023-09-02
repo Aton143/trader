@@ -1,7 +1,8 @@
 #pragma pack_matrix(row_major)
 struct Vertex_Global_Data
 {
-  float4   texture_dimensions;
+  float2   texture_dimensions;
+  float2   client_dimensions;
   float4x4 model;
   float4x4 view;
   float4x4 projection;
@@ -43,10 +44,12 @@ PS_Input VS_Main(VS_Input input) {
 
   output.vertex   = mul(global_data.projection, mul(global_data.view, input.position));
 
-  output.color  = input.color;
-  output.center = input.normal.xy;
-  output.radius = input.normal.w;
+  output.color    = input.color;
+  output.center   = input.normal.xy;
+  output.radius   = input.normal.w;
   output.position = output.vertex;
+
+  output.vertex.x = (global_data.client_dimensions.y / global_data.client_dimensions.x) * output.vertex.x;
 
   return(output);
 }

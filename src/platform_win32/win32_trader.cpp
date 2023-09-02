@@ -1023,6 +1023,600 @@ WinMain(HINSTANCE instance,
         V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
         rng_get_random_between_f32(0.01f, 0.07f), 1.0f
       },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
+      {
+        rgba_white, V4(1.0f, 1.0f, 0.0f, 0.0f),
+        V3(rng_get_random_between_f32(-1.0f, 1.0f), rng_get_random_between_f32(-1.0f, 1.0f), -2.0f),
+        V3(rng_get_random_between_f32(-0.25f, 0.25f), rng_get_random_between_f32(-0.25f, 0.25f), 0.0f),
+        rng_get_random_between_f32(0.01f, 0.07f), 1.0f
+      },
     };
 
     while (global_running)
@@ -1182,6 +1776,9 @@ WinMain(HINSTANCE instance,
         {
           constant_buffer_items.atlas_width   = (f32) atlas->bitmap.width;
           constant_buffer_items.atlas_height  = (f32) atlas->bitmap.height;
+
+          constant_buffer_items.client_width  = rect_get_width(&client_rect);
+          constant_buffer_items.client_height = rect_get_height(&client_rect);
 
           Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, -0.8f, -1.5f);
           Matrix_f32_4x4 x_rotation  = matrix4x4_rotate_about_x(0.0f / 10.0f);

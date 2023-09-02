@@ -3,7 +3,7 @@
 struct Constant_Buffer
 {
   f32 atlas_width, atlas_height;
-  f32 res0, res1;
+  f32 client_width, client_height;
 
   union {
     // NOTE(antonio): for instance-based rendering

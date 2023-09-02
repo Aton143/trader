@@ -394,7 +394,9 @@ WinMain(HINSTANCE instance,
 
   platform_common_init();
 
+  Arena                 *global_arena  = platform_get_global_arena();
   Common_Render_Context *common_render = render_get_common_context();
+  Texture_Atlas         *atlas         = common_render->atlas;
 
 #if !SHIP_MODE
   ID3D11Debug *debug = NULL;
@@ -425,24 +427,22 @@ WinMain(HINSTANCE instance,
   platform_push_notify_dir(notify_dir.str, notify_dir.size);
   platform_start_collect_notifications();
 
-  File_Buffer arial_font = platform_open_and_read_entire_file(&win32_global_state.global_arena,
+  File_Buffer arial_font = platform_open_and_read_entire_file(global_arena,
                                                               default_font_path.str,
                                                               default_font_path.size);
 
   // NOTE(antonio): default font on Windows is Arial
   common_render->default_font =
-    platform_open_and_read_entire_file(&win32_global_state.global_arena,
+    platform_open_and_read_entire_file(global_arena,
                                        default_font_path.str,
                                        default_font_path.size);
 
-  render_atlas_initialize(&win32_global_state.global_arena,
-                          win32_global_state.render_context.atlas,
+  render_atlas_initialize(global_arena,
+                          atlas,
                           &arial_font,
                           (f32 *) default_font_heights,
                           array_count(default_font_heights),
                           512, 512);
-
-  Texture_Atlas *atlas = win32_global_state.render_context.atlas;
 
   Bitmap skybox_bitmaps[6];
   win32_load_skybox(skybox_bitmaps);
@@ -947,7 +947,7 @@ WinMain(HINSTANCE instance,
     unused(save_current_frame_buffer);
 #endif
 
-    UI_Context *ui = &win32_global_state.ui_context;
+    UI_Context *ui = ui_get_context();
 
     global_running = true;
     global_window_resized = true;

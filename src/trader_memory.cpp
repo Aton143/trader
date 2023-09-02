@@ -371,16 +371,17 @@ Bucket_List bucket_list_make(void              *memory,
 
   bucket_meta_info.first_bucket   = bucket_list_invalid_id;
   bucket_meta_info.next_available = 0;
+  bucket_meta_info.cur_count      = 0;
 
   return(bucket_meta_info);
 }
 
 Bucket_List bucket_list_make(Arena             *arena,
-                                    u64                total_size,
-                                    u32                bucket_max_size,
-                                    u16                header_size,
-                                    u16                alignment,
-                                    String_Const_utf8  tag)
+                             u64                total_size,
+                             u32                bucket_max_size,
+                             u16                header_size,
+                             u16                alignment,
+                             String_Const_utf8  tag)
 {
   u8 *memory = (u8 *) arena_push(arena, total_size);
   Bucket_List meta = bucket_list_make(memory, total_size, bucket_max_size, header_size, alignment, tag);
@@ -416,7 +417,14 @@ Bucket *bucket_list_get_new_and_update(Bucket_List *meta, u32 data_size)
   if (res != NULL)
   {
     res->data_size = data_size;
+
+    if (meta->cur_count == 0)
+    {
+      meta->first_bucket = meta->next_available;
+    }
+
     meta->next_available = res->next_bucket_id;
+    meta->cur_count++;
   }
   else
   {
@@ -442,13 +450,62 @@ internal inline u32 bucket_list_get_id(Bucket_List *meta, Bucket *bucket)
   return(id);
 }
 
-void bucket_list_put_back(Bucket_List *meta, Bucket *put)
+void bucket_list_put_back(Bucket_List *meta, Pair_u32 *ids, u32 count)
 {
-  u32 cur_id  = bucket_list_get_id(meta, put);
-  u32 next_id = meta->next_available;
+  expect(meta->cur_count >= count);
 
-  put->next_bucket_id  = next_id;
-  meta->next_available = cur_id;
+  if (count == 0) return;
+
+  u32 id_index = 0;
+  while (id_index < count)
+  {
+
+    u32 range_start = id_index;
+    u32 range_end   = range_start;
+
+    u32 ends_next = bucket_list_get_from_id(meta, ids[range_end].cur)->next_bucket_id;
+
+    while ((range_end + 1) < count)
+    {
+      u32 next_id = ids[range_end + 1].cur;
+      ends_next   = bucket_list_get_from_id(meta, ids[range_end].cur)->next_bucket_id;
+
+      if (ends_next == next_id)
+      {
+        range_end++;
+      }
+      else
+      {
+        break;
+      }
+    }
+
+    Bucket *start_prev = bucket_list_get_from_id(meta, ids[range_start].prev);
+
+    u32     end_next_id = bucket_list_get_from_id(meta, ids[range_end].cur)->next_bucket_id;
+    Bucket *end_next    = bucket_list_get_from_id(meta, end_next_id);
+
+    if ((start_prev != NULL) && (end_next != NULL))
+    {
+      start_prev->next_bucket_id = end_next_id;
+    }
+    else if ((start_prev == NULL) && (end_next != NULL)) // first in range is first of bucket list
+    {
+      meta->first_bucket = end_next_id;
+    }
+    else if ((start_prev != NULL) && (end_next == NULL)) // got to end of list
+    {
+      start_prev->next_bucket_id = bucket_list_invalid_id;
+    }
+    else if ((start_prev == NULL) && (end_next == NULL)) // entire list
+    {
+      meta->first_bucket = bucket_list_invalid_id;
+    }
+
+    id_index = range_start + 1;
+  }
+
+  meta->cur_count -= count;
 }
 
 void *bucket_list_get_header_start(Bucket_List *meta, Bucket *bucket)

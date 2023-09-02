@@ -1006,6 +1006,7 @@ WinMain(HINSTANCE instance,
     };
 
     f32 acc_time = 0.0f;
+    f32 pacc_time = 0.0f;
 
     Matrix_f32_4x4 projection = matrix4x4_symmetric_projection(1.0f, 100.0f, 1.0f, 1.0f);
     Matrix_f32_4x4 view       = matrix4x4_diagonals(1.0f, 1.0f, 1.0f, 1.0f);
@@ -1157,7 +1158,10 @@ WinMain(HINSTANCE instance,
     // make_cylinder(&common_render->triangle_render_data, 1.0f, cylinder_top_radius, 1.0f, (i32) (cylinder_sector_count), 1);
       //make_cylinder_along_path(&common_render->triangle_render_data, points, (u32) point_count, 0.05f, sector_count);
       Render_Position player_rp = make_player(&common_render->triangle_render_data);
-      Render_Position circle_rp = {};
+
+      Bucket_List *bucket_lists[] = {&particle_buckets};
+      Render_Position circle_rp =
+        render_and_update_particles(&common_render->triangle_render_data, bucket_lists, array_count(bucket_lists));
 
       // NOTE(antonio): instances
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -1203,6 +1207,13 @@ WinMain(HINSTANCE instance,
 
           acc_time += 1.0f / 60.0f;
           if (acc_time > 10.0f) acc_time -= 10.0f;
+
+          pacc_time += 1.0f / 60.0f;
+          if (pacc_time > 5.0f)
+          {
+            batch_make_circle_particles(&particle_buckets, 1.0f, 2.0f, 100, 200);
+            pacc_time = 0.0f;
+          }
         }
 
         {

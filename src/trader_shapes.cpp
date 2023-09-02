@@ -427,20 +427,28 @@ Render_Position render_and_update_particles(Arena *render_data, Bucket_List **bu
 {
   expect(count > 0);
 
+  Arena *temp = get_temp_arena();
+
   f32 dt = (f32) platform_get_global_state()->dt;
   Render_Position rp = {(u32) (render_data->used / sizeof(Vertex_Buffer_Element)), 0};
 
   Bucket_List *cur_list = bucket_lists[0];
-  Bucket *cur_bucket  = bucket_list_get_first(cur_list);
+
   Bucket *prev_bucket = NULL;
+  Bucket *cur_bucket  = bucket_list_get_first(cur_list);
+
+  Pair_u32 *put_back = push_array(temp, Pair_u32, cur_list->cur_count);
+  set_memory_block(put_back, (u8) -1, cur_list->cur_count * sizeof(put_back[0]));
+
+  u32 put_back_index = 0;
 
   while (cur_bucket != NULL)
   {
     u32 particle_count = cur_bucket->data_size / sizeof(Circle_Particle);
-    rp.count += particle_count;
+    rp.count += particle_count * vertices_per_quad;
 
     Vertex_Buffer_Element *cur_vertex;
-    cur_vertex = push_array(render_data, Vertex_Buffer_Element, particle_count);
+    cur_vertex = push_array(render_data, Vertex_Buffer_Element, particle_count * vertices_per_quad);
 
     Circle_Particle_Header *header = (Circle_Particle_Header *) bucket_list_get_header_start(cur_list, cur_bucket);
     Circle_Particle *particles = (Circle_Particle *) bucket_list_get_data_start(cur_list, cur_bucket);
@@ -479,19 +487,17 @@ Render_Position render_and_update_particles(Arena *render_data, Bucket_List **bu
       cur_particle->center     = add(cur_particle->center, scale(dt, cur_particle->velocity));
     }
 
-    Bucket *next_bucket = bucket_list_get_from_id(cur_list, cur_bucket->next_bucket_id);
-
     header->max_lifetime -= dt;
     if (header->max_lifetime < 0.0f)
     {
-      if (prev_bucket && next_bucket)
-      {
-        prev_bucket->next_bucket_id = bucket_list_get_id(cur_list, next_bucket);
-      }
+      put_back[put_back_index++] = {bucket_list_get_id(cur_list, prev_bucket), bucket_list_get_id(cur_list, cur_bucket)};
     }
 
-    cur_bucket = next_bucket;
+    prev_bucket = cur_bucket;
+    cur_bucket  = bucket_list_get_from_id(cur_list, cur_bucket->next_bucket_id);
   }
+
+  bucket_list_put_back(cur_list, put_back, put_back_index);
 
   return(rp);
 }

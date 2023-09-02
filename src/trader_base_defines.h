@@ -582,6 +582,15 @@ union V4_f32 {
 
 global_const V4_f32 v4_zero = {};
 
+union Pair_u32
+{
+  struct
+  {
+    u32 prev;
+    u32 cur;
+  };
+};
+
 union Range_i32 {
   struct {
     i32 min;

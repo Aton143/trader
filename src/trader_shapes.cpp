@@ -53,12 +53,12 @@ void put_quad(Vertex_Buffer_Element **vertices, V4_f32 tl, V4_f32 tr, V4_f32 bl,
 }
 
 // NOTE(antonio): TRIANGLE FAN? 
-Vertex_Buffer_Element *make_cylinder(Arena *render_arena,
-                                     f32    base_radius,
-                                     f32    top_radius,
-                                     f32    height,
-                                     u32    sector_count,
-                                     u32    stack_count)
+Render_Position make_cylinder(Arena *render_data,
+                              f32    base_radius,
+                              f32    top_radius,
+                              f32    height,
+                              u32    sector_count,
+                              u32    stack_count)
 {
   expect(base_radius  >= 0.0f);
   expect(top_radius   >= 0.0f);
@@ -67,7 +67,9 @@ Vertex_Buffer_Element *make_cylinder(Arena *render_arena,
   expect(stack_count  > 0);
 
   u32 vertex_count = (sector_count * stack_count * vertices_per_quad) + (2 * vertices_per_triangle * sector_count);
-  Vertex_Buffer_Element *vertices = push_array_zero(render_arena, Vertex_Buffer_Element, vertex_count);
+  Render_Position rp = {(u32) (render_data->used / sizeof(Vertex_Buffer_Element)), vertex_count};
+  Vertex_Buffer_Element *vertices = push_array_zero(render_data, Vertex_Buffer_Element, vertex_count);
+
   Vertex_Buffer_Element *cur_vertex = vertices;
 
   f32 sector_angle_step = 1.0f / sector_count;
@@ -168,7 +170,7 @@ Vertex_Buffer_Element *make_cylinder(Arena *render_arena,
     }
   }
 
-  return(vertices);
+  return(rp);
 }
 
 Vertex_Buffer_Element *make_cylinder_along_path(Arena  *render_data,

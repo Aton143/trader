@@ -369,9 +369,11 @@ Bucket_List bucket_list_make(void              *memory,
   cur = (Bucket *) mem;
   cur->next_bucket_id = bucket_list_invalid_id;
 
-  bucket_meta_info.first_bucket   = bucket_list_invalid_id;
-  bucket_meta_info.next_available = 0;
-  bucket_meta_info.cur_count      = 0;
+  bucket_meta_info.first_bucket_id = bucket_list_invalid_id;
+  bucket_meta_info.last_bucket_id  = bucket_list_invalid_id;
+
+  bucket_meta_info.next_available_id = 0;
+  bucket_meta_info.cur_count         = 0;
 
   return(bucket_meta_info);
 }
@@ -405,27 +407,37 @@ Bucket *bucket_list_get_from_id(Bucket_List *meta, u32 id)
 
 Bucket *bucket_list_get_first(Bucket_List *meta)
 {
-  Bucket *first = bucket_list_get_from_id(meta, meta->first_bucket);
+  Bucket *first = bucket_list_get_from_id(meta, meta->first_bucket_id);
   return(first);
 }
 
 Bucket *bucket_list_get_new_and_update(Bucket_List *meta, u32 data_size)
 {
-  Bucket *res = bucket_list_get_from_id(meta, meta->next_available);
+  Bucket *res = bucket_list_get_from_id(meta, meta->next_available_id);
+  u32 id = bucket_list_get_id(meta, res);
 
   if (res != NULL)
   {
-    meta->next_available = res->next_bucket_id;
+    meta->next_available_id = res->next_bucket_id;
     meta->cur_count++;
 
-    res->next_bucket_id = meta->first_bucket;
-    meta->first_bucket  = bucket_list_get_id(meta, res);
+    if (meta->first_bucket_id == bucket_list_invalid_id)
+    {
+      meta->first_bucket_id = id;
+    }
 
-    res->data_size      = data_size;
+    if (meta->last_bucket_id != bucket_list_invalid_id)
+    {
+      bucket_list_get_from_id(meta, meta->last_bucket_id)->next_bucket_id = id;
+    }
+
+    meta->last_bucket_id = id;
+    res->next_bucket_id  = bucket_list_invalid_id;
+    res->data_size       = data_size;
   }
   else
   {
-    expect(meta->next_available == bucket_list_invalid_id);
+    expect(meta->next_available_id == bucket_list_invalid_id);
   }
 
   return(res);
@@ -445,6 +457,30 @@ internal inline u32 bucket_list_get_id(Bucket_List *meta, Bucket *bucket)
   }
 
   return(id);
+}
+
+void bucket_list_print(Bucket_List *list)
+{
+  Bucket *cur = bucket_list_get_first(list);
+
+  platform_debug_print("\nListing active buckets:\n");
+  while (cur != NULL)
+  {
+    float *header = (float *) bucket_list_get_header_start(list, cur);
+    platform_debug_printf("bucket id: %d (%s)\n",
+                          bucket_list_get_id(list, cur),
+                          *header > 0.0f ? "Keep" : "Put Away");
+    cur = bucket_list_get_from_id(list, cur->next_bucket_id);
+  }
+
+  cur = bucket_list_get_from_id(list, list->next_available_id);
+
+  platform_debug_print("\nListing inactive buckets:\n");
+  while (cur != NULL)
+  {
+    platform_debug_printf("bucket id: %d\n", bucket_list_get_id(list, cur));
+    cur = bucket_list_get_from_id(list, cur->next_bucket_id);
+  }
 }
 
 void bucket_list_put_back(Bucket_List *meta, Pair_u32 *ids, u32 count)
@@ -487,7 +523,9 @@ void bucket_list_put_back(Bucket_List *meta, Pair_u32 *ids, u32 count)
     }
     else if ((start_prev == NULL) && (end_next != NULL)) // first in range is first of bucket list
     {
-      meta->first_bucket = end_next_id;
+      local_persist i32 c = 0;
+      c++;
+      meta->first_bucket_id = end_next_id;
     }
     else if ((start_prev != NULL) && (end_next == NULL)) // got to end of list
     {
@@ -495,13 +533,14 @@ void bucket_list_put_back(Bucket_List *meta, Pair_u32 *ids, u32 count)
     }
     else if ((start_prev == NULL) && (end_next == NULL)) // entire list
     {
-      meta->first_bucket = bucket_list_invalid_id;
+      meta->first_bucket_id = bucket_list_invalid_id;
+      meta->last_bucket_id  = bucket_list_invalid_id;
     }
 
-    bucket_list_get_from_id(meta, range_end)->next_bucket_id = meta->next_available;
-    meta->next_available = range_start;
+    bucket_list_get_from_id(meta, ids[range_end].cur)->next_bucket_id = meta->next_available_id;
+    meta->next_available_id = ids[range_start].cur;
 
-    id_index = range_start + 1;
+    id_index = range_end + 1;
   }
 
   meta->cur_count -= count;

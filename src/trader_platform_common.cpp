@@ -78,3 +78,15 @@ internal void platform_thread_init(void)
     thread_contexts[thread_context_index].local_temp_arena.arena = arena_alloc(global_temp_arena_size, 1, NULL);
   }
 }
+
+internal void platform_debug_printf(char *format, ...)
+{
+  char buffer[512] = {};
+  va_list args;
+  va_start(args, format);
+
+  stbsp_vsnprintf(buffer, array_count(buffer), format, args);
+  platform_debug_print(buffer);
+
+  va_end(args);
+}

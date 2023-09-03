@@ -1017,7 +1017,7 @@ WinMain(HINSTANCE instance,
 
     Bucket_List particle_buckets = bucket_list_make(global_arena, 
                                                     mb(1),
-                                                    kb(1),
+                                                    kb(4),
                                                     sizeof(Circle_Particle_Header),
                                                     16,
                                                     scu8l("Circle Particles"));
@@ -1209,7 +1209,7 @@ WinMain(HINSTANCE instance,
           if (acc_time > 10.0f) acc_time -= 10.0f;
 
           pacc_time += 1.0f / 60.0f;
-          if (pacc_time > 3.0f)
+          if (pacc_time > 1.0f)
           {
             batch_make_circle_particles(&particle_buckets, 1.0f, 2.0f, 100, 200);
             pacc_time = 0.0f;

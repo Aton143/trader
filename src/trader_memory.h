@@ -17,8 +17,10 @@ struct Bucket_List
   u64  total_size;
   u32  bucket_max_size;
 
-  u32  first_bucket;
-  u32  next_available;
+  u32  first_bucket_id;
+  u32  last_bucket_id;
+
+  u32  next_available_id;
 
   u32  cur_count;
 

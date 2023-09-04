@@ -110,10 +110,13 @@
 
 #if OS_WINDOWS
 #  define OS_NAME "win"
+#  define THREAD_RETURN DWORD
 #elif OS_LINUX
 #  define OS_NAME "linux"
+#  define THREAD_RETURN void *
 #elif OS_MAC
 #  define OS_NAME "mac"
+#  define THREAD_RETURN void *
 #else
 #  error no name for this operating system
 #endif

@@ -45,6 +45,7 @@ struct Render_Context
     Common_Render_Context common_context;
   };
 
+  Texture_Atlas       *wingding;
   IDXGISwapChain1     *swap_chain;
   ID3D11Device        *device;
   ID3D11DeviceContext *device_context;
@@ -85,6 +86,9 @@ struct Global_Platform_State
   // TODO(antonio): make part of global arena
   u8             _changed_files[kb(1)];
   utf8           changed_files[8][128];
+
+  b8              running;
+  b8              window_resized;
 };
 #pragma pack(pop)
 
@@ -1333,6 +1337,347 @@ internal void render_create_cubemap(Bitmap *bitmaps, u32 bitmap_count, void *out
 
   result = render->device->CreateShaderResourceView(cube_texture, &srv_desc, texture_views);
   expect(SUCCEEDED(result));
+}
+
+internal b32 is_vk_down(i32 vk)
+{
+  b32 vk_down = (GetKeyState(vk) & 0x8000) != 0;
+  return(vk_down);
+}
+
+internal void win32_message_fiber(void *args)
+{
+  unused(args);
+
+  while(1)
+  {
+    MSG message;
+    while (PeekMessageW(&message, NULL, 0, 0, PM_REMOVE))
+    {
+      if (message.message == WM_QUIT)
+      {
+        win32_global_state.running = false;
+      }
+
+      TranslateMessage(&message);
+      DispatchMessageW(&message);
+    }
+
+    SwitchToFiber(win32_global_state.main_fiber_address);
+  }
+}
+
+internal LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM wparam, LPARAM lparam)
+{
+  LRESULT result = 0;
+
+  UI_Context *ui = ui_get_context();
+
+  switch (message)
+  {
+    case WM_INPUT:
+    {
+      // NOTE(antonio): https://gist.github.com/luluco250/ac79d72a734295f167851ffdb36d77ee 
+      // RAWINPUT does not guarantee that accumulated deltas will be consistent, unlike WM_MOUSEDATA
+      // This requires some care
+
+      local_persist RAWINPUT raw_input[1];
+      u32 size = sizeof(raw_input);
+      HRAWINPUT raw_input_handle = (HRAWINPUT) lparam;
+
+      UINT return_code = GetRawInputData(raw_input_handle, RID_INPUT, raw_input, &size, sizeof(RAWINPUTHEADER));
+      if (return_code == (UINT) -1)
+      {
+        platform_debug_print_system_error();
+      }
+
+      if (raw_input->header.dwType == RIM_TYPEMOUSE)
+      {
+        RAWMOUSE *mouse_data = &raw_input->data.mouse;
+
+        if ((mouse_data->usFlags & MOUSE_MOVE_ABSOLUTE) == MOUSE_MOVE_ABSOLUTE)
+        {
+          b32 virtual_desktop = (mouse_data->usFlags & MOUSE_VIRTUAL_DESKTOP) == MOUSE_VIRTUAL_DESKTOP;
+
+          f32 width  = (f32) GetSystemMetrics(virtual_desktop ? SM_CXVIRTUALSCREEN : SM_CXSCREEN);
+          f32 height = (f32) GetSystemMetrics(virtual_desktop ? SM_CYVIRTUALSCREEN : SM_CYSCREEN);
+
+          global_player_context.mouse_pos = V2((mouse_data->lLastX / 65535.0f) * width,
+                                               (mouse_data->lLastY / 65535.0f) * height);
+        }
+        else if ((mouse_data->usFlags & MOUSE_MOVE_RELATIVE) == MOUSE_MOVE_RELATIVE)
+        {
+          V2_f32 mouse_delta = V2((f32) mouse_data->lLastX, (f32) mouse_data->lLastY);
+
+          global_player_context.mouse_delta = mouse_delta;
+          global_player_context.mouse_pos   = add(global_player_context.mouse_pos, mouse_delta);
+        }
+      }
+    } break;
+
+    case WM_GETMINMAXINFO:
+    {
+      MINMAXINFO *window_tracking_info = (MINMAXINFO *) lparam;
+      window_tracking_info->ptMinTrackSize = {400, 300};
+    } break;
+
+    // TODO(antonio): when y ~= 0, mouse is registered as not in client
+    case WM_MOUSEMOVE:
+    case WM_NCMOUSEMOVE: // NOTE(antonio): NC - non-client
+    {
+      POINT mouse_pos =
+      {
+        (LONG) GET_X_LPARAM(lparam),
+        (LONG) GET_Y_LPARAM(lparam)
+      };
+
+      if (win32_global_state.nonclient_mouse_button != 0)
+      {
+        if ((GET_X_LPARAM(win32_global_state.nonclient_mouse_pos) != mouse_pos.x) ||
+            (GET_Y_LPARAM(win32_global_state.nonclient_mouse_pos) != mouse_pos.y))
+        {
+          DefWindowProcW(window_handle,
+                         win32_global_state.nonclient_mouse_button,
+                         HTCAPTION,
+                         win32_global_state.nonclient_mouse_pos);
+          win32_global_state.nonclient_mouse_button = 0;
+        }
+      }
+
+      Mouse_Area cur_mouse_area = (message == WM_MOUSEMOVE) ? mouse_area_in_client : mouse_area_other;
+      if (ui->mouse_area != cur_mouse_area)
+      {
+        b32 tracking_result = false;
+        if (ui->mouse_area != mouse_area_out_client)
+        {
+          TRACKMOUSEEVENT cancel_previous_tracking = {sizeof(cancel_previous_tracking), TME_CANCEL, window_handle, 0};
+
+          tracking_result = TrackMouseEvent(&cancel_previous_tracking);
+          expect_message(tracking_result, "expected to cancel previous tracking");
+        }
+
+        DWORD new_tracking_flags = (cur_mouse_area == mouse_area_other) ? (TME_LEAVE | TME_NONCLIENT) : (TME_LEAVE);
+        TRACKMOUSEEVENT new_tracking = {sizeof(new_tracking), new_tracking_flags, window_handle, 0};
+
+        tracking_result = TrackMouseEvent(&new_tracking);
+        expect_message(tracking_result, "expected to begin new tracking");
+
+        ui->mouse_area = cur_mouse_area;
+      }
+
+      // WM_NCMOUSEMOVE are provided in absolute coordinates.
+      if ((message == WM_NCMOUSEMOVE) && (ScreenToClient(window_handle, &mouse_pos) == FALSE))
+      {
+        break;
+      }
+
+      ui->mouse_delta = 
+      {
+        (f32) mouse_pos.x - ui->mouse_pos.x,
+        (f32) mouse_pos.y - ui->mouse_pos.y,
+      };
+
+      ui->mouse_pos = 
+      {
+        (f32) mouse_pos.x,
+        (f32) mouse_pos.y
+      };
+    } break;
+
+    case WM_NCLBUTTONDOWN:
+    {
+      if (wparam == HTCAPTION)
+      {
+        win32_global_state.nonclient_mouse_pos    = lparam;
+        win32_global_state.nonclient_mouse_button = message;
+      }
+      else
+      {
+        result = DefWindowProc(window_handle, message, wparam, lparam);
+      }
+    } break;
+
+    case WM_MOUSELEAVE:
+    case WM_NCMOUSELEAVE:
+    {
+      ui->mouse_pos = {max_f32, max_f32};
+      ui->mouse_area = mouse_area_out_client;
+    } break;
+
+    case WM_LBUTTONDOWN: case WM_LBUTTONDBLCLK:
+    case WM_RBUTTONDOWN: case WM_RBUTTONDBLCLK:
+    case WM_MBUTTONDOWN: case WM_MBUTTONDBLCLK:
+    case WM_XBUTTONDOWN: case WM_XBUTTONDBLCLK:
+    {
+      Mouse_Event mouse_event = mouse_event_none;
+      if ((message == WM_LBUTTONDOWN) || (message == WM_LBUTTONDBLCLK)) {mouse_event = mouse_event_lclick;}
+      if ((message == WM_RBUTTONDOWN) || (message == WM_RBUTTONDBLCLK)) {mouse_event = mouse_event_rclick;}
+      if ((message == WM_MBUTTONDOWN) || (message == WM_MBUTTONDBLCLK)) {mouse_event = mouse_event_mclick;}
+
+      ui->cur_frame_mouse_event |= mouse_event;
+
+      if ((ui->cur_frame_mouse_event == mouse_event_none) && (GetCapture == NULL))
+      {
+        SetCapture(window_handle);
+      }
+    } break;
+
+    case WM_LBUTTONUP:
+    case WM_RBUTTONUP:
+    case WM_MBUTTONUP:
+    case WM_XBUTTONUP:
+    {
+      Mouse_Event mouse_event_to_remove = mouse_event_none;
+      if (message == WM_LBUTTONUP) {mouse_event_to_remove = mouse_event_lclick;}
+      if (message == WM_RBUTTONUP) {mouse_event_to_remove = mouse_event_rclick;}
+      if (message == WM_MBUTTONUP) {mouse_event_to_remove = mouse_event_mclick;}
+
+      ui->cur_frame_mouse_event &= ~mouse_event_to_remove;
+
+      if ((ui->cur_frame_mouse_event == mouse_event_none) && (GetCapture() == window_handle))
+      {
+        ReleaseCapture();
+      }
+    }
+
+    case WM_MOUSEWHEEL:
+    {
+      ui->mouse_wheel_delta = {0.0f, (f32) GET_WHEEL_DELTA_WPARAM(wparam) / (f32) WHEEL_DELTA};
+    } break;
+    case WM_MOUSEHWHEEL:
+    {
+      ui->mouse_wheel_delta = {(f32) -GET_WHEEL_DELTA_WPARAM(wparam) / (f32) WHEEL_DELTA, 0.0f};
+    } break;
+
+    case WM_SETFOCUS:  // NOTE(antonio): after the window has gained focus
+    case WM_KILLFOCUS: // NOTE(antonio): right *before* the window loses focus
+    {
+      win32_global_state.focus_event = (message == WM_SETFOCUS) ? focus_event_gain : focus_event_lose;
+    } break;
+
+    case WM_KEYUP:
+    case WM_KEYDOWN:
+    case WM_SYSKEYUP:
+    case WM_SYSKEYDOWN:
+    {
+      b32 is_key_down = ((message == WM_KEYDOWN) || (message == WM_SYSKEYDOWN));
+      // b32 was_key_down = (((lparam >> 30)) & 1) == 0 ;
+
+      if (wparam < 256)
+      {
+        ui_add_key_event(key_mod_event_control, is_vk_down(VK_CONTROL));
+        ui_add_key_event(key_mod_event_shift,   is_vk_down(VK_SHIFT));
+        ui_add_key_event(key_mod_event_alt,     is_vk_down(VK_MENU));
+        ui_add_key_event(key_mod_event_super,   is_vk_down(VK_APPS));
+
+        u64 vk = (u64) wparam;
+        if ((wparam == VK_RETURN) && (HIWORD(lparam) & KF_EXTENDED))
+        {
+          vk = TRADER_KEYPAD_ENTER;
+        }
+
+        // Submit key event
+        Key_Event key = platform_convert_key_to_our_key(vk);
+        if (key != key_event_none)
+        {
+          ui_add_key_event(key, is_key_down);
+          player_add_input(key, is_key_down);
+        }
+
+        /*
+        // Submit individual left/right modifier events
+        if (vk == VK_SHIFT)
+        {
+          // Important: Shift keys tend to get stuck when pressed together, missing key-up events are corrected in ImGui_ImplWin32_ProcessKeyEventsWorkarounds()
+          if (IsVkDown(VK_LSHIFT) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_LeftShift, is_key_down, VK_LSHIFT, scancode); }
+          if (IsVkDown(VK_RSHIFT) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_RightShift, is_key_down, VK_RSHIFT, scancode); }
+        }
+        else if (vk == VK_CONTROL)
+        {
+          if (IsVkDown(VK_LCONTROL) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_LeftCtrl, is_key_down, VK_LCONTROL, scancode); }
+          if (IsVkDown(VK_RCONTROL) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_RightCtrl, is_key_down, VK_RCONTROL, scancode); }
+        }
+        else if (vk == VK_MENU)
+        {
+          if (IsVkDown(VK_LMENU) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_LeftAlt, is_key_down, VK_LMENU, scancode); }
+          if (IsVkDown(VK_RMENU) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_RightAlt, is_key_down, VK_RMENU, scancode); }
+        }
+        */
+      }
+
+      if (wparam == VK_ESCAPE)
+      {
+        win32_global_state.running = false;
+      }
+      result = DefWindowProc(window_handle, message, wparam, lparam);
+    } break;
+
+    case WM_SIZE:
+    {
+      win32_global_state.window_resized = true;
+      //result = DefWindowProc(window_handle, message, wparam, lparam);
+    } break;
+
+    case WM_SIZING:
+    {
+      result = TRUE;
+    } break;
+
+    case WM_ENTERSIZEMOVE:
+    case WM_ENTERMENULOOP:
+    {
+      SetTimer(window_handle, 1, 2, NULL);
+    } break;
+
+    case WM_EXITSIZEMOVE:
+    case WM_EXITMENULOOP:
+    {
+      KillTimer(window_handle, 1);
+      result = DefWindowProcW(window_handle, message, wparam, lparam);
+    } break;
+
+    case WM_TIMER:
+    {
+      if (wparam == 1)
+      {
+        SwitchToFiber(win32_global_state.main_fiber_address);
+        result = DefWindowProcW(window_handle, message, wparam, lparam);
+      }
+    } break;
+
+    case WM_SYSCOMMAND:
+    {
+      switch (wparam & 0xff0)
+      {
+        case SC_SCREENSAVE:
+        case SC_MONITORPOWER:
+        {
+
+        } break;
+
+        case SC_KEYMENU:
+        {
+
+        } break;
+      }
+
+      result = DefWindowProcW(window_handle, message, wparam, lparam);
+    } break;
+
+    case WM_QUIT:
+    case WM_DESTROY:
+    case WM_CLOSE:
+    {
+      win32_global_state.running = false;
+    } break;
+
+    default:
+    {
+      result = DefWindowProcW(window_handle, message, wparam, lparam);
+    } break;
+  }
+
+  return(result);
 }
 
 #define WIN32_IMPLEMENTATION_H

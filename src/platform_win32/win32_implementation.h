@@ -52,7 +52,7 @@ struct Render_Context
 
   Texture_Atlas       *wingding;
   IDXGISwapChain1     *swap_chain;
-  ID3D11Device        *device;
+  ID3D11Device3       *device;
   ID3D11DeviceContext *device_context;
   Ring_Buffer          command_queue;
 };
@@ -93,8 +93,11 @@ struct Global_Platform_State
   u8             _changed_files[kb(1)];
   utf8           changed_files[8][128];
 
-  b8              running;
-  b8              window_resized;
+  b8             running;
+  b8             window_resized;
+
+  volatile b8    main_thread_done_submitting;
+  volatile b8    render_thread_done_processing;
 };
 #pragma pack(pop)
 

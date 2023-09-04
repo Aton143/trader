@@ -39,19 +39,26 @@
 
 THREAD_RETURN render_thread_proc(void *_args)
 {
-  u8 *args = (u8 *) _args;
+  uintptr_t *args = (uintptr_t *) _args;
 
-  ID3D11Device3 *device = (ID3D11Device3 *) args;
+  Thread_Context *thread_context = &thread_contexts[*args++];
+  Arena *temp_arena = get_temp_arena(thread_context);
+
+  Global_Platform_State *global_state = platform_get_global_state();
+  Render_Context        *render = render_get_context();
+
+  Ring_Buffer *command_queue = &global_state->render_context.command_queue;
+
   ID3D11InputLayout *input_layouts[3] = {};
+  ID3D11Buffer      *buffers[] = {(ID3D11Buffer *) *args++,  (ID3D11Buffer *) *args++};
 
   Arena _render_thread_arena = arena_alloc(1024 * sizeof(Render_Command), 1, NULL);
   Arena *render_thread_arena = &_render_thread_arena;
-  unused(render_thread_arena);
 
   {
     String_Const_utf8 dummy_shader_path = scu8l("..\\src\\platform_win32\\input_layout_shaders.hlsl");
     File_Buffer input_layout_source =
-      platform_open_and_read_entire_file(render_thread_arena,
+      platform_open_and_read_entire_file(temp_arena,
                                          dummy_shader_path.str,
                                          dummy_shader_path.size);
 
@@ -82,22 +89,36 @@ THREAD_RETURN render_thread_proc(void *_args)
         },
       };
 
-      HRESULT result = device->CreateInputLayout(input_element_description,
-                                                 1 << (layout_index),
-                                                 compiled_shader_blob->GetBufferPointer(),
-                                                 compiled_shader_blob->GetBufferSize(),
-                                                 &input_layouts[layout_index]);
+      HRESULT result = render->device->CreateInputLayout(input_element_description,
+                                                         1 << (layout_index),
+                                                         compiled_shader_blob->GetBufferPointer(),
+                                                         compiled_shader_blob->GetBufferSize(),
+                                                         &input_layouts[layout_index]);
       expect(SUCCEEDED(result));
       compiled_shader_blob->Release();
       dummy_vertex_shader->Release();
     }
-
-    arena_reset(render_thread_arena);
   }
 
-  win32_global_state.render_context.command_queue = ring_buffer_make(render_thread_arena, render_thread_arena->size);
+  *command_queue = ring_buffer_make(render_thread_arena, render_thread_arena->size);
 
-  return(0);
+  for (;;)
+  {
+    while (true)
+
+      while (!global_state->main_thread_done_submitting)
+      {
+        while (command_queue->read != command_queue->write)
+        {
+          Render_Command *command = NULL;
+          ring_buffer_pop_and_put(command_queue, &command, sizeof(Render_Command **));
+
+
+        }
+      }
+
+    global_state->render_thread_done_processing = true;
+  }
 }
 
 int CALL_CONVENTION
@@ -113,6 +134,7 @@ WinMain(HINSTANCE instance,
 
   platform_common_init();
 
+  Global_Platform_State *global_state  = platform_get_global_state();
   Arena                 *global_arena  = platform_get_global_arena();
   Render_Context        *render        = render_get_context();
   Common_Render_Context *common_render = render_get_common_context();
@@ -139,7 +161,7 @@ WinMain(HINSTANCE instance,
       expect_message(false, "could not create an I/O completion port");
     }
 
-    win32_global_state.notify_iocp = iocp_handle;
+    global_state->notify_iocp = iocp_handle;
   }
 
   String_Const_utf8 notify_dir = string_literal_init_type("..\\src\\platform_win32\\", utf8);
@@ -198,7 +220,7 @@ WinMain(HINSTANCE instance,
       return GetLastError();
     }
 
-    win32_global_state.window_handle =
+    global_state->window_handle =
       CreateWindowExW(WS_EX_OVERLAPPEDWINDOW,
                       window_class.lpszClassName,
                       L"trader",
@@ -208,7 +230,7 @@ WinMain(HINSTANCE instance,
                       NULL, NULL,
                       instance, NULL);
 
-    if (!win32_global_state.window_handle)
+    if (!global_state->window_handle)
     {
       MessageBoxA(0, "CreateWindowEx failed", "Fatal Error", MB_OK);
       return GetLastError();
@@ -231,7 +253,7 @@ WinMain(HINSTANCE instance,
         HID_USAGE_PAGE_GENERIC,
         HID_USAGE_GENERIC_MOUSE,
         RIDEV_INPUTSINK,
-        win32_global_state.window_handle,
+        global_state->window_handle,
       }
     };
 
@@ -242,7 +264,7 @@ WinMain(HINSTANCE instance,
     }
   }
 
-  if (ShowWindow(win32_global_state.window_handle, SW_NORMAL) && UpdateWindow(win32_global_state.window_handle))
+  if (ShowWindow(global_state->window_handle, SW_NORMAL) && UpdateWindow(global_state->window_handle))
   {
     // NOTE(antonio): initializing Direct3D 11
     ID3D11Device1 *device1 = NULL;
@@ -349,7 +371,7 @@ WinMain(HINSTANCE instance,
       swap_chain_description.AlphaMode   = DXGI_ALPHA_MODE_UNSPECIFIED;
       swap_chain_description.Flags       = 0;
 
-      HRESULT result = dxgi_factory->CreateSwapChainForHwnd(device, win32_global_state.window_handle,
+      HRESULT result = dxgi_factory->CreateSwapChainForHwnd(device, global_state->window_handle,
                                                             &swap_chain_description,
                                                             0, 0, &swap_chain);
       expect(SUCCEEDED(result));
@@ -369,9 +391,9 @@ WinMain(HINSTANCE instance,
     }
 
     {
-      win32_global_state.render_context.swap_chain           = swap_chain;
-      win32_global_state.render_context.device               = device;
-      win32_global_state.render_context.device_context       = device_context;
+      global_state->render_context.swap_chain           = swap_chain;
+      global_state->render_context.device               = device;
+      global_state->render_context.device_context       = device_context;
     };
 
     String_Const_utf8 shader_source_path   = string_literal_init_type("..\\src\\platform_win32\\shaders.hlsl", utf8);
@@ -679,8 +701,8 @@ WinMain(HINSTANCE instance,
 
     UI_Context *ui = ui_get_context();
 
-    win32_global_state.running        = true;
-    win32_global_state.window_resized = true;
+    global_state->running        = true;
+    global_state->window_resized = true;
 
     u64 last_hpt = platform_get_high_precision_timer();
     u64 last_pts = platform_get_processor_time_stamp();
@@ -688,7 +710,7 @@ WinMain(HINSTANCE instance,
     f64 last_frame_time           = platform_convert_high_precision_time_to_seconds(last_hpt);
     u64 last_frame_time_in_cycles = 0;
 
-    win32_global_state.dt = 0.0;
+    global_state->dt = 0.0;
 
     String_Const_utf8 text_to_render = string_literal_init_type("abcdefg", utf8);
       /*string_literal_init_type("abcdefghijklmnopqrstuvwxyz"
@@ -722,13 +744,14 @@ WinMain(HINSTANCE instance,
     u32 panel_float_index = 0;
 
     // NOTE(antonio): experimental change
-    win32_global_state.main_fiber_address = ConvertThreadToFiber(NULL);
-    expect_message(win32_global_state.main_fiber_address != NULL, "expected to use fiber path");
+    global_state->main_fiber_address = ConvertThreadToFiber(NULL);
+    expect_message(global_state->main_fiber_address != NULL, "expected to use fiber path");
 
     void *win32_message_fiber_handle = CreateFiber(0, &win32_message_fiber, NULL);
-    expect_message(win32_global_state.main_fiber_address != NULL, "could not create a fiber for messages");
+    expect_message(global_state->main_fiber_address != NULL, "could not create a fiber for messages");
 
-    HANDLE render_thread_handle = CreateThread(NULL, 0, render_thread_proc, device, 0, NULL);
+    const uintptr_t render_thread_args[] = {1, (const uintptr_t) instance_buffer, (const uintptr_t) vertex_buffer};
+    HANDLE render_thread_handle = CreateThread(NULL, 0, render_thread_proc, (void *) render_thread_args, 0, NULL);
     unused(render_thread_handle);
 
     Vertex_Buffer_Element cube_vertices[] = 
@@ -765,15 +788,15 @@ WinMain(HINSTANCE instance,
       ring_buffer_start = render->command_queue.start;
     }
 
-    while (win32_global_state.running)
+    while (global_state->running)
     {
       TIMED_BLOCK_START();
 
       SwitchToFiber(win32_message_fiber_handle);
 
-      if (win32_global_state.window_resized && !IsIconic(win32_global_state.window_handle))
+      if (global_state->window_resized && !IsIconic(global_state->window_handle))
       {
-        win32_global_state.window_resized = false;
+        global_state->window_resized = false;
 
         {
           Rect_f32 new_client_rect = {};
@@ -891,7 +914,7 @@ WinMain(HINSTANCE instance,
 
       ui_prepare_render_from_panels(ui_get_sentinel_panel(), client_rect);
 
-      u32 initial_draw_count = (u32) (win32_global_state.render_context.render_data.used / sizeof(Instance_Buffer_Element));
+      u32 initial_draw_count = (u32) (global_state->render_context.render_data.used / sizeof(Instance_Buffer_Element));
       ui_flatten_draw_layers();
 
       Render_Position cylinder_rp = make_cylinder(&common_render->triangle_render_data,
@@ -917,8 +940,8 @@ WinMain(HINSTANCE instance,
           device_context->Map(vertex_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_vertex_buffer);
 
           copy_memory_block(mapped_vertex_buffer.pData,
-                            win32_global_state.render_context.triangle_render_data.start,
-                            win32_global_state.render_context.triangle_render_data.used);
+                            global_state->render_context.triangle_render_data.start,
+                            global_state->render_context.triangle_render_data.used);
 
           device_context->Unmap(vertex_buffer, 0);
         }
@@ -1055,8 +1078,8 @@ WinMain(HINSTANCE instance,
           device_context->Map(instance_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_instance_buffer);
 
           copy_memory_block(mapped_instance_buffer.pData,
-                            win32_global_state.render_context.render_data.start,
-                            win32_global_state.render_context.render_data.used);
+                            global_state->render_context.render_data.start,
+                            global_state->render_context.render_data.used);
 
           device_context->Unmap(instance_buffer, 0);
         }
@@ -1160,21 +1183,24 @@ WinMain(HINSTANCE instance,
 #endif
       swap_chain->Present(1, 0);
 
-      arena_reset(&win32_global_state.render_context.render_data);
-      arena_reset(&win32_global_state.render_context.triangle_render_data);
+      global_state->main_thread_done_submitting   = false;
+      global_state->render_thread_done_processing = false;
+
+      arena_reset(&global_state->render_context.render_data);
+      arena_reset(&global_state->render_context.triangle_render_data);
 
       meta_collate_timing_records();
 
       // Post-frame
-      win32_global_state.focus_event = focus_event_none;
+      global_state->focus_event = focus_event_none;
 
       for (u32 file_index = 0;
-           file_index < array_count(win32_global_state.changed_files);
+           file_index < array_count(global_state->changed_files);
            ++file_index)
       {
-        if (win32_global_state.changed_files[file_index][0] != '\0')
+        if (global_state->changed_files[file_index][0] != '\0')
         {
-          zero_struct(win32_global_state.changed_files);
+          zero_struct(global_state->changed_files);
         }
         else
         {
@@ -1212,7 +1238,7 @@ WinMain(HINSTANCE instance,
         last_hpt = cur_hpt;
         last_pts = cur_pts;
 
-        win32_global_state.dt = last_frame_time;
+        global_state->dt = last_frame_time;
       }
 
       if (!ui->keep_hot_key) {

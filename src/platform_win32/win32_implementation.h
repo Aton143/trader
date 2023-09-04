@@ -1,6 +1,21 @@
 #ifndef WIN32_IMPLEMENTATION_H
 #include <malloc.h>
 
+struct Vertex_Shader
+{
+  ID3D11VertexShader *shader;
+};
+
+struct Pixel_Shader
+{
+  ID3D11PixelShader *shader;
+};
+
+struct Texture
+{
+  ID3D11ShaderResourceView *srv;
+};
+
 #include "../trader_platform.h"
 #include "../trader_ui.h"
 #include "../trader_render.h"
@@ -18,16 +33,6 @@ struct Cursor_Handle
   HCURSOR _handle;
 };
 Cursor_Handle cursors[cursor_kind_count];
-
-struct Vertex_Shader
-{
-  ID3D11VertexShader *shader;
-};
-
-struct Pixel_Shader
-{
-  ID3D11PixelShader  *shader;
-};
 
 struct Render_Context
 {
@@ -49,6 +54,7 @@ struct Render_Context
   IDXGISwapChain1     *swap_chain;
   ID3D11Device        *device;
   ID3D11DeviceContext *device_context;
+  Ring_Buffer          command_queue;
 };
 
 #pragma pack(push, 4)
@@ -772,6 +778,47 @@ internal void platform_debug_print_system_error()
   }
 }
 
+internal void *render_compile_vertex_shader(File_Buffer *source, char *entry_point, void *out_shader)
+{
+  ID3DBlob *vertex_shader_blob = NULL;
+  ID3DBlob *shader_compile_errors_blob = NULL;
+
+  UINT compile_flags = 0;
+#if !SHIP_MODE
+  compile_flags |= D3DCOMPILE_DEBUG;
+  compile_flags |= D3DCOMPILE_OPTIMIZATION_LEVEL0;
+#endif
+
+  HRESULT result = D3DCompile(source->data, source->size, NULL, NULL, NULL,
+                              entry_point, "vs_5_0", compile_flags, 0, &vertex_shader_blob, &shader_compile_errors_blob);
+
+  if (FAILED(result))
+  {
+    String_Const_char error_string = {};
+
+    if (shader_compile_errors_blob)
+    {
+      error_string =
+      {
+        (char *) shader_compile_errors_blob->GetBufferPointer(),
+        shader_compile_errors_blob->GetBufferSize()
+      };
+    }
+
+    MessageBoxA(0, error_string.str, "Shader Compiler Error", MB_ICONERROR | MB_OK);
+  }
+
+  ID3D11Device *device = win32_global_state.render_context.device;
+  result = device->CreateVertexShader(vertex_shader_blob->GetBufferPointer(),
+                                      vertex_shader_blob->GetBufferSize(),
+                                      NULL, (ID3D11VertexShader **) out_shader);
+
+  expect(SUCCEEDED(result));
+  safe_release(shader_compile_errors_blob);
+
+  return(vertex_shader_blob);
+}
+
 internal void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *shader, b32 force)
 {
   void *blob = NULL;
@@ -782,45 +829,7 @@ internal void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *s
 
     // TODO(antonio): will have to read file twice
     File_Buffer temp_shader_source = platform_read_entire_file(shader_handle);
-    {
-      ID3DBlob *vertex_shader_blob = NULL;
-      ID3DBlob *shader_compile_errors_blob = NULL;
-
-      UINT compile_flags = 0;
-#if !SHIP_MODE
-      compile_flags |= D3DCOMPILE_DEBUG;
-      compile_flags |= D3DCOMPILE_OPTIMIZATION_LEVEL0;
-#endif
-
-      HRESULT result = D3DCompile(temp_shader_source.data, temp_shader_source.size, NULL, NULL, NULL,
-                                  "VS_Main", "vs_5_0", compile_flags, 0, &vertex_shader_blob, &shader_compile_errors_blob);
-
-      if (FAILED(result))
-      {
-        String_Const_char error_string = {};
-
-        if (shader_compile_errors_blob)
-        {
-          error_string =
-          {
-            (char *) shader_compile_errors_blob->GetBufferPointer(),
-            shader_compile_errors_blob->GetBufferSize()
-          };
-        }
-
-        MessageBoxA(0, error_string.str, "Shader Compiler Error", MB_ICONERROR | MB_OK);
-      }
-
-      ID3D11Device *device = win32_global_state.render_context.device;
-      result = device->CreateVertexShader(vertex_shader_blob->GetBufferPointer(),
-                                          vertex_shader_blob->GetBufferSize(),
-                                          NULL, &shader->shader);
-
-      expect(SUCCEEDED(result));
-      safe_release(shader_compile_errors_blob);
-
-      blob = (void *) vertex_shader_blob;
-    }
+    blob = render_compile_vertex_shader(&temp_shader_source, "VS_Main", &shader->shader);
   }
 
   return(blob);

@@ -1,5 +1,25 @@
 #ifndef TRADER_RENDER_H
+
+// TODO(antonio): move to discriminated union based system?
+struct Render_Command
+{
+  u32  buffer_id;
+
+  u32  per_vertex_size;
+  u32  vertex_count;
+
+  u8  *vertex_data;
+
+  Vertex_Shader vertex_shader;
+  Pixel_Shader  pixel_shader;
+
+  Texture       textures[2];
+
+  u8   constant_buffer_data[256];
+};
+
 #pragma pack(push, 4)
+
 struct Constant_Buffer
 {
   f32 atlas_width, atlas_height;
@@ -107,9 +127,6 @@ enum
   Shader_Kind_Pixel,
   Shader_Kind_Count,
 };
-
-struct Vertex_Shader;
-struct Pixel_Shader;
 
 struct Common_Render_Context
 {

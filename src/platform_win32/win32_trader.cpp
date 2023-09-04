@@ -37,10 +37,66 @@
 
 #include "..\trader.h"
 
-THREAD_RETURN render_thread_proc(void *args)
+THREAD_RETURN render_thread_proc(void *_args)
 {
-  unused(args);
-  platform_debug_printf("I am created\n");
+  u8 *args = (u8 *) _args;
+
+  ID3D11Device3 *device = (ID3D11Device3 *) args;
+  ID3D11InputLayout *input_layouts[3] = {};
+
+  Arena _render_thread_arena = arena_alloc(1024 * sizeof(Render_Command), 1, NULL);
+  Arena *render_thread_arena = &_render_thread_arena;
+  unused(render_thread_arena);
+
+  {
+    String_Const_utf8 dummy_shader_path = scu8l("..\\src\\platform_win32\\input_layout_shaders.hlsl");
+    File_Buffer input_layout_source =
+      platform_open_and_read_entire_file(render_thread_arena,
+                                         dummy_shader_path.str,
+                                         dummy_shader_path.size);
+
+    char *vertex_mains[3] = {"VS_Main_16", "VS_Main_32", "VS_Main_64"};
+
+    for (u32 layout_index = 0;
+         layout_index < array_count(input_layouts);
+         ++layout_index)
+    {
+      ID3D11VertexShader *dummy_vertex_shader = NULL;
+      ID3DBlob *compiled_shader_blob =
+        (ID3DBlob *) render_compile_vertex_shader(&input_layout_source, vertex_mains[layout_index], &dummy_vertex_shader);
+
+      D3D11_INPUT_ELEMENT_DESC input_element_description[] =
+      {
+        {
+          "IN", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
+          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
+        }, {
+          "IN", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
+          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
+        }, {
+          "IN", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
+          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
+        }, {
+          "IN", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
+          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
+        },
+      };
+
+      HRESULT result = device->CreateInputLayout(input_element_description,
+                                                 1 << (layout_index),
+                                                 compiled_shader_blob->GetBufferPointer(),
+                                                 compiled_shader_blob->GetBufferSize(),
+                                                 &input_layouts[layout_index]);
+      expect(SUCCEEDED(result));
+      compiled_shader_blob->Release();
+      dummy_vertex_shader->Release();
+    }
+
+    arena_reset(render_thread_arena);
+  }
+
+  win32_global_state.render_context.command_queue = ring_buffer_make(render_thread_arena, render_thread_arena->size);
+
   return(0);
 }
 
@@ -420,7 +476,6 @@ WinMain(HINSTANCE instance,
     {
       D3D11_INPUT_ELEMENT_DESC input_element_description[] =
       {
-#define INSTANCE_BUFFER_SLOT 0
         {
           "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
           D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
@@ -583,7 +638,7 @@ WinMain(HINSTANCE instance,
       D3D11_BUFFER_DESC constant_buffer_description = {};
 
       // NOTE(antonio): ByteWidth must be a multiple of 16, per the docs
-      constant_buffer_description.ByteWidth      = (sizeof(Constant_Buffer) + 0xf) & 0xfffffff0;
+      constant_buffer_description.ByteWidth      = (member_size(Render_Command, constant_buffer_data) + 0xf) & 0xfffffff0;
       constant_buffer_description.Usage          = D3D11_USAGE_DYNAMIC;
       constant_buffer_description.BindFlags      = D3D11_BIND_CONSTANT_BUFFER;
       constant_buffer_description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -673,7 +728,7 @@ WinMain(HINSTANCE instance,
     void *win32_message_fiber_handle = CreateFiber(0, &win32_message_fiber, NULL);
     expect_message(win32_global_state.main_fiber_address != NULL, "could not create a fiber for messages");
 
-    HANDLE render_thread_handle = CreateThread(NULL, 0, render_thread_proc, NULL, 0, NULL);
+    HANDLE render_thread_handle = CreateThread(NULL, 0, render_thread_proc, device, 0, NULL);
     unused(render_thread_handle);
 
     Vertex_Buffer_Element cube_vertices[] = 
@@ -702,6 +757,13 @@ WinMain(HINSTANCE instance,
     batch_make_circle_particles(&particle_buckets, 1.0f, 2.0f, 100, 200);
 
     Player_Context *player_context = player_get_context();
+
+    // TODO(antonio): remove this dumbass synchronization method
+    volatile u8 *ring_buffer_start = render->command_queue.start;
+    while (!ring_buffer_start)
+    {
+      ring_buffer_start = render->command_queue.start;
+    }
 
     while (win32_global_state.running)
     {

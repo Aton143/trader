@@ -1,12 +1,4 @@
 #pragma pack_matrix(row_major)
-struct Vertex_Global_Data
-{
-  float2   texture_dimensions;
-  float2   client_dimensions;
-  float4x4 model;
-  float4x4 view;
-  float4x4 projection;
-};
 
 struct VS_Input
 {
@@ -25,9 +17,16 @@ struct PS_Input
   float  radius:   RADIUS;
 };
 
-Vertex_Global_Data global_data;
-Texture2D          global_texture: register(t0);
+cbuffer CBUF: register(b0)
+{
+  float2   texture_dimensions;
+  float2   client_dimensions;
+  float4x4 model;
+  float4x4 view;
+  float4x4 projection;
+}
 
+Texture2D          global_texture: register(t0);
 SamplerState       global_sampler: register(s0);
 
 // < 0 if inside
@@ -42,14 +41,14 @@ float sdf_circle(float2 pos, float2 center, float radius)
 PS_Input VS_Main(VS_Input input) {
   PS_Input output;
 
-  output.vertex   = mul(global_data.projection, mul(global_data.view, input.position));
+  output.vertex   = mul(projection, mul(view, input.position));
 
   output.color    = input.color;
   output.center   = input.normal.xy;
   output.radius   = input.normal.w;
   output.position = output.vertex;
 
-  output.vertex.x = (global_data.client_dimensions.y / global_data.client_dimensions.x) * output.vertex.x;
+  output.vertex.x = (client_dimensions.y / client_dimensions.x) * output.vertex.x;
 
   return(output);
 }

@@ -1,9 +1,18 @@
 #ifndef TRADER_RENDER_H
 
-// TODO(antonio): move to discriminated union based system?
-struct Render_Command
+typedef u32 Render_Command_Kind;
+enum
+{
+  rck_none,
+  rck_draw,
+  rck_clear,
+  rck_count,
+};
+
+struct RCK_Draw
 {
   u32  buffer_id;
+  u32  topology;
 
   u32  per_vertex_size;
   u32  vertex_count;
@@ -16,6 +25,24 @@ struct Render_Command
   Texture       textures[2];
 
   u8   constant_buffer_data[256];
+};
+
+struct RCK_Clear
+{
+  void *frame_buffer;
+  void *depth_stencil_buffer;
+};
+
+// TODO(antonio): move to discriminated union based system?
+struct Render_Command
+{
+  Render_Command_Kind kind;
+
+  union
+  {
+    RCK_Draw  draw;
+    RCK_Clear clear;
+  };
 };
 
 #pragma pack(push, 4)

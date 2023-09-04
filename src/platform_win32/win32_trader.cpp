@@ -113,7 +113,30 @@ THREAD_RETURN render_thread_proc(void *_args)
           Render_Command *command = NULL;
           ring_buffer_pop_and_put(command_queue, &command, sizeof(Render_Command **));
 
+          switch (command->kind)
+          {
+            case rck_draw:
+            {
 
+            } break;
+
+            case rck_clear:
+            {
+              RCK_Clear *clear = &command->clear;
+
+              ID3D11RenderTargetView *frame_buffer = (ID3D11RenderTargetView *) clear->frame_buffer;
+              ID3D11DepthStencilView *depth_stencil = (ID3D11DepthStencilView *) clear->depth_stencil_buffer;
+
+              FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+              render->device_context->ClearRenderTargetView(frame_buffer, background_color);
+              render->device_context->ClearDepthStencilView(depth_stencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+            } break;
+
+            default:
+            {
+              expect_message(false, "Either you didn't mean to use that kind of command or you're a dumb fuck!");
+            }
+          }
         }
       }
 
@@ -660,7 +683,7 @@ WinMain(HINSTANCE instance,
       D3D11_BUFFER_DESC constant_buffer_description = {};
 
       // NOTE(antonio): ByteWidth must be a multiple of 16, per the docs
-      constant_buffer_description.ByteWidth      = (member_size(Render_Command, constant_buffer_data) + 0xf) & 0xfffffff0;
+      constant_buffer_description.ByteWidth      = (member_size(RCK_Draw, constant_buffer_data) + 0xf) & 0xfffffff0;
       constant_buffer_description.Usage          = D3D11_USAGE_DYNAMIC;
       constant_buffer_description.BindFlags      = D3D11_BIND_CONSTANT_BUFFER;
       constant_buffer_description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;

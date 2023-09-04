@@ -49,8 +49,8 @@ THREAD_RETURN render_thread_proc(void *_args)
 
   Ring_Buffer *command_queue = &global_state->render_context.command_queue;
 
-  ID3D11InputLayout *input_layouts[3] = {};
-  ID3D11Buffer      *buffers[] = {(ID3D11Buffer *) *args++,  (ID3D11Buffer *) *args++};
+  ID3D11InputLayout *input_layouts[3]  = {};
+  ID3D11Buffer      *vertex_buffers[3] = {};
 
   Arena _render_thread_arena = arena_alloc(1024 * sizeof(Render_Command), 1, NULL);
   Arena *render_thread_arena = &_render_thread_arena;
@@ -68,78 +68,204 @@ THREAD_RETURN render_thread_proc(void *_args)
          layout_index < array_count(input_layouts);
          ++layout_index)
     {
-      ID3D11VertexShader *dummy_vertex_shader = NULL;
-      ID3DBlob *compiled_shader_blob =
-        (ID3DBlob *) render_compile_vertex_shader(&input_layout_source, vertex_mains[layout_index], &dummy_vertex_shader);
-
-      D3D11_INPUT_ELEMENT_DESC input_element_description[] =
       {
-        {
-          "IN", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
-          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
-        }, {
-          "IN", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
-          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
-        }, {
-          "IN", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
-          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
-        }, {
-          "IN", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
-          D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
-        },
-      };
+        ID3D11VertexShader *dummy_vertex_shader = NULL;
+        ID3DBlob *compiled_shader_blob =
+          (ID3DBlob *) render_compile_vertex_shader(&input_layout_source, vertex_mains[layout_index], &dummy_vertex_shader);
 
-      HRESULT result = render->device->CreateInputLayout(input_element_description,
-                                                         1 << (layout_index),
-                                                         compiled_shader_blob->GetBufferPointer(),
-                                                         compiled_shader_blob->GetBufferSize(),
-                                                         &input_layouts[layout_index]);
-      expect(SUCCEEDED(result));
-      compiled_shader_blob->Release();
-      dummy_vertex_shader->Release();
+        D3D11_INPUT_ELEMENT_DESC input_element_description[] =
+        {
+          {
+            "IN", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
+            D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
+          }, {
+            "IN", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
+            D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
+          }, {
+            "IN", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
+            D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
+          }, {
+            "IN", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
+            D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
+          },
+        };
+
+        HRESULT result = render->device->CreateInputLayout(input_element_description,
+                                                           1 << (layout_index),
+                                                           compiled_shader_blob->GetBufferPointer(),
+                                                           compiled_shader_blob->GetBufferSize(),
+                                                           &input_layouts[layout_index]);
+        expect(SUCCEEDED(result));
+        compiled_shader_blob->Release();
+        dummy_vertex_shader->Release();
+      }
+
+      {
+        D3D11_BUFFER_DESC vertex_buffer_description = {};
+
+        vertex_buffer_description.ByteWidth      = (u32) kb(16);
+        vertex_buffer_description.Usage          = D3D11_USAGE_DYNAMIC;
+        vertex_buffer_description.BindFlags      = D3D11_BIND_VERTEX_BUFFER;
+        vertex_buffer_description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+        HRESULT result = render->device->CreateBuffer(&vertex_buffer_description, NULL, &vertex_buffers[layout_index]);
+        expect(SUCCEEDED(result));
+      }
     }
+  }
+
+  ID3D11Buffer *constant_buffer = NULL;
+  {
+    D3D11_BUFFER_DESC constant_buffer_description = {};
+
+    // NOTE(antonio): ByteWidth must be a multiple of 16, per the docs
+    constant_buffer_description.ByteWidth      = (member_size(RCK_Draw, constant_buffer_data) + 0xf) & 0xfffffff0;
+    constant_buffer_description.Usage          = D3D11_USAGE_DYNAMIC;
+    constant_buffer_description.BindFlags      = D3D11_BIND_CONSTANT_BUFFER;
+    constant_buffer_description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+    HRESULT result = render->device->CreateBuffer(&constant_buffer_description, NULL, &constant_buffer);
+    expect(SUCCEEDED(result));
+  }
+
+  ID3D11SamplerState *sampler_state = NULL;
+  {
+    D3D11_SAMPLER_DESC sampler_description = {};
+
+    sampler_description.Filter         = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    sampler_description.AddressU       = D3D11_TEXTURE_ADDRESS_CLAMP;
+    sampler_description.AddressV       = D3D11_TEXTURE_ADDRESS_CLAMP;
+    sampler_description.AddressW       = D3D11_TEXTURE_ADDRESS_CLAMP;
+    sampler_description.BorderColor[0] = 1.0f;
+    sampler_description.BorderColor[1] = 1.0f;
+    sampler_description.BorderColor[2] = 1.0f;
+    sampler_description.BorderColor[3] = 1.0f;
+    sampler_description.ComparisonFunc = D3D11_COMPARISON_NEVER;
+    sampler_description.MinLOD         = 0;
+    sampler_description.MaxLOD         = D3D11_FLOAT32_MAX;
+
+    HRESULT result = render->device->CreateSamplerState(&sampler_description, &sampler_state);
+    expect(SUCCEEDED(result));
+  }
+
+  ID3D11BlendState *pma_blend_state = NULL;
+  f32 blend_factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+  {
+    D3D11_BLEND_DESC blend_description = {};
+
+    blend_description.AlphaToCoverageEnable                 = FALSE;
+    blend_description.IndependentBlendEnable                = FALSE;
+
+    blend_description.RenderTarget[0].BlendEnable           = TRUE;
+
+    blend_description.RenderTarget[0].SrcBlend              = D3D11_BLEND_ONE;
+    blend_description.RenderTarget[0].DestBlend             = D3D11_BLEND_INV_SRC_ALPHA;
+    blend_description.RenderTarget[0].BlendOp               = D3D11_BLEND_OP_ADD;
+
+    blend_description.RenderTarget[0].SrcBlendAlpha         = D3D11_BLEND_ZERO;
+    blend_description.RenderTarget[0].DestBlendAlpha        = D3D11_BLEND_ZERO;
+    blend_description.RenderTarget[0].BlendOpAlpha          = D3D11_BLEND_OP_ADD;
+
+    blend_description.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+    HRESULT result = render->device->CreateBlendState(&blend_description, &pma_blend_state);
+    expect(SUCCEEDED(result));
+  }
+
+  ID3D11DepthStencilState *depth_stencil_state = NULL;
+  {
+    D3D11_DEPTH_STENCIL_DESC depth_stencil_state_description = {};
+
+    depth_stencil_state_description.DepthEnable                  = TRUE;
+    depth_stencil_state_description.DepthWriteMask               = D3D11_DEPTH_WRITE_MASK_ALL;
+    depth_stencil_state_description.DepthFunc                    = D3D11_COMPARISON_LESS_EQUAL;
+    depth_stencil_state_description.StencilEnable                = TRUE;
+    depth_stencil_state_description.StencilReadMask              = 0xff;
+    depth_stencil_state_description.StencilWriteMask             = 0xff;
+    depth_stencil_state_description.FrontFace.StencilFailOp      = D3D11_STENCIL_OP_KEEP;
+    depth_stencil_state_description.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+    depth_stencil_state_description.FrontFace.StencilPassOp      = D3D11_STENCIL_OP_KEEP;
+    depth_stencil_state_description.FrontFace.StencilFunc        = D3D11_COMPARISON_ALWAYS;
+    depth_stencil_state_description.BackFace                     = depth_stencil_state_description.FrontFace;
+
+    HRESULT result = render->device->CreateDepthStencilState(&depth_stencil_state_description, &depth_stencil_state);
+    expect(SUCCEEDED(result));
   }
 
   *command_queue = ring_buffer_make(render_thread_arena, render_thread_arena->size);
 
+  u32 buffer_positions[rck_count] = {};
+
   for (;;)
   {
-    while (true)
-
-      while (!global_state->main_thread_done_submitting)
+    while (!global_state->main_thread_done_submitting)
+    {
+      while (command_queue->read != command_queue->write)
       {
-        while (command_queue->read != command_queue->write)
+        Render_Command *command = NULL;
+        ring_buffer_pop_and_put(command_queue, &command, sizeof(Render_Command **));
+
+        switch (command->kind)
         {
-          Render_Command *command = NULL;
-          ring_buffer_pop_and_put(command_queue, &command, sizeof(Render_Command **));
-
-          switch (command->kind)
+          case rck_draw:
           {
-            case rck_draw:
+            RCK_Draw *draw = &command->draw;
+
+            D3D11_MAPPED_SUBRESOURCE mapped_buffer = {};
             {
-
-            } break;
-
-            case rck_clear:
-            {
-              RCK_Clear *clear = &command->clear;
-
-              ID3D11RenderTargetView *frame_buffer = (ID3D11RenderTargetView *) clear->frame_buffer;
-              ID3D11DepthStencilView *depth_stencil = (ID3D11DepthStencilView *) clear->depth_stencil_buffer;
-
-              FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-              render->device_context->ClearRenderTargetView(frame_buffer, background_color);
-              render->device_context->ClearDepthStencilView(depth_stencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-            } break;
-
-            default:
-            {
-              expect_message(false, "Either you didn't mean to use that kind of command or you're a dumb fuck!");
+              render->device_context->Map(constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_buffer);
+              copy_memory_block(mapped_buffer.pData, draw->constant_buffer_data, sizeof(draw->constant_buffer_data));
+              render->device_context->Unmap(constant_buffer, 0);
             }
+
+            u32 input_layout_index  = first_msb_pos32(draw->per_vertex_size) - 4;
+            expect(is_between_inclusive(0, input_layout_index, 2));
+
+            u32 offsets = 0;
+            render->device_context->IASetInputLayout(input_layouts[input_layout_index]);
+            render->device_context->IASetVertexBuffers(0,
+                                                       1,
+                                                       &vertex_buffers[input_layout_index],
+                                                       &draw->per_vertex_size,
+                                                       &offsets);
+
+            render->device_context->VSSetShader(draw->vertex_shader.shader, NULL, 0);
+            render->device_context->PSSetShader(draw->pixel_shader.shader, NULL, 0);
+            render->device_context->PSSetShaderResources(0,
+                                                         array_count(draw->textures),
+                                                         (ID3D11ShaderResourceView **) draw->textures);
+            render->device_context->PSSetSamplers(0, 1, &sampler_state);
+
+            render->device_context->GSSetShader(NULL, NULL, 0);
+            render->device_context->HSSetShader(NULL, NULL, 0);
+            render->device_context->DSSetShader(NULL, NULL, 0);
+            render->device_context->CSSetShader(NULL, NULL, 0);
+
+            render->device_context->OMSetBlendState(pma_blend_state, blend_factor, 0xffffffff);
+            render->device_context->OMSetDepthStencilState(depth_stencil_state, 0);
+          } break;
+
+          case rck_clear:
+          {
+            RCK_Clear *clear = &command->clear;
+
+            ID3D11RenderTargetView *frame_buffer = (ID3D11RenderTargetView *) clear->frame_buffer;
+            ID3D11DepthStencilView *depth_stencil = (ID3D11DepthStencilView *) clear->depth_stencil_buffer;
+
+            FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+            render->device_context->ClearRenderTargetView(frame_buffer, background_color);
+            render->device_context->ClearDepthStencilView(depth_stencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+          } break;
+
+        default:
+          {
+            expect_message(false, "Either you didn't mean to use that kind of command or you're a dumb fuck!");
           }
         }
       }
+    }
 
+    zero_struct(buffer_positions);
     global_state->render_thread_done_processing = true;
   }
 }
@@ -563,9 +689,9 @@ WinMain(HINSTANCE instance,
       D3D11_SAMPLER_DESC sampler_description = {};
 
       sampler_description.Filter         = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-      sampler_description.AddressU       = D3D11_TEXTURE_ADDRESS_WRAP;
-      sampler_description.AddressV       = D3D11_TEXTURE_ADDRESS_WRAP;
-      sampler_description.AddressW       = D3D11_TEXTURE_ADDRESS_WRAP;
+      sampler_description.AddressU       = D3D11_TEXTURE_ADDRESS_CLAMP;
+      sampler_description.AddressV       = D3D11_TEXTURE_ADDRESS_CLAMP;
+      sampler_description.AddressW       = D3D11_TEXTURE_ADDRESS_CLAMP;
       sampler_description.BorderColor[0] = 1.0f;
       sampler_description.BorderColor[1] = 1.0f;
       sampler_description.BorderColor[2] = 1.0f;
@@ -773,7 +899,7 @@ WinMain(HINSTANCE instance,
     void *win32_message_fiber_handle = CreateFiber(0, &win32_message_fiber, NULL);
     expect_message(global_state->main_fiber_address != NULL, "could not create a fiber for messages");
 
-    const uintptr_t render_thread_args[] = {1, (const uintptr_t) instance_buffer, (const uintptr_t) vertex_buffer};
+    const uintptr_t render_thread_args[] = {1};
     HANDLE render_thread_handle = CreateThread(NULL, 0, render_thread_proc, (void *) render_thread_args, 0, NULL);
     unused(render_thread_handle);
 
@@ -954,8 +1080,21 @@ WinMain(HINSTANCE instance,
       FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
       Constant_Buffer constant_buffer_items = {};
       {
-        device_context->ClearRenderTargetView(frame_buffer_view, background_color);
+        // NOTE(antonio): triangles
+        D3D11_VIEWPORT viewport =
+        {
+          client_rect.x0, client_rect.y0, 
+          rect_get_width(&client_rect), rect_get_height(&client_rect),
+          0.0f, 1.0f
+        };
+
+        device_context->RSSetViewports(1, &viewport);
         device_context->OMSetRenderTargets(1, &frame_buffer_view, depth_stencil_view);
+
+        D3D11_RECT scissor_rectangle = {(LONG) 0, (LONG) 0, (LONG) client_rect.x1, (LONG) client_rect.y1};
+        device_context->RSSetScissorRects(1, &scissor_rectangle);
+
+        device_context->ClearRenderTargetView(frame_buffer_view, background_color);
         device_context->ClearDepthStencilView(depth_stencil_view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
         {
@@ -1006,16 +1145,6 @@ WinMain(HINSTANCE instance,
           device_context->Unmap(constant_buffer, 0);
         }
 
-        // NOTE(antonio): triangles
-        D3D11_VIEWPORT viewport =
-        {
-          client_rect.x0, client_rect.y0, 
-          rect_get_width(&client_rect), rect_get_height(&client_rect),
-          0.0f, 1.0f
-        };
-
-        device_context->RSSetViewports(1, &viewport);
-
         device_context->IASetInputLayout(triangle_input_layout);
 
         u32 vertex_buffer_strides[] = {sizeof(Vertex_Buffer_Element)};
@@ -1048,9 +1177,6 @@ WinMain(HINSTANCE instance,
         device_context->OMSetBlendState(transparent_blend_state, blend_factor, 0xffffffff);
         device_context->OMSetDepthStencilState(depth_stencil_state, 0);
         device_context->RSSetState(rasterizer_state);
-
-        D3D11_RECT scissor_rectangle = {(LONG) 0, (LONG) 0, (LONG) client_rect.x1, (LONG) client_rect.y1};
-        device_context->RSSetScissorRects(1, &scissor_rectangle);
 
         device_context->Draw(player_rp.count + cylinder_rp.count , cylinder_rp.start_pos);
         // device_context->Draw(3 * sector_count, 0);

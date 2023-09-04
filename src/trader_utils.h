@@ -33,5 +33,15 @@ internal inline u16 byte_swap16(u16 val);
 internal inline u32 byte_swap32(u32 val);
 internal inline u64 byte_swap64(u64 val);
 
+internal inline u32 first_lsb_pos32(u32 n);
+internal inline u32 first_lsb_pos64(u64 n);
+
+internal inline u32 first_msb_pos32(u32 n);
+internal inline u32 first_msb_pos64(u64 n);
+
+// NOTE(antonio): returns initial value of addend
+internal inline u32 atomic_add32(u32 volatile *addend, u32 value);
+internal inline u64 atomic_add64(u64 volatile *addend, u64 value);
+
 #define TRADER_UTILS_H
 #endif

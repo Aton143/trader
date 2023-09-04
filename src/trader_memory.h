@@ -145,6 +145,7 @@ internal inline Ring_Buffer ring_buffer_make(Arena *arena,  u64 size);
 internal inline Ring_Buffer ring_buffer_make(u8    *buffer, u64 size);
 internal inline void        ring_buffer_reset(Ring_Buffer *rb);
 
+internal inline void *ring_buffer_get_write_ptr(Ring_Buffer *rb);
 internal inline void *ring_buffer_push(Ring_Buffer *ring_buffer, u64 size);
 #define ring_buffer_push_struct(rb, type)       \
   (type *) ring_buffer_push((rb), sizeof(type))

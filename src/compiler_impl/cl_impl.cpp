@@ -47,5 +47,45 @@ u64 popcount64(u64 n)
   return(res);
 }
 
+u32 first_lsb_pos32(u32 n)
+{
+  u32 pos;
+  if (!_BitScanForward((DWORD *) &pos, n)) pos = 0;
+  return(pos);
+}
+
+u32 first_lsb_pos64(u64 n)
+{
+  u32 pos;
+  if (!_BitScanForward64((DWORD *) &pos, n)) pos = 0;
+  return(pos);
+}
+
+u32 first_msb_pos32(u32 n)
+{
+  u32 pos;
+  if (!_BitScanReverse((DWORD *) &pos, n)) pos = 0;
+  return(pos);
+}
+
+u32 first_msb_pos64(u64 n)
+{
+  u32 pos;
+  if (!_BitScanReverse64((DWORD *) &pos, n)) pos = 0;
+  return(pos);
+}
+
+u32 atomic_add32(u32 volatile *addend, u32 value)
+{
+  u32 res = InterlockedExchangeAdd((LONG volatile *) addend, value);
+  return(res);
+}
+
+u64 atomic_add64(u64 volatile *addend, u64 value)
+{
+  u64 res = InterlockedExchangeAdd64((LONG64 volatile *) addend, value);
+  return(res);
+}
+
 #define CL_IMPL_H
 #endif

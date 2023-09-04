@@ -168,7 +168,7 @@ internal b32 render_atlas_initialize(Arena         *arena,
                                      u32            bitmap_width,
                                      u32            bitmap_height);
 
-internal THREAD_RETURN render_thread_proc(void *args);
+internal THREAD_RETURN THREAD_CALL_CONVENTION render_thread_proc(void *args);
 
 #define TRADER_RENDER_H
 #endif

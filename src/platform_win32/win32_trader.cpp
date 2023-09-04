@@ -37,6 +37,13 @@
 
 #include "..\trader.h"
 
+THREAD_RETURN render_thread_proc(void *args)
+{
+  unused(args);
+  platform_debug_printf("I am created\n");
+  return(0);
+}
+
 int CALL_CONVENTION
 WinMain(HINSTANCE instance,
         HINSTANCE previous_instance,
@@ -665,6 +672,9 @@ WinMain(HINSTANCE instance,
 
     void *win32_message_fiber_handle = CreateFiber(0, &win32_message_fiber, NULL);
     expect_message(win32_global_state.main_fiber_address != NULL, "could not create a fiber for messages");
+
+    HANDLE render_thread_handle = CreateThread(NULL, 0, render_thread_proc, NULL, 0, NULL);
+    unused(render_thread_handle);
 
     Vertex_Buffer_Element cube_vertices[] = 
     {

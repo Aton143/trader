@@ -491,3 +491,9 @@ Vertex_Buffer_Element vbe(V4_f32 position, RGBA_f32 color, V2_f32 uv, V4_f32 nor
   return(res);
 }
 
+void render_push_commands(u32 count)
+{
+  Common_Render_Context *common = render_get_common_context();
+  atomic_add64((volatile u64 *) &common->command_queue.write, count * sizeof(Render_Command));
+}
+

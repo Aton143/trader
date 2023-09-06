@@ -45,9 +45,10 @@ THREAD_RETURN render_thread_proc(void *_args)
   Arena *temp_arena = get_temp_arena(thread_context);
 
   Global_Platform_State *global_state = platform_get_global_state();
+  Common_Render_Context *common_render = render_get_common_context();
   Render_Context        *render = render_get_context();
 
-  Ring_Buffer *command_queue = &global_state->render_context.command_queue;
+  Ring_Buffer *command_queue = &common_render->command_queue;
 
   ID3D11InputLayout *input_layouts[3]  = {};
   ID3D11Buffer      *vertex_buffers[3] = {};
@@ -231,14 +232,14 @@ THREAD_RETURN render_thread_proc(void *_args)
     {
       while (command_queue->read != command_queue->write)
       {
-        Render_Command *command = NULL;
-        ring_buffer_pop_and_put(command_queue, &command, sizeof(Render_Command **));
+        Render_Command command;
+        ring_buffer_pop_and_put(command_queue, &command, sizeof(Render_Command));
 
-        switch (command->kind)
+        switch (command.kind)
         {
           case rck_draw:
           {
-            RCK_Draw *draw = &command->draw;
+            RCK_Draw *draw = &command.draw;
 
             D3D11_MAPPED_SUBRESOURCE mapped_buffer = {};
             {
@@ -277,7 +278,7 @@ THREAD_RETURN render_thread_proc(void *_args)
 
           case rck_clear:
           {
-            RCK_Clear *clear = &command->clear;
+            RCK_Clear *clear = &command.clear;
 
             RGBA_f32  *background_color  = &clear->background_color;
 
@@ -357,6 +358,8 @@ THREAD_RETURN render_thread_proc(void *_args)
     }
 
     zero_struct(buffer_positions);
+    ring_buffer_reset(command_queue);
+
     global_state->render_thread_done_processing = true;
   }
 }
@@ -745,10 +748,10 @@ WinMain(HINSTANCE instance,
     unused(player_context);
 
     // TODO(antonio): remove this dumbass synchronization method
-    volatile u8 *ring_buffer_start = render->command_queue.start;
+    volatile u8 *ring_buffer_start = common_render->command_queue.start;
     while (!ring_buffer_start)
     {
-      ring_buffer_start = render->command_queue.start;
+      ring_buffer_start = common_render->command_queue.start;
     }
 
     while (global_state->running)
@@ -777,6 +780,9 @@ WinMain(HINSTANCE instance,
           render_set_client_rect(new_client_rect);
         }
 
+        Render_Command *resize = (Render_Command *) common_render->command_queue.write;
+        resize->kind = rck_resize;
+        render_push_commands(1);
       }
 
       global_state->render_thread_can_start_processing = true;

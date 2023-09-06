@@ -169,6 +169,7 @@ struct Common_Render_Context
   File_Buffer    default_font;
 
   V2_f32         dpi;
+  Ring_Buffer    command_queue;
 };
 
 #include "trader_platform.h"
@@ -217,6 +218,7 @@ internal b32 render_atlas_initialize(Arena         *arena,
                                      u32            bitmap_height);
 
 internal THREAD_RETURN THREAD_CALL_CONVENTION render_thread_proc(void *args);
+internal inline void render_push_commands(u32 count);
 
 #define TRADER_RENDER_H
 #endif

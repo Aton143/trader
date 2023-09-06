@@ -46,6 +46,9 @@ struct Render_Context
       V2_f32         vertex_render_dimensions;
       Rect_f32       client_rect;
       File_Buffer    default_font;
+
+      V2_f32         dpi;
+      Ring_Buffer    command_queue;
     };
     Common_Render_Context common_context;
   };
@@ -54,8 +57,6 @@ struct Render_Context
   IDXGISwapChain1     *swap_chain;
   ID3D11Device3       *device;
   ID3D11DeviceContext *device_context;
-
-  Ring_Buffer          command_queue;
 };
 
 #pragma pack(push, 4)

@@ -785,7 +785,15 @@ WinMain(HINSTANCE instance,
         render_push_commands(1);
       }
 
-      global_state->render_thread_can_start_processing = true;
+      Render_Command *clear = (Render_Command *) common_render->command_queue.write;
+
+      clear->kind = rck_clear;
+
+      clear->clear.background_color = rgba_black;
+      clear->clear.clear_render_target = true;
+      clear->clear.clear_depth_stencil = true;
+
+      render_push_commands(1);
 
       player_apply_input();
 
@@ -826,7 +834,6 @@ WinMain(HINSTANCE instance,
         */
 
       // NOTE(antonio): instances
-      FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
 
       global_state->main_thread_done_submitting = true;
       while (!global_state->render_thread_done_processing);

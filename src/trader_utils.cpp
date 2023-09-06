@@ -204,3 +204,15 @@ b32 xorb(b32 a, b32 b)
   return(res);
 }
 
+u32 power_of_2_ceil32(u32 n)
+{
+  u32 msb_pos = first_msb_pos32(n);
+  u32 mask    = (~0) << msb_pos;
+
+  u32 rounded = n + (~mask);
+  rounded >>= msb_pos;
+  u32 push_once = (rounded & 0x2) >> 1;
+  rounded = (rounded >> push_once) << (msb_pos + push_once);
+
+  return(rounded);
+}

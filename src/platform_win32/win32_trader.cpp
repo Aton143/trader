@@ -55,6 +55,17 @@ THREAD_RETURN render_thread_proc(void *_args)
   Arena _render_thread_arena = arena_alloc(1024 * sizeof(Render_Command), 1, NULL);
   Arena *render_thread_arena = &_render_thread_arena;
 
+  ID3D11RenderTargetView *frame_buffer_view = NULL;
+  {
+    ID3D11Texture2D *frame_buffer = NULL;
+    HRESULT result = render->swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**) &frame_buffer);
+    expect(SUCCEEDED(result));
+
+    result = render->device->CreateRenderTargetView(frame_buffer, 0, &frame_buffer_view);
+    expect(SUCCEEDED(result));
+    frame_buffer->Release();
+  }
+
   {
     String_Const_utf8 dummy_shader_path = scu8l("..\\src\\platform_win32\\input_layout_shaders.hlsl");
     File_Buffer input_layout_source =
@@ -192,13 +203,29 @@ THREAD_RETURN render_thread_proc(void *_args)
     expect(SUCCEEDED(result));
   }
 
+  ID3D11RasterizerState* rasterizer_state = {};
+  {
+    D3D11_RASTERIZER_DESC rasterizer_description = {};
+
+    rasterizer_description.FillMode              = D3D11_FILL_SOLID;
+    rasterizer_description.CullMode              = D3D11_CULL_NONE;
+    rasterizer_description.FrontCounterClockwise = TRUE;
+    rasterizer_description.ScissorEnable         = TRUE;
+
+    HRESULT result = render->device->CreateRasterizerState(&rasterizer_description, &rasterizer_state);
+    expect(SUCCEEDED(result));
+  }
+
+  ID3D11Texture2D        *depth_stencil_texture = NULL;
+  ID3D11DepthStencilView *depth_stencil_view    = NULL;
+
   *command_queue = ring_buffer_make(render_thread_arena, render_thread_arena->size);
 
   u32 buffer_positions[rck_count] = {};
 
   for (;;)
   {
-    while (!global_state->main_thread_done_submitting)
+    while (global_state->render_thread_can_start_processing && !global_state->main_thread_done_submitting)
     {
       while (command_queue->read != command_queue->write)
       {
@@ -218,7 +245,8 @@ THREAD_RETURN render_thread_proc(void *_args)
               render->device_context->Unmap(constant_buffer, 0);
             }
 
-            u32 input_layout_index  = first_msb_pos32(draw->per_vertex_size) - 4;
+            u32 input_layout_size  = power_of_2_ceil32(draw->per_vertex_size);
+            u32 input_layout_index = first_msb_pos32(input_layout_size) - 4;
             expect(is_between_inclusive(0, input_layout_index, 2));
 
             u32 offsets = 0;
@@ -249,15 +277,76 @@ THREAD_RETURN render_thread_proc(void *_args)
           {
             RCK_Clear *clear = &command->clear;
 
-            ID3D11RenderTargetView *frame_buffer = (ID3D11RenderTargetView *) clear->frame_buffer;
-            ID3D11DepthStencilView *depth_stencil = (ID3D11DepthStencilView *) clear->depth_stencil_buffer;
+            RGBA_f32  *background_color  = &clear->background_color;
 
-            FLOAT background_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-            render->device_context->ClearRenderTargetView(frame_buffer, background_color);
-            render->device_context->ClearDepthStencilView(depth_stencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+            if (clear->clear_render_target)
+            {
+              render->device_context->ClearRenderTargetView(frame_buffer_view, (FLOAT *) background_color);
+            }
+
+            if (clear->clear_depth_stencil)
+            {
+              render->device_context->ClearDepthStencilView(depth_stencil_view,
+                                                            D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
+                                                            1.0f,
+                                                            0);
+            }
           } break;
 
-        default:
+          case rck_resize:
+          {
+
+            Rect_f32 client_rect = render_get_client_rect();
+
+            render->device_context->OMSetRenderTargets(0, 0, 0);
+            frame_buffer_view->Release();
+
+            HRESULT result = render->swap_chain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
+
+            ID3D11Texture2D* new_frame_buffer = NULL;
+            result = render->swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **) &new_frame_buffer);
+            result = render->device->CreateRenderTargetView(new_frame_buffer, NULL, &frame_buffer_view);
+
+            safe_release(new_frame_buffer);
+
+            safe_release(depth_stencil_texture);
+            depth_stencil_texture = NULL;
+
+            {
+              D3D11_TEXTURE2D_DESC depth_stencil_texture_desc = {};
+
+              depth_stencil_texture_desc.Width              = (UINT) client_rect.x1;
+              depth_stencil_texture_desc.Height             = (UINT) client_rect.y1;
+              depth_stencil_texture_desc.MipLevels          = 1;
+              depth_stencil_texture_desc.ArraySize          = 1;
+              depth_stencil_texture_desc.Format             = DXGI_FORMAT_D24_UNORM_S8_UINT;
+              depth_stencil_texture_desc.SampleDesc.Count   = 1;
+              depth_stencil_texture_desc.SampleDesc.Quality = 0;
+              depth_stencil_texture_desc.Usage              = D3D11_USAGE_DEFAULT;
+              depth_stencil_texture_desc.BindFlags          = D3D11_BIND_DEPTH_STENCIL;
+              depth_stencil_texture_desc.CPUAccessFlags     = 0;
+              depth_stencil_texture_desc.MiscFlags          = 0;
+
+              result = render->device->CreateTexture2D(&depth_stencil_texture_desc, NULL, &depth_stencil_texture);
+            }
+
+            safe_release(depth_stencil_view);
+            depth_stencil_view = NULL;
+            {
+              D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc = {};
+
+              depth_stencil_view_desc.Format             = DXGI_FORMAT_D24_UNORM_S8_UINT;
+              depth_stencil_view_desc.ViewDimension      = D3D11_DSV_DIMENSION_TEXTURE2D;
+              depth_stencil_view_desc.Texture2D.MipSlice = 0;
+
+              result = render->device->CreateDepthStencilView(depth_stencil_texture,
+                                                      &depth_stencil_view_desc,
+                                                      &depth_stencil_view);
+              // expect(SUCCEEDED(result));
+            } 
+          } break;
+
+          default:
           {
             expect_message(false, "Either you didn't mean to use that kind of command or you're a dumb fuck!");
           }
@@ -505,8 +594,8 @@ WinMain(HINSTANCE instance,
 
       DXGI_SWAP_CHAIN_DESC1 swap_chain_description = {};
 
-      swap_chain_description.Width  = 0;  // use window width
-      swap_chain_description.Height = 0;  // use window height
+      swap_chain_description.Width  = 0; // use window width
+      swap_chain_description.Height = 0; // use window height
       swap_chain_description.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 
       swap_chain_description.SampleDesc.Count   = 1;
@@ -942,6 +1031,7 @@ WinMain(HINSTANCE instance,
       TIMED_BLOCK_START();
 
       SwitchToFiber(win32_message_fiber_handle);
+      global_state->render_thread_can_start_processing = true;
 
       if (global_state->window_resized && !IsIconic(global_state->window_handle))
       {
@@ -980,9 +1070,9 @@ WinMain(HINSTANCE instance,
         safe_release(depth_stencil_texture);
         depth_stencil_texture = NULL;
         {
-          D3D11_TEXTURE2D_DESC depth_stencil_texture_desc = {};
-
           Rect_f32 client_rect = render_get_client_rect();
+
+          D3D11_TEXTURE2D_DESC depth_stencil_texture_desc = {};
 
           depth_stencil_texture_desc.Width              = (UINT) client_rect.x1;
           depth_stencil_texture_desc.Height             = (UINT) client_rect.y1;
@@ -1330,6 +1420,8 @@ WinMain(HINSTANCE instance,
         safe_release(copy_frame_buffer_rtv);
       }
 #endif
+      while (global_state->render_thread_done_processing);
+
       swap_chain->Present(1, 0);
 
       global_state->main_thread_done_submitting   = false;

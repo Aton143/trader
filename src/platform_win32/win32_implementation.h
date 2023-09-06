@@ -54,6 +54,7 @@ struct Render_Context
   IDXGISwapChain1     *swap_chain;
   ID3D11Device3       *device;
   ID3D11DeviceContext *device_context;
+
   Ring_Buffer          command_queue;
 };
 
@@ -97,6 +98,7 @@ struct Global_Platform_State
   b8             window_resized;
 
   volatile b8    main_thread_done_submitting;
+  volatile b8    render_thread_can_start_processing;
   volatile b8    render_thread_done_processing;
 };
 #pragma pack(pop)

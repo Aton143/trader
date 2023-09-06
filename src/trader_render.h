@@ -4,8 +4,11 @@ typedef u32 Render_Command_Kind;
 enum
 {
   rck_none,
+
   rck_draw,
   rck_clear,
+  rck_resize,
+
   rck_count,
 };
 
@@ -29,8 +32,9 @@ struct RCK_Draw
 
 struct RCK_Clear
 {
-  void *frame_buffer;
-  void *depth_stencil_buffer;
+  RGBA_f32 background_color;
+  b8       clear_render_target;
+  b8       clear_depth_stencil;
 };
 
 // TODO(antonio): move to discriminated union based system?
@@ -40,8 +44,8 @@ struct Render_Command
 
   union
   {
-    RCK_Draw  draw;
-    RCK_Clear clear;
+    RCK_Draw   draw;
+    RCK_Clear  clear;
   };
 };
 

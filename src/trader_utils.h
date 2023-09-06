@@ -39,6 +39,8 @@ internal inline u32 first_lsb_pos64(u64 n);
 internal inline u32 first_msb_pos32(u32 n);
 internal inline u32 first_msb_pos64(u64 n);
 
+internal inline u32 power_of_2_ceil32(u32 n);
+
 // NOTE(antonio): returns initial value of addend
 internal inline u32 atomic_add32(u32 volatile *addend, u32 value);
 internal inline u64 atomic_add64(u64 volatile *addend, u64 value);

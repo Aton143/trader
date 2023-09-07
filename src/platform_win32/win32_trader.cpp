@@ -274,7 +274,7 @@ THREAD_RETURN render_thread_proc(void *_args)
             u32          *cur_buffer_pos = &buffer_positions[input_layout_index];
 
             {
-              D3D11_MAP map_kind = (cur_buffer_pos == 0) ? D3D11_MAP_WRITE_DISCARD : D3D11_MAP_WRITE_NO_OVERWRITE;
+              D3D11_MAP map_kind = (*cur_buffer_pos == 0) ? D3D11_MAP_WRITE_DISCARD : D3D11_MAP_WRITE_NO_OVERWRITE;
 
               render->device_context->Map(cur_buffer, 0, map_kind, 0, &mapped_buffer);
 
@@ -301,9 +301,8 @@ THREAD_RETURN render_thread_proc(void *_args)
             render->device_context->PSSetShaderResources(0, array_count(draw->textures),
                                                          (ID3D11ShaderResourceView **) draw->textures);
 
-
             ID3D11SamplerState *sampler_states[] = {sampler_state, sampler_state};
-            render->device_context->PSSetSamplers(0, 2, sampler_states);
+            render->device_context->PSSetSamplers(0, array_count(sampler_states), sampler_states);
 
             render->device_context->GSSetShader(NULL, NULL, 0);
             render->device_context->HSSetShader(NULL, NULL, 0);
@@ -423,7 +422,7 @@ THREAD_RETURN render_thread_proc(void *_args)
     zero_memory_block(command_queue->start, (uintptr_t) (command_queue->write - command_queue->start));
     ring_buffer_reset(command_queue);
 
-    global_state->render_thread_done_processing = true;
+    SetEvent(global_state->sync_event);
   }
 }
 
@@ -984,7 +983,7 @@ WinMain(HINSTANCE instance,
 
         command->kind = rck_draw;
 
-        u8 *vs_data_start = common_render->triangle_render_data.start + (circle_rp.start_pos * circle_rp.count);
+        u8 *vs_data_start = common_render->triangle_render_data.start + (circle_rp.start_pos * sizeof(Vertex_Buffer_Element));
 
         draw->buffer_id       = 0;
         draw->topology        = (u32) D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -1002,7 +1001,7 @@ WinMain(HINSTANCE instance,
 
         command->kind = rck_draw;
 
-        vs_data_start += (player_rp.start_pos * player_rp.count);
+        vs_data_start = common_render->triangle_render_data.start + (player_rp.start_pos * sizeof(Vertex_Buffer_Element));
 
         draw->buffer_id       = 0;
         draw->topology        = (u32) D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -1025,7 +1024,8 @@ WinMain(HINSTANCE instance,
       render_push_commands(1);
 
       global_state->main_thread_done_submitting = true;
-      while (!global_state->render_thread_done_processing);
+      WaitForSingleObject(global_state->sync_event, INFINITE);
+      ResetEvent(global_state->sync_event);
 
       swap_chain->Present(1, 0);
 

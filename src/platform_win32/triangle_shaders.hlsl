@@ -9,10 +9,10 @@ struct Vertex_Global_Data
 
 struct VS_Input
 {
-  float4 position: POSITION;
-  float4 color:    COLOR;
-  float4 normal:   NORMAL;
-  float2 uv:       TEXCOORD;
+  float4 position: IN0;
+  float4 color:    IN1;
+  float4 normal:   IN2;
+  float4 uv:       IN3;
 };
 
 struct PS_Input
@@ -40,7 +40,7 @@ PS_Input VS_Main(VS_Input input)
   output.vertex   = mul(global_data.projection, mul(global_data.view, mul(global_data.model, input.position)));
   output.position = mul(global_data.model, input.position);
 
-  output.uv     = float2(input.uv.x, input.uv.y);
+  output.uv.xy  = input.uv.xy;
   output.color  = input.color;
   output.normal = float4(mul(transpose(inverse(global_data.model)), input.normal).xyz, 1.0f);
 

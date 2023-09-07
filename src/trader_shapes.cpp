@@ -452,8 +452,8 @@ Render_Position render_and_update_particles(Arena *render_data, Bucket_List **bu
     Vertex_Buffer_Element *cur_vertex;
     cur_vertex = push_array(render_data, Vertex_Buffer_Element, particle_count * vertices_per_quad);
 
-    Circle_Particle_Header *header = (Circle_Particle_Header *) bucket_list_get_header_start(cur_list, cur_bucket);
-    Circle_Particle *particles = (Circle_Particle *) bucket_list_get_data_start(cur_list, cur_bucket);
+    Circle_Particle_Header *header    = (Circle_Particle_Header *) bucket_list_get_header_start(cur_list, cur_bucket);
+    Circle_Particle        *particles = (Circle_Particle *) bucket_list_get_data_start(cur_list, cur_bucket);
 
     for (u32 particle_index = 0;
          particle_index < particle_count;

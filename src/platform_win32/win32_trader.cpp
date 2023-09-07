@@ -115,7 +115,7 @@ THREAD_RETURN render_thread_proc(void *_args)
       {
         D3D11_BUFFER_DESC vertex_buffer_description = {};
 
-        vertex_buffer_description.ByteWidth      = (u32) kb(128);
+        vertex_buffer_description.ByteWidth      = (u32) mb(1);
         vertex_buffer_description.Usage          = D3D11_USAGE_DYNAMIC;
         vertex_buffer_description.BindFlags      = D3D11_BIND_VERTEX_BUFFER;
         vertex_buffer_description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -270,15 +270,15 @@ THREAD_RETURN render_thread_proc(void *_args)
               render->device_context->Unmap(constant_buffer, 0);
             }
 
-            ID3D11Buffer *cur_buffer = draw_buffers[input_layout_index];
-            u32 cur_buffer_pos = buffer_positions[input_layout_index];
+            ID3D11Buffer *cur_buffer     = draw_buffers[input_layout_index];
+            u32          *cur_buffer_pos = &buffer_positions[input_layout_index];
 
             {
               D3D11_MAP map_kind = (cur_buffer_pos == 0) ? D3D11_MAP_WRITE_DISCARD : D3D11_MAP_WRITE_NO_OVERWRITE;
 
               render->device_context->Map(cur_buffer, 0, map_kind, 0, &mapped_buffer);
 
-              u8 *buffer_copy_start = ((u8 *) mapped_buffer.pData) + cur_buffer_pos;
+              u8 *buffer_copy_start = ((u8 *) mapped_buffer.pData) + *cur_buffer_pos;
               u64 buffer_copy_size  = draw->vertex_count * input_layout_size;
 
               copy_memory_block(buffer_copy_start, draw->vertex_data, buffer_copy_size);
@@ -300,7 +300,10 @@ THREAD_RETURN render_thread_proc(void *_args)
             render->device_context->PSSetShader(draw->pixel_shader.shader, NULL, 0);
             render->device_context->PSSetShaderResources(0, array_count(draw->textures),
                                                          (ID3D11ShaderResourceView **) draw->textures);
-            render->device_context->PSSetSamplers(0, 1, &sampler_state);
+
+
+            ID3D11SamplerState *sampler_states[] = {sampler_state, sampler_state};
+            render->device_context->PSSetSamplers(0, 2, sampler_states);
 
             render->device_context->GSSetShader(NULL, NULL, 0);
             render->device_context->HSSetShader(NULL, NULL, 0);
@@ -315,8 +318,8 @@ THREAD_RETURN render_thread_proc(void *_args)
 
             if (draw->buffer_id == 0)
             {
-              render->device_context->Draw(draw->vertex_count, cur_buffer_pos);
-              cur_buffer_pos += draw->vertex_count;
+              render->device_context->Draw(draw->vertex_count, *cur_buffer_pos / input_layout_size);
+              *cur_buffer_pos += draw->vertex_count * input_layout_size;
             }
             else
             {
@@ -416,7 +419,7 @@ THREAD_RETURN render_thread_proc(void *_args)
       }
     }
 
-    zero_struct(buffer_positions);
+    zero_memory_block(buffer_positions, sizeof(buffer_positions));
     zero_memory_block(command_queue->start, (uintptr_t) (command_queue->write - command_queue->start));
     ring_buffer_reset(command_queue);
 
@@ -838,6 +841,8 @@ WinMain(HINSTANCE instance,
     // u32 sector_count = 4;
     // f32 point_count = (f32) array_count(points);
 
+    f32 pacc_time = 0.0f;
+
     Bucket_List particle_buckets = bucket_list_make(global_arena, 
                                                     mb(1),
                                                     kb(4),
@@ -851,6 +856,7 @@ WinMain(HINSTANCE instance,
     unused(player_context);
 
     WaitForSingleObject(global_state->sync_event, INFINITE);
+    ResetEvent(global_state->sync_event);
 
     while (global_state->running)
     {
@@ -954,8 +960,16 @@ WinMain(HINSTANCE instance,
                                                   1.0f, 1.0f, 1.0f, 16, 1);
 
       make_cylinder_along_path(&common_render->triangle_render_data, points, (u32) point_count, 0.05f, sector_count);
-      Render_Position player_rp = make_player(&common_render->triangle_render_data);
         */
+
+      pacc_time += 1.0f / 60.0f;
+      if (pacc_time > 1.5f)
+      {
+        batch_make_circle_particles(&particle_buckets, 1.0f, 2.0f, 100, 200);
+        pacc_time = 0.0f;
+      }
+
+      Render_Position player_rp = make_player(&common_render->triangle_render_data);
 
       Bucket_List *bucket_lists[] = {&particle_buckets};
       Render_Position circle_rp =
@@ -970,17 +984,39 @@ WinMain(HINSTANCE instance,
 
         command->kind = rck_draw;
 
+        u8 *vs_data_start = common_render->triangle_render_data.start + (circle_rp.start_pos * circle_rp.count);
+
         draw->buffer_id       = 0;
         draw->topology        = (u32) D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
         draw->per_vertex_size = sizeof(Vertex_Buffer_Element);
         draw->vertex_count    = circle_rp.count;
-        draw->vertex_data     = common_render->triangle_render_data.start + (circle_rp.start_pos * circle_rp.count);
+        draw->vertex_data     = vs_data_start;
         draw->vertex_shader   = circle_vertex_shader;
         draw->pixel_shader    = circle_pixel_shader;
         draw->textures[0].srv = font_texture_view;
 
         copy_memory_block((void *) draw->constant_buffer_data, &constant_buffer_items, sizeof(constant_buffer_items));
-        render_push_commands(1);
+
+        command++;
+        draw = &command->draw;
+
+        command->kind = rck_draw;
+
+        vs_data_start += (player_rp.start_pos * player_rp.count);
+
+        draw->buffer_id       = 0;
+        draw->topology        = (u32) D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        draw->per_vertex_size = sizeof(Vertex_Buffer_Element);
+        draw->vertex_count    = player_rp.count;
+        draw->vertex_data     = vs_data_start;
+        draw->vertex_shader   = triangle_vertex_shader;
+        draw->pixel_shader    = triangle_pixel_shader;
+        draw->textures[0].srv = font_texture_view;
+        draw->textures[1].srv = cubemap_texture_view;
+
+        copy_memory_block((void *) draw->constant_buffer_data, &constant_buffer_items, sizeof(constant_buffer_items));
+
+        render_push_commands(2);
       }
 
       // NOTE(antonio): instances

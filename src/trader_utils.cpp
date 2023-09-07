@@ -216,3 +216,14 @@ u32 power_of_2_ceil32(u32 n)
 
   return(rounded);
 }
+
+b32 volatile_compare_equals64(void *_a, void *_b)
+{
+  b32 result;
+
+  volatile u64 *a = (volatile u64 *)_a;
+  volatile u64 *b = (volatile u64 *)_b;
+
+  result = (*a == *b);
+  return(result);
+}

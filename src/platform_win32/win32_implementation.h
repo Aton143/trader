@@ -76,6 +76,8 @@ struct Global_Platform_State
   HANDLE          notify_iocp;
   HANDLE          notify_dir;
   HANDLE          notify_dir_iocp;
+  HANDLE          sync_event;
+
   OVERLAPPED      notify_overlapped;
 
   void           *main_fiber_address;

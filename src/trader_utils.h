@@ -45,5 +45,7 @@ internal inline u32 power_of_2_ceil32(u32 n);
 internal inline u32 atomic_add32(u32 volatile *addend, u32 value);
 internal inline u64 atomic_add64(u64 volatile *addend, u64 value);
 
+internal inline b32 volatile_compare_equals64(void *a, void *b);
+
 #define TRADER_UTILS_H
 #endif

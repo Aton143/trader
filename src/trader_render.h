@@ -5,9 +5,11 @@ enum
 {
   rck_none,
 
+  rck_begin,
   rck_draw,
   rck_clear,
   rck_resize,
+  rck_end,
 
   rck_count,
 };
@@ -116,6 +118,7 @@ struct Vertex_Buffer_Element
   RGBA_f32 color;
   V4_f32   normal;
   V2_f32   uv;
+  V2_f32   res;
 };
 
 struct Alpha_Bitmap {

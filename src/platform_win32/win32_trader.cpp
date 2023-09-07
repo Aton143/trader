@@ -51,7 +51,7 @@ THREAD_RETURN render_thread_proc(void *_args)
   Ring_Buffer *command_queue = &common_render->command_queue;
 
   ID3D11InputLayout *input_layouts[3]  = {};
-  ID3D11Buffer      *vertex_buffers[3] = {};
+  ID3D11Buffer      *draw_buffers[3] = {};
 
   Arena _render_thread_arena = arena_alloc(1024 * sizeof(Render_Command), 1, NULL);
   Arena *render_thread_arena = &_render_thread_arena;
@@ -115,12 +115,12 @@ THREAD_RETURN render_thread_proc(void *_args)
       {
         D3D11_BUFFER_DESC vertex_buffer_description = {};
 
-        vertex_buffer_description.ByteWidth      = (u32) kb(16);
+        vertex_buffer_description.ByteWidth      = (u32) kb(128);
         vertex_buffer_description.Usage          = D3D11_USAGE_DYNAMIC;
         vertex_buffer_description.BindFlags      = D3D11_BIND_VERTEX_BUFFER;
         vertex_buffer_description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
-        HRESULT result = render->device->CreateBuffer(&vertex_buffer_description, NULL, &vertex_buffers[layout_index]);
+        HRESULT result = render->device->CreateBuffer(&vertex_buffer_description, NULL, &draw_buffers[layout_index]);
         expect(SUCCEEDED(result));
       }
     }
@@ -222,13 +222,21 @@ THREAD_RETURN render_thread_proc(void *_args)
 
   *command_queue = ring_buffer_make(render_thread_arena, render_thread_arena->size);
 
-  u32 buffer_positions[rck_count] = {};
+  SetEvent(global_state->sync_event);
+
+  u32 buffer_positions[3] = {};
+
+  b32 found_begin = false;
+  b32 found_end   = false;
 
   for (;;)
   {
+    found_begin = false;
+    found_end   = false;
+
     while (!global_state->render_thread_can_start_processing);
 
-    while (!global_state->main_thread_done_submitting)
+    while (!(found_begin && found_end))
     {
       while (command_queue->read != command_queue->write)
       {
@@ -237,9 +245,23 @@ THREAD_RETURN render_thread_proc(void *_args)
 
         switch (command.kind)
         {
+          case rck_begin:
+          {
+            found_begin = true;
+          } break;
+
+          case rck_end:
+          {
+            found_end = true;
+          } break;
+
           case rck_draw:
           {
             RCK_Draw *draw = &command.draw;
+
+            u32 input_layout_size  = power_of_2_ceil32(draw->per_vertex_size);
+            u32 input_layout_index = first_msb_pos32(input_layout_size) - 4;
+            expect(is_between_inclusive(0, input_layout_index, 2));
 
             D3D11_MAPPED_SUBRESOURCE mapped_buffer = {};
             {
@@ -248,22 +270,35 @@ THREAD_RETURN render_thread_proc(void *_args)
               render->device_context->Unmap(constant_buffer, 0);
             }
 
-            u32 input_layout_size  = power_of_2_ceil32(draw->per_vertex_size);
-            u32 input_layout_index = first_msb_pos32(input_layout_size) - 4;
-            expect(is_between_inclusive(0, input_layout_index, 2));
+            ID3D11Buffer *cur_buffer = draw_buffers[input_layout_index];
+            u32 cur_buffer_pos = buffer_positions[input_layout_index];
+
+            {
+              D3D11_MAP map_kind = (cur_buffer_pos == 0) ? D3D11_MAP_WRITE_DISCARD : D3D11_MAP_WRITE_NO_OVERWRITE;
+
+              render->device_context->Map(cur_buffer, 0, map_kind, 0, &mapped_buffer);
+
+              u8 *buffer_copy_start = ((u8 *) mapped_buffer.pData) + cur_buffer_pos;
+              u64 buffer_copy_size  = draw->vertex_count * input_layout_size;
+
+              copy_memory_block(buffer_copy_start, draw->vertex_data, buffer_copy_size);
+
+              render->device_context->Unmap(cur_buffer, 0);
+            }
 
             u32 offsets = 0;
             render->device_context->IASetInputLayout(input_layouts[input_layout_index]);
             render->device_context->IASetVertexBuffers(0,
                                                        1,
-                                                       &vertex_buffers[input_layout_index],
+                                                       &draw_buffers[input_layout_index],
                                                        &draw->per_vertex_size,
                                                        &offsets);
 
             render->device_context->VSSetShader(draw->vertex_shader.shader, NULL, 0);
+            render->device_context->VSSetConstantBuffers(0, 1, &constant_buffer);
+
             render->device_context->PSSetShader(draw->pixel_shader.shader, NULL, 0);
-            render->device_context->PSSetShaderResources(0,
-                                                         array_count(draw->textures),
+            render->device_context->PSSetShaderResources(0, array_count(draw->textures),
                                                          (ID3D11ShaderResourceView **) draw->textures);
             render->device_context->PSSetSamplers(0, 1, &sampler_state);
 
@@ -274,17 +309,43 @@ THREAD_RETURN render_thread_proc(void *_args)
 
             render->device_context->OMSetBlendState(pma_blend_state, blend_factor, 0xffffffff);
             render->device_context->OMSetDepthStencilState(depth_stencil_state, 0);
+            render->device_context->RSSetState(rasterizer_state);
+
+            render->device_context->IASetPrimitiveTopology((D3D11_PRIMITIVE_TOPOLOGY) draw->topology);
+
+            if (draw->buffer_id == 0)
+            {
+              render->device_context->Draw(draw->vertex_count, cur_buffer_pos);
+              cur_buffer_pos += draw->vertex_count;
+            }
+            else
+            {
+              // DrawInstanced
+            }
           } break;
 
           case rck_clear:
           {
             RCK_Clear *clear = &command.clear;
 
-            RGBA_f32  *background_color  = &clear->background_color;
-
             if (clear->clear_render_target)
             {
+              RGBA_f32  *background_color  = &clear->background_color;
               render->device_context->ClearRenderTargetView(frame_buffer_view, (FLOAT *) background_color);
+
+              Rect_f32 client_rect = render_get_client_rect();
+              D3D11_VIEWPORT viewport =
+              {
+                client_rect.x0, client_rect.y0, 
+                rect_get_width(&client_rect), rect_get_height(&client_rect),
+                0.0f, 1.0f
+              };
+
+              render->device_context->RSSetViewports(1, &viewport);
+              render->device_context->OMSetRenderTargets(1, &frame_buffer_view, depth_stencil_view);
+
+              D3D11_RECT scissor_rectangle = {(LONG) 0, (LONG) 0, (LONG) client_rect.x1, (LONG) client_rect.y1};
+              render->device_context->RSSetScissorRects(1, &scissor_rectangle);
             }
 
             if (clear->clear_depth_stencil)
@@ -298,7 +359,6 @@ THREAD_RETURN render_thread_proc(void *_args)
 
           case rck_resize:
           {
-
             Rect_f32 client_rect = render_get_client_rect();
 
             render->device_context->OMSetRenderTargets(0, 0, 0);
@@ -343,9 +403,8 @@ THREAD_RETURN render_thread_proc(void *_args)
               depth_stencil_view_desc.Texture2D.MipSlice = 0;
 
               result = render->device->CreateDepthStencilView(depth_stencil_texture,
-                                                      &depth_stencil_view_desc,
-                                                      &depth_stencil_view);
-              // expect(SUCCEEDED(result));
+                                                              &depth_stencil_view_desc,
+                                                              &depth_stencil_view);
             } 
           } break;
 
@@ -358,6 +417,7 @@ THREAD_RETURN render_thread_proc(void *_args)
     }
 
     zero_struct(buffer_positions);
+    zero_memory_block(command_queue->start, (uintptr_t) (command_queue->write - command_queue->start));
     ring_buffer_reset(command_queue);
 
     global_state->render_thread_done_processing = true;
@@ -663,6 +723,47 @@ WinMain(HINSTANCE instance,
     render_load_pixel_shader(circle_shader_source_handle, &circle_pixel_shader, true);
     safe_release(circle_vertex_shader_blob);
 
+    ID3D11ShaderResourceView *font_texture_view = NULL;
+    {
+      D3D11_TEXTURE2D_DESC texture_description = {};
+      {
+        texture_description.Width            = (u32) atlas->bitmap.height;
+        texture_description.Height           = (u32) atlas->bitmap.width;
+        texture_description.MipLevels        = 1;
+        texture_description.ArraySize        = 1;
+        texture_description.Format           = DXGI_FORMAT_R8_UNORM;
+        texture_description.SampleDesc.Count = 1;
+        texture_description.Usage            = D3D11_USAGE_DEFAULT;
+        texture_description.BindFlags        = D3D11_BIND_SHADER_RESOURCE;
+        texture_description.CPUAccessFlags   = 0;
+      }
+
+      D3D11_SUBRESOURCE_DATA subresource = {};
+      {
+        subresource.pSysMem          = atlas->bitmap.alpha;
+        subresource.SysMemPitch      = texture_description.Width * 1;
+        subresource.SysMemSlicePitch = 0;
+      }
+
+      ID3D11Texture2D *texture_2d = NULL;
+      HRESULT result = device->CreateTexture2D(&texture_description, &subresource, &texture_2d);
+
+      expect(SUCCEEDED(result));
+
+      D3D11_SHADER_RESOURCE_VIEW_DESC shader_resource_view_description = {};
+      {
+        shader_resource_view_description.Format                    = DXGI_FORMAT_R8_UNORM;
+        shader_resource_view_description.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
+        shader_resource_view_description.Texture2D.MipLevels       = texture_description.MipLevels;
+        shader_resource_view_description.Texture2D.MostDetailedMip = 0;
+      }
+
+      result = device->CreateShaderResourceView(texture_2d, &shader_resource_view_description, &font_texture_view);
+      texture_2d->Release();
+
+      expect(SUCCEEDED(result));
+    }
+
     ID3D11ShaderResourceView *cubemap_texture_view = NULL;
     render_create_cubemap(skybox_bitmaps, array_count(skybox_bitmaps), &cubemap_texture_view);
 
@@ -717,6 +818,8 @@ WinMain(HINSTANCE instance,
     void *win32_message_fiber_handle = CreateFiber(0, &win32_message_fiber, NULL);
     expect_message(global_state->main_fiber_address != NULL, "could not create a fiber for messages");
 
+    global_state->sync_event = CreateEventA(NULL, TRUE, FALSE, "render-main sync");
+
     const uintptr_t render_thread_args[] = {1};
     HANDLE render_thread_handle = CreateThread(NULL, 0, render_thread_proc, (void *) render_thread_args, 0, NULL);
     unused(render_thread_handle);
@@ -747,19 +850,19 @@ WinMain(HINSTANCE instance,
     Player_Context *player_context = player_get_context();
     unused(player_context);
 
-    // TODO(antonio): remove this dumbass synchronization method
-    volatile u8 *ring_buffer_start = common_render->command_queue.start;
-    while (!ring_buffer_start)
-    {
-      ring_buffer_start = common_render->command_queue.start;
-    }
+    WaitForSingleObject(global_state->sync_event, INFINITE);
 
     while (global_state->running)
     {
       TIMED_BLOCK_START();
 
       SwitchToFiber(win32_message_fiber_handle);
+      
       global_state->render_thread_can_start_processing = true;
+
+      Render_Command *begin = (Render_Command *) common_render->command_queue.write;
+      begin->kind = rck_begin;
+      render_push_commands(1);
 
       if (global_state->window_resized && !IsIconic(global_state->window_handle))
       {
@@ -821,27 +924,78 @@ WinMain(HINSTANCE instance,
       // u32 initial_draw_count = (u32) (global_state->render_context.render_data.used / sizeof(Instance_Buffer_Element));
       ui_flatten_draw_layers();
 
+      Constant_Buffer constant_buffer_items = {};
+      {
+        constant_buffer_items.atlas_width   = (f32) atlas->bitmap.width;
+        constant_buffer_items.atlas_height  = (f32) atlas->bitmap.height;
+
+        constant_buffer_items.client_width  = rect_get_width(&client_rect);
+        constant_buffer_items.client_height = rect_get_height(&client_rect);
+
+        Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, -0.8f, -1.5f);
+        Matrix_f32_4x4 x_rotation  = matrix4x4_rotate_about_x(0.0f / 10.0f);
+        Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(0.0f / 10.0f);
+        Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(player_context->rotation);
+
+        /*
+           constant_buffer_items.model = matrix4x4_multiply(translation,
+           matrix4x4_multiply(x_rotation,
+           matrix4x4_multiply(y_rotation, z_rotation)));
+           */
+
+        constant_buffer_items.model = matrix4x4_multiply(z_rotation, translation);
+
+        constant_buffer_items.view       = view;
+        constant_buffer_items.projection = projection;
+      }
+
       /*
       Render_Position cylinder_rp = make_cylinder(&common_render->triangle_render_data,
                                                   1.0f, 1.0f, 1.0f, 16, 1);
 
       make_cylinder_along_path(&common_render->triangle_render_data, points, (u32) point_count, 0.05f, sector_count);
       Render_Position player_rp = make_player(&common_render->triangle_render_data);
+        */
 
       Bucket_List *bucket_lists[] = {&particle_buckets};
       Render_Position circle_rp =
         render_and_update_particles(&common_render->triangle_render_data, bucket_lists, array_count(bucket_lists));
-        */
+
+      render_load_vertex_shader(circle_shader_source_handle, &circle_vertex_shader);
+      render_load_pixel_shader(circle_shader_source_handle, &circle_pixel_shader);
+
+      {
+        Render_Command *command = (Render_Command *) common_render->command_queue.write;
+        RCK_Draw       *draw    = &command->draw;
+
+        command->kind = rck_draw;
+
+        draw->buffer_id       = 0;
+        draw->topology        = (u32) D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        draw->per_vertex_size = sizeof(Vertex_Buffer_Element);
+        draw->vertex_count    = circle_rp.count;
+        draw->vertex_data     = common_render->triangle_render_data.start + (circle_rp.start_pos * circle_rp.count);
+        draw->vertex_shader   = circle_vertex_shader;
+        draw->pixel_shader    = circle_pixel_shader;
+        draw->textures[0].srv = font_texture_view;
+
+        copy_memory_block((void *) draw->constant_buffer_data, &constant_buffer_items, sizeof(constant_buffer_items));
+        render_push_commands(1);
+      }
 
       // NOTE(antonio): instances
+      Render_Command *end = (Render_Command *) render->command_queue.write;
+      end->kind = rck_end;
+      render_push_commands(1);
 
       global_state->main_thread_done_submitting = true;
       while (!global_state->render_thread_done_processing);
 
       swap_chain->Present(1, 0);
 
-      global_state->main_thread_done_submitting   = false;
-      global_state->render_thread_done_processing = false;
+      global_state->main_thread_done_submitting        = false;
+      global_state->render_thread_done_processing      = false;
+      global_state->render_thread_can_start_processing = false;
 
       arena_reset(&global_state->render_context.render_data);
       arena_reset(&global_state->render_context.triangle_render_data);

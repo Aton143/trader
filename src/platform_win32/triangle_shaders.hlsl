@@ -17,19 +17,19 @@ struct VS_Input
 
 struct PS_Input
 {
-  float4 vertex: SV_POSITION;
+  float4 vertex:   SV_POSITION;
   float4 position: POSITION;
-  float4 color:  COLOR;
-  float4 normal: NORMAL;
-  float2 uv:     TEXCOORD;
+  float4 color:    COLOR;
+  float4 normal:   NORMAL;
+  float2 uv:       TEXCOORD;
 };
 
 Vertex_Global_Data global_data;
 Texture2D          global_texture: register(t0);
 TextureCube        cubemap:        register(t1);
 
-SamplerState       global_sampler: register(s0);
-SamplerState       global_cubemap_sampler: register(s1);
+SamplerState global_sampler:         register(s0);
+SamplerState global_cubemap_sampler: register(s1);
 
 float4x4 inverse(float4x4 m);
 
@@ -49,16 +49,22 @@ PS_Input VS_Main(VS_Input input)
 
 float4 PS_Main(PS_Input input): SV_Target
 {
-  float3 camera_pos = float3(1.0f, 1.0f, 0.0f);
-  float3 dir        = normalize(input.position.xyz - camera_pos);
-  float3 reflected  = reflect(dir, input.normal.xyz);
-  float4 out_color  = float4(cubemap.Sample(global_cubemap_sampler, reflected).xyz, 1.0f);
+  float4 out_color;
 
-/*
-  float alpha_sample = global_texture.Sample(global_sampler, input.uv).r;
-  float3 combined    = float3(input.color.rgb) * alpha_sample;
-  out_color = float4(input.normal.xyz, alpha_sample);
-*/
+  if (input.color.a == 0.0f)
+  {
+    float3 camera_pos = float3(1.0f, 1.0f, 0.0f);
+    float3 dir        = normalize(input.position.xyz - camera_pos);
+    float3 reflected  = reflect(dir, input.normal.xyz);
+
+    out_color  = float4(cubemap.Sample(global_cubemap_sampler, reflected).xyz, 1.0f);
+  }
+  else
+  {
+    float alpha_sample = global_texture.Sample(global_sampler, input.uv).r;
+    float3 combined    = float3(input.color.rgb) * alpha_sample;
+    out_color = float4(combined, alpha_sample);
+  }
 
   out_color = pow(out_color, 1.0f / 2.2f);
   return out_color;

@@ -840,6 +840,7 @@ WinMain(HINSTANCE instance,
     // u32 sector_count = 4;
     // f32 point_count = (f32) array_count(points);
 
+    f32 shot_time = 0.0f;
     f32 pacc_time = 0.0f;
 
     Bucket_List particle_buckets = bucket_list_make(global_arena, 
@@ -852,7 +853,6 @@ WinMain(HINSTANCE instance,
     batch_make_circle_particles(&particle_buckets, 1.0f, 2.0f, 100, 200);
 
     Player_Context *player_context = player_get_context();
-    unused(player_context);
 
     WaitForSingleObject(global_state->sync_event, INFINITE);
     ResetEvent(global_state->sync_event);
@@ -962,17 +962,18 @@ WinMain(HINSTANCE instance,
         */
 
       pacc_time += 1.0f / 60.0f;
-      if (pacc_time > 1.5f)
+      if (pacc_time > 0.5f)
       {
         batch_make_circle_particles(&particle_buckets, 1.0f, 2.0f, 100, 200);
         pacc_time = 0.0f;
       }
 
-      Render_Position player_rp = make_player(&common_render->triangle_render_data);
+      // Bucket_List *bucket_lists[] = {&particle_buckets};
+      Render_Position circle_rp = {};
+        // render_and_update_particles(&common_render->triangle_render_data, bucket_lists, array_count(bucket_lists));
 
-      Bucket_List *bucket_lists[] = {&particle_buckets};
-      Render_Position circle_rp =
-        render_and_update_particles(&common_render->triangle_render_data, bucket_lists, array_count(bucket_lists));
+      Render_Position player_rp = make_player(&common_render->triangle_render_data);
+      Render_Position shot_rp   = make_cylinder(&common_render->triangle_render_data, 0.005f, 0.005f, 0.1f, 16, 1);
 
       render_load_vertex_shader(circle_shader_source_handle, &circle_vertex_shader);
       render_load_pixel_shader(circle_shader_source_handle, &circle_pixel_shader);
@@ -981,41 +982,79 @@ WinMain(HINSTANCE instance,
         Render_Command *command = (Render_Command *) common_render->command_queue.write;
         RCK_Draw       *draw    = &command->draw;
 
-        command->kind = rck_draw;
+        u8 *vs_data_start = NULL;
 
-        u8 *vs_data_start = common_render->triangle_render_data.start + (circle_rp.start_pos * sizeof(Vertex_Buffer_Element));
+        {
+          command->kind = rck_draw;
 
-        draw->buffer_id       = 0;
-        draw->topology        = (u32) D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-        draw->per_vertex_size = sizeof(Vertex_Buffer_Element);
-        draw->vertex_count    = circle_rp.count;
-        draw->vertex_data     = vs_data_start;
-        draw->vertex_shader   = circle_vertex_shader;
-        draw->pixel_shader    = circle_pixel_shader;
-        draw->textures[0].srv = font_texture_view;
+          vs_data_start = common_render->triangle_render_data.start + (circle_rp.start_pos * sizeof(Vertex_Buffer_Element));
 
-        copy_memory_block((void *) draw->constant_buffer_data, &constant_buffer_items, sizeof(constant_buffer_items));
+          draw->buffer_id       = 0;
+          draw->topology        = (u32) D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+          draw->per_vertex_size = sizeof(Vertex_Buffer_Element);
+          draw->vertex_count    = circle_rp.count;
+          draw->vertex_data     = vs_data_start;
+          draw->vertex_shader   = circle_vertex_shader;
+          draw->pixel_shader    = circle_pixel_shader;
+          draw->textures[0].srv = font_texture_view;
 
-        command++;
-        draw = &command->draw;
+          copy_memory_block((void *) draw->constant_buffer_data, &constant_buffer_items, sizeof(constant_buffer_items));
+        }
 
-        command->kind = rck_draw;
+        {
+          command++;
+          draw = &command->draw;
 
-        vs_data_start = common_render->triangle_render_data.start + (player_rp.start_pos * sizeof(Vertex_Buffer_Element));
+          command->kind = rck_draw;
 
-        draw->buffer_id       = 0;
-        draw->topology        = (u32) D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-        draw->per_vertex_size = sizeof(Vertex_Buffer_Element);
-        draw->vertex_count    = player_rp.count;
-        draw->vertex_data     = vs_data_start;
-        draw->vertex_shader   = triangle_vertex_shader;
-        draw->pixel_shader    = triangle_pixel_shader;
-        draw->textures[0].srv = font_texture_view;
-        draw->textures[1].srv = cubemap_texture_view;
+          vs_data_start = common_render->triangle_render_data.start + (player_rp.start_pos * sizeof(Vertex_Buffer_Element));
 
-        copy_memory_block((void *) draw->constant_buffer_data, &constant_buffer_items, sizeof(constant_buffer_items));
+          draw->buffer_id       = 0;
+          draw->topology        = (u32) D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+          draw->per_vertex_size = sizeof(Vertex_Buffer_Element);
+          draw->vertex_count    = player_rp.count;
+          draw->vertex_data     = vs_data_start;
+          draw->vertex_shader   = triangle_vertex_shader;
+          draw->pixel_shader    = triangle_pixel_shader;
+          draw->textures[0].srv = font_texture_view;
+          draw->textures[1].srv = cubemap_texture_view;
 
-        render_push_commands(2);
+          copy_memory_block((void *) draw->constant_buffer_data, &constant_buffer_items, sizeof(constant_buffer_items));
+        }
+
+        {
+          command++;
+          draw = &command->draw;
+
+          command->kind = rck_draw;
+
+          vs_data_start = common_render->triangle_render_data.start + (shot_rp.start_pos * sizeof(Vertex_Buffer_Element));
+
+          draw->buffer_id       = 0;
+          draw->topology        = (u32) D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+          draw->per_vertex_size = sizeof(Vertex_Buffer_Element);
+          draw->vertex_count    = shot_rp.count;
+          draw->vertex_data     = vs_data_start;
+          draw->vertex_shader   = triangle_vertex_shader;
+          draw->pixel_shader    = triangle_pixel_shader;
+          draw->textures[0].srv = font_texture_view;
+          draw->textures[1].srv = cubemap_texture_view;
+
+          Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, -0.8f, -2.5f - shot_time);
+          Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(player_context->rotation);
+
+          constant_buffer_items.model = matrix4x4_multiply(z_rotation, translation);
+
+          copy_memory_block((void *) draw->constant_buffer_data, &constant_buffer_items, sizeof(constant_buffer_items));
+
+          shot_time += (f32) global_state->dt;
+          if (shot_time > 10.0f)
+          {
+            shot_time = 0.0f;
+          }
+        }
+
+        render_push_commands(3);
       }
 
       // NOTE(antonio): instances

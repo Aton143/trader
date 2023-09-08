@@ -106,7 +106,7 @@ Render_Position make_cylinder(Arena *render_data,
                          -height / 2.0f,
                          sine_end * base_radius, 1.0f);
 
-    V4_f32 color = scale(angle_start, rgba_white);
+    V4_f32 color = /*scale(angle_start,*/ rgba_white;//);
     color.w = 1.0f;
 
     // NOTE(antonio): top
@@ -327,7 +327,7 @@ Render_Position make_player(Arena *render_data)
   Vertex_Buffer_Element *cur_vertex = push_array(render_data, Vertex_Buffer_Element, rp.count);
 
   V2_f32 solid_color_uv = render_get_solid_color_uv();
-  RGBA_f32 color = rgba_white;
+  RGBA_f32 color = rgba(0.0f, 0.0f, 0.0f, 0.0f);
 
   V4_f32 back_top = V4( 0.0f, 0.05f,  0.50f, 1.0f);
   V4_f32 front    = V4( 0.0f, 0.0f,  -0.50f, 1.0f);
@@ -339,7 +339,7 @@ Render_Position make_player(Arena *render_data)
   *cur_vertex++ = vbe(front,    color, solid_color_uv, normal);
   *cur_vertex++ = vbe(w0,       color, solid_color_uv, normal);
 
-  color = wide_lerp(color, 0.25f, rgba_red);
+  // color = wide_lerp(color, 0.25f, rgba_red);
   normal = V4(triangle_normal_ccw(reflect_about_xz(back_top)._xyz, front._xyz, w0._xyz), 1.0f);
 
   // LB Hull
@@ -347,7 +347,7 @@ Render_Position make_player(Arena *render_data)
   *cur_vertex++ = vbe(front,                      color, solid_color_uv, normal);
   *cur_vertex++ = vbe(w0,                         color, solid_color_uv, normal);
 
-  color = wide_lerp(color, 0.25f, rgba_red);
+  // color = wide_lerp(color, 0.25f, rgba_red);
   normal = V4(triangle_normal_ccw(reflect_about_xz(back_top)._xyz, back_top._xyz, w0._xyz), 1.0f);
 
   // LBack Hull
@@ -355,7 +355,7 @@ Render_Position make_player(Arena *render_data)
   *cur_vertex++ = vbe(back_top,                   color, solid_color_uv, normal);
   *cur_vertex++ = vbe(w0,                         color, solid_color_uv, normal);
 
-  color = rgba_white;
+  // color = rgba_white;
   normal = V4(triangle_normal_ccw(front._xyz, back_top._xyz, reflect_about_yz(w0)._xyz), 1.0f);
 
   // RT Hull
@@ -363,7 +363,7 @@ Render_Position make_player(Arena *render_data)
   *cur_vertex++ = vbe(back_top,             color, solid_color_uv, normal);
   *cur_vertex++ = vbe(reflect_about_yz(w0), color, solid_color_uv, normal);
 
-  color = wide_lerp(color, 0.25f, rgba_red);
+  // color = wide_lerp(color, 0.25f, rgba_red);
   normal = V4(triangle_normal_ccw(front._xyz, reflect_about_xz(back_top)._xyz, reflect_about_yz(w0)._xyz), 1.0f);
 
   // RB Hull
@@ -371,7 +371,7 @@ Render_Position make_player(Arena *render_data)
   *cur_vertex++ = vbe(reflect_about_xz(back_top), color, solid_color_uv, normal);
   *cur_vertex++ = vbe(reflect_about_yz(w0),       color, solid_color_uv, normal);
 
-  color = wide_lerp(color, 0.25f, rgba_red);
+  // color = wide_lerp(color, 0.25f, rgba_red);
   normal = V4(triangle_normal_ccw(back_top._xyz, reflect_about_xz(back_top)._xyz, reflect_about_yz(w0)._xyz), 1.0f);
 
   // RBack Hull

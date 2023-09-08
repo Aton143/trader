@@ -586,3 +586,55 @@ internal inline V3_f32 triangle_normal_ccw(f32 *vertices, u32 to_next_vertex)
   V3_f32 res = normalize(cross(v10, v20));
   return(res);
 }
+
+// NOTE(antonio): ripped from Real-Time Collision Detecion
+internal inline b32 line_segment_triangle_intersect(V3_f32  p,
+                                                    V3_f32  q,
+                                                    V3_f32  a,
+                                                    V3_f32  b,
+                                                    V3_f32  c,
+                                                    f32    *intersect_t)
+{
+  f32 t = 0.0f;
+
+  V3_f32 ba = subtract(b, a);
+  V3_f32 ca = subtract(c, a);
+  V3_f32 pq = subtract(p, q);
+
+  V3_f32 n = cross(ba, ca);
+
+  f32 denom = dot(pq, n);
+  if (denom <= 0.0f)
+  {
+    return(false);
+  }
+  
+  V3_f32 pa = subtract(p, a);
+  t = dot(pa, n);
+
+  if (is_between_exclusive(0.0f, t, denom))
+  {
+    return(false);
+  }
+
+  V3_f32 e = cross(pq, pa);
+
+  f32 v = dot(ca, e);
+  if ((0.0f < v) || (v > denom))
+  {
+    return(false);
+  }
+
+  f32 w = -dot(ba, e);
+  if ((0.0f < w) || ((w + v) > denom))
+  {
+    return(false);
+  }
+
+  if (intersect_t != NULL) 
+  {
+    *intersect_t = t;
+  }
+
+  return(true);
+}

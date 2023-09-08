@@ -964,7 +964,7 @@ WinMain(HINSTANCE instance,
       pacc_time += 1.0f / 60.0f;
       if (pacc_time > 0.5f)
       {
-        batch_make_circle_particles(&particle_buckets, 1.0f, 2.0f, 100, 200);
+        // batch_make_circle_particles(&particle_buckets, 1.0f, 2.0f, 100, 200);
         pacc_time = 0.0f;
       }
 
@@ -974,6 +974,16 @@ WinMain(HINSTANCE instance,
 
       Render_Position player_rp = make_player(&common_render->triangle_render_data);
       Render_Position shot_rp   = make_cylinder(&common_render->triangle_render_data, 0.005f, 0.005f, 0.1f, 16, 1);
+
+      Render_Position cube_rp   =
+      {
+        (u32) (common_render->triangle_render_data.used / sizeof(Vertex_Buffer_Element)),
+        array_count(cube_vertices)
+      };
+
+      Vertex_Buffer_Element *cube_data =
+        push_array(&common_render->triangle_render_data, Vertex_Buffer_Element, cube_rp.count);
+      copy_memory_block(cube_data, cube_vertices, cube_rp.count * sizeof(Vertex_Buffer_Element));
 
       render_load_vertex_shader(circle_shader_source_handle, &circle_vertex_shader);
       render_load_pixel_shader(circle_shader_source_handle, &circle_pixel_shader);
@@ -1054,7 +1064,34 @@ WinMain(HINSTANCE instance,
           }
         }
 
-        render_push_commands(3);
+        {
+          command++;
+          draw = &command->draw;
+
+          command->kind = rck_draw;
+
+          vs_data_start = common_render->triangle_render_data.start + (cube_rp.start_pos * sizeof(Vertex_Buffer_Element));
+
+          draw->buffer_id       = 0;
+          draw->topology        = (u32) D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+          draw->per_vertex_size = sizeof(Vertex_Buffer_Element);
+          draw->vertex_count    = cube_rp.count;
+          draw->vertex_data     = vs_data_start;
+          draw->vertex_shader   = triangle_vertex_shader;
+          draw->pixel_shader    = triangle_pixel_shader;
+          draw->textures[0].srv = font_texture_view;
+          draw->textures[1].srv = cubemap_texture_view;
+
+          Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, -5.5f);
+          Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(shot_time / 10.0f);
+          Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(shot_time / 10.0f);
+
+          constant_buffer_items.model = matrix4x4_multiply(translation, matrix4x4_multiply(y_rotation, z_rotation));
+
+          copy_memory_block((void *) draw->constant_buffer_data, &constant_buffer_items, sizeof(constant_buffer_items));
+        }
+
+        render_push_commands(4);
       }
 
       // NOTE(antonio): instances

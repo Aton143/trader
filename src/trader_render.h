@@ -1,5 +1,11 @@
 #ifndef TRADER_RENDER_H
 
+struct Render_Position
+{
+  u32 start_pos;
+  u32 count;
+};
+
 typedef u32 Render_Command_Kind;
 enum
 {
@@ -119,6 +125,19 @@ struct Vertex_Buffer_Element
   V4_f32   normal;
   V2_f32   uv;
   V2_f32   res;
+};
+
+struct Mesh_Face
+{
+  V3_i32 vertex_ids;
+};
+
+struct Mesh
+{
+  Vertex_Buffer_Element *vertices;
+  Mesh_Face             *faces;
+  u32                    vertex_count;
+  u32                    face_count;
 };
 
 struct Alpha_Bitmap {

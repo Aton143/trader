@@ -6,6 +6,17 @@
 
 #if OS_WINDOWS
 
+/*
+struct OS_Handle
+{
+  HANDLE     __handle;
+  union
+  {
+    OVERLAPPED __overlapped;
+  };
+};
+*/
+
 typedef HANDLE OS_Handle;
 
 #elif OS_LINUX
@@ -16,24 +27,21 @@ struct OS_Handle
 #endif
 
 enum {
-  Handle_Kind_None,
-  Handle_Kind_File,
-  Handle_kind_Count,
+  handle_flag_none   = 0,
+  handle_flag_file   = (1 << 0),
+  handle_flag_notify = (1 << 1),
 };
-typedef u64 Handle_Kind;
-
-struct Asset_Node;
+typedef u32 Handle_Flag;
 
 struct Handle {
-  u64               generation;
-  Handle_Kind       kind;
+  u32               generation;
+  Handle_Flag       flags;
   String_Const_utf8 id;
 
-  union
-  {
-    OS_Handle file_handle;
-  };
+  OS_Handle file_handle;
 };
+
+typedef Handle File_Notify_Handle;
 
 global_const u64 asset_pool_size          = mb(1);
 global_const u64 asset_first_element_size = kb(4) - 32 - sizeof(Handle);
@@ -69,7 +77,7 @@ internal b32  is_nil(Handle *handle);
 internal void make_nil(Handle *handle);
 
 internal Handle *make_handle(String_Const_utf8  id,
-                             Handle_Kind        kind,
+                             Handle_Flag        flags,
                              Handle            *previous_handle = NULL);
 internal u64     handle_node_count(Handle *handle);
 

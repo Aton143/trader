@@ -17,12 +17,6 @@ struct Circle_Particle
   f32      lifetime;
 };
 
-struct Render_Position
-{
-  u32 start_pos;
-  u32 count;
-};
-
 internal void put_quad(Vertex_Buffer_Element *vertices, V4_f32 tl, V4_f32 tr, V4_f32 bl, V4_f32 br, RGBA_f32 color);
 
 internal Render_Position make_cylinder(Arena *, f32, f32, f32, u32, u32);

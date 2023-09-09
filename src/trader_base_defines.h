@@ -928,7 +928,25 @@ struct Buffer
   u64  size;
   u64  used;
 };
-typedef Buffer File_Buffer;
+
+struct Generational_Buffer
+{
+  union
+  {
+    Buffer buffer;
+
+    struct
+    {
+      u8  *data;
+      u64  size;
+      u64  used;
+    };
+  };
+
+  u32 generation;
+};
+
+typedef Generational_Buffer File_Buffer;
 
 struct Arena
 {

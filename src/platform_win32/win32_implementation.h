@@ -73,7 +73,7 @@ struct Global_Platform_State
 
   HWND            window_handle;
 
-  HANDLE          notify_iocp;
+  HANDLE          iocp;
   HANDLE          notify_dir;
   HANDLE          notify_dir_iocp;
   HANDLE          sync_event;
@@ -385,7 +385,7 @@ internal b32 platform_append_to_file(Handle *handle, utf8 *format, va_list args)
 
 internal void platform_push_notify_dir(utf8 *dir_path, u64 dir_path_size)
 {
-  if ((dir_path != NULL) && (win32_global_state.notify_iocp != INVALID_HANDLE_VALUE))
+  if ((dir_path != NULL) && (win32_global_state.iocp != INVALID_HANDLE_VALUE))
   {
     utf16 file_path_utf16[512] = {};
     u32 bytes_written = (u32) MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED,
@@ -402,7 +402,7 @@ internal void platform_push_notify_dir(utf8 *dir_path, u64 dir_path_size)
       if (dir_handle != INVALID_HANDLE_VALUE)
       {
         // TODO(antonio): completion key?
-        HANDLE notify_dir_iocp = CreateIoCompletionPort(dir_handle, win32_global_state.notify_iocp, 0, 0);
+        HANDLE notify_dir_iocp = CreateIoCompletionPort(dir_handle, win32_global_state.iocp, 0, 0);
         if (notify_dir_iocp != INVALID_HANDLE_VALUE)
         {
           win32_global_state.notify_dir      = dir_handle;
@@ -465,7 +465,7 @@ internal void platform_collect_notifications(void)
     u32         bytes_transferred = 0;
 
     BOOL completion_status =
-      GetQueuedCompletionStatus(win32_global_state.notify_iocp,
+      GetQueuedCompletionStatus(win32_global_state.iocp,
                                 (DWORD *) &bytes_transferred,
                                 (PULONG_PTR) &completion_key,
                                 &overlapped,

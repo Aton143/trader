@@ -3,7 +3,7 @@
 internal b32 is_nil(Handle *handle)
 {
   b32 result = (handle->generation == nil_handle.generation) &&
-               (handle->kind       == nil_handle.kind);
+               (handle->flags      == nil_handle.flags);
 
   return(result);
 }
@@ -13,7 +13,7 @@ internal void make_nil(Handle *handle)
   copy_struct(handle, (Handle *) &nil_handle);
 }
 
-internal Handle *make_handle(String_Const_utf8 id, Handle_Kind kind, Handle *previous_handle)
+internal Handle *make_handle(String_Const_utf8 id, Handle_Flag flags, Handle *previous_handle)
 {
   Handle *result = NULL;
 
@@ -22,8 +22,10 @@ internal Handle *make_handle(String_Const_utf8 id, Handle_Kind kind, Handle *pre
 
   if (previous_handle == NULL)
   {
-    if (is_between_inclusive(Handle_Kind_File, kind, Handle_Kind_File))
+    if (flags & handle_flag_notify)
     {
+      expect(flags & handle_flag_file);
+
       result = &first->handle;
       zero_struct(result);
 
@@ -31,8 +33,8 @@ internal Handle *make_handle(String_Const_utf8 id, Handle_Kind kind, Handle *pre
       {
         String_Const_utf8 file_name = platform_get_file_name_from_path(&id);
 
-        result->id   = file_name;
-        result->kind = kind;
+        result->id    = file_name;
+        result->flags = flags;
 
         global_asset_pool.free_list_head = global_asset_pool.free_list_head->next;
         first->next = NULL;
@@ -41,7 +43,7 @@ internal Handle *make_handle(String_Const_utf8 id, Handle_Kind kind, Handle *pre
   }
   else
   {
-    expect(previous_handle->kind == kind);
+    expect(previous_handle->flags == flags);
     expect(!compare_memory_block(previous_handle->id.str, id.str,
                                  min(id.size, previous_handle->id.size)));
 

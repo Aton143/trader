@@ -466,7 +466,7 @@ WinMain(HINSTANCE instance,
       expect_message(false, "could not create an I/O completion port");
     }
 
-    global_state->notify_iocp = iocp_handle;
+    global_state->iocp = iocp_handle;
   }
 
   String_Const_utf8 notify_dir = string_literal_init_type("..\\src\\platform_win32\\", utf8);
@@ -691,7 +691,7 @@ WinMain(HINSTANCE instance,
     };
 
     String_Const_utf8 shader_source_path   = string_literal_init_type("..\\src\\platform_win32\\shaders.hlsl", utf8);
-    Handle           *shader_source_handle = make_handle(shader_source_path, Handle_Kind_File);
+    Handle           *shader_source_handle = make_handle(shader_source_path, handle_flag_file | handle_flag_notify);
 
     Vertex_Shader renderer_vertex_shader = {};
     Pixel_Shader  renderer_pixel_shader = {};
@@ -703,11 +703,11 @@ WinMain(HINSTANCE instance,
 
     String_Const_utf8 triangle_shader_source_path =
       string_literal_init_type("..\\src\\platform_win32\\triangle_shaders.hlsl", utf8);
-    Handle *triangle_shader_source_handle = make_handle(triangle_shader_source_path, Handle_Kind_File);
+    Handle *triangle_shader_source_handle = make_handle(triangle_shader_source_path, handle_flag_file | handle_flag_notify);
 
     String_Const_utf8 circle_shader_source_path = 
       string_literal_init_type("..\\src\\platform_win32\\circle_shaders.hlsl", utf8);
-    Handle *circle_shader_source_handle = make_handle(circle_shader_source_path, Handle_Kind_File);
+    Handle *circle_shader_source_handle = make_handle(circle_shader_source_path, handle_flag_file | handle_flag_notify);
 
     Vertex_Shader triangle_vertex_shader = {};
     Pixel_Shader  triangle_pixel_shader = {};

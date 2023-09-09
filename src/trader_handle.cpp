@@ -8,7 +8,7 @@ b32 is_nil(Handle *handle)
   return(result);
 }
 
-void make_nil(Handle *handle)
+void handle_make_nil(Handle *handle)
 {
   copy_struct(handle, (Handle *) &nil_handle);
 }
@@ -20,7 +20,7 @@ void asset_node_put_back(Asset_Node *node)
   global_asset_pool.free_list_head = node;
 }
 
-Handle *make_handle(String_Const_utf8 id, Handle_Flag flags, Handle *previous_handle, Thread_Context *thread_context)
+Handle *handle_make(String_Const_utf8 id, Handle_Flag flags, Handle *previous_handle, Thread_Context *thread_context)
 {
   Handle *result = NULL;
 
@@ -52,7 +52,7 @@ Handle *make_handle(String_Const_utf8 id, Handle_Flag flags, Handle *previous_ha
         // TODO(antonio): put back to free list atomically
         asset_node_put_back(first);
 
-        make_nil(result);
+        handle_make_nil(result);
       }
     }
   }

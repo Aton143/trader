@@ -54,9 +54,6 @@ internal void platform_debug_print_system_error(void);
 
 internal b32 platform_common_init(void);
 
-// TODO(antonio): the read API should return a boolean?
-internal File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u64 file_path_size);
-
 internal inline u64 platform_get_file_size(Handle *handle);
 
 internal b32 platform_open_file(utf8           *file_path,
@@ -66,9 +63,12 @@ internal b32 platform_open_file(utf8           *file_path,
 
 internal b32 platform_close_file(Handle *handle);
 internal File_Buffer platform_read_entire_file(Arena *arena, Handle *handle);
+internal File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u64 file_path_size);
 
 internal b32 platform_open_file_for_appending(utf8 *file_path, u64 file_path_length, Handle *out_handle);
 internal b32 platform_append_to_file(Handle *handle, utf8 *format, va_list args);
+
+internal void platform_dispatch_read(Handle *handle, u64 file_offset = 0, u64 bytes_to_read = (u64) -1);
 
 internal void platform_push_notify_dir(utf8 *dir_path, u64 dir_path_length);
 internal void platform_pop_notify_dir(void);

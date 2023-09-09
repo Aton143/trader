@@ -232,11 +232,40 @@ b32 platform_open_file(utf8 *file_path, u64 file_path_size, Handle *out_handle, 
 
       result = true;
     }
-
-
+    else
+    {
+      platform_debug_print_system_error();
+    }
   }
 
   return(result);
+}
+
+void platform_dispatch_read(Arena *arena, Handle *handle, u64 file_offset, u64 bytes_to_read)
+{
+  expect(arena   != NULL);
+  expect((handle != NULL) && (handle->flags & handle_flag_async));
+
+  u64 file_size = platform_get_file_size(handle);
+  bytes_to_read = (bytes_to_read == (u64) -1) ? file_size : bytes_to_read;
+
+  expect(bytes_to_read <= file_size);
+
+  handle->file_buffer.data = (u8 *) arena_push(arena, bytes_to_read);
+  handle->file_buffer.size = bytes_to_read;
+
+  handle->os_handle.__overlapped.Offset     = (DWORD) file_offset;
+  handle->os_handle.__overlapped.OffsetHigh = (DWORD) (file_offset >> 32);
+
+  DWORD no_bytes_read;
+  BOOL read_file_result = ReadFile(handle->os_handle.__handle,
+                                   handle->file_buffer.data,
+                                   (u32) handle->file_buffer.size,
+                                   &no_bytes_read,
+                                   &handle->os_handle.__overlapped);
+
+  expect(no_bytes_read    == 0);
+  expect(read_file_result == FALSE);
 }
 
 b32 platform_open_file_for_appending(utf8 *file_path, u64 file_path_size, Handle *out_handle)

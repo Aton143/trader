@@ -81,7 +81,7 @@ global_const Handle nil_handle = {0, handle_flag_none, scu8l("nil")};
 internal b32  is_nil(Handle *handle);
 internal void make_nil(Handle *handle);
 
-internal Handle *make_handle(String_Const_utf8  id,
+internal Handle *handle_make(String_Const_utf8  id,
                              Handle_Flag        flags,
                              Handle            *previous_handle = NULL,
                              Thread_Context    *thread_context = thread_contexts);

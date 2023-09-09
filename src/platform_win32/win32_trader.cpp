@@ -469,29 +469,20 @@ WinMain(HINSTANCE instance,
     global_state->iocp = iocp_handle;
   }
 
-  Handle *async_handle = make_handle(scu8l("..\\README.md"),
+  Handle *async_handle = handle_make(scu8l("..\\assets\\skybox\\back.jpg"),
                                      handle_flag_file | handle_flag_async);
 
-  u64         async_file_size       = platform_get_file_size(async_handle);
-  DWORD       async_file_bytes_read = 0;
+  platform_dispatch_read(global_arena, async_handle, 0, (u64) -1);
 
-  async_handle->file_buffer.data = (u8 *) arena_push(global_arena, async_file_size);
-  async_handle->file_buffer.size = async_file_size;
+  DWORD       file_bytes_read = 0;
+  ULONG_PTR   completion_key  = NULL;
+  OVERLAPPED *overlapped      = NULL;
 
-  ReadFile(async_handle->os_handle.__handle,
-           async_handle->file_buffer.data,
-           (DWORD) async_handle->file_buffer.size,
-           &async_file_bytes_read,
-           &async_handle->os_handle.__overlapped);
-
-  ULONG_PTR   completion_key = NULL;
-  OVERLAPPED *overlapped     = NULL;
-
-  GetQueuedCompletionStatus(global_state->iocp,
-                            &async_file_bytes_read,
-                            &completion_key,
-                            &overlapped,
-                            INFINITE);
+  /*BOOL success = */GetQueuedCompletionStatus(global_state->iocp,
+                                               &file_bytes_read,
+                                               &completion_key,
+                                               &overlapped,
+                                               INFINITE);
 
   File_Buffer *file_buffer; file_buffer = (File_Buffer *) completion_key;
 
@@ -717,7 +708,7 @@ WinMain(HINSTANCE instance,
     };
 
     String_Const_utf8 shader_source_path   = string_literal_init_type("..\\src\\platform_win32\\shaders.hlsl", utf8);
-    Handle           *shader_source_handle = make_handle(shader_source_path, handle_flag_file | handle_flag_notify);
+    Handle           *shader_source_handle = handle_make(shader_source_path, handle_flag_file | handle_flag_notify);
 
     Vertex_Shader renderer_vertex_shader = {};
     Pixel_Shader  renderer_pixel_shader = {};
@@ -729,11 +720,11 @@ WinMain(HINSTANCE instance,
 
     String_Const_utf8 triangle_shader_source_path =
       string_literal_init_type("..\\src\\platform_win32\\triangle_shaders.hlsl", utf8);
-    Handle *triangle_shader_source_handle = make_handle(triangle_shader_source_path, handle_flag_file | handle_flag_notify);
+    Handle *triangle_shader_source_handle = handle_make(triangle_shader_source_path, handle_flag_file | handle_flag_notify);
 
     String_Const_utf8 circle_shader_source_path = 
       string_literal_init_type("..\\src\\platform_win32\\circle_shaders.hlsl", utf8);
-    Handle *circle_shader_source_handle = make_handle(circle_shader_source_path, handle_flag_file | handle_flag_notify);
+    Handle *circle_shader_source_handle = handle_make(circle_shader_source_path, handle_flag_file | handle_flag_notify);
 
     Vertex_Shader triangle_vertex_shader = {};
     Pixel_Shader  triangle_pixel_shader = {};

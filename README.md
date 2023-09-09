@@ -2,13 +2,12 @@
 An in-development game engine with very few dependencies for a small puzzle game. Formerly, a multiplatform trading client and GUI. Do you understand why it's called "trader"?
 
 ## What trader can do
-This project is still in its early stages, so to say. Right now, it supports HTTPS using a blocking- and sockets-based architecture sockets on Windows and has a Direct3D 11 rendering backend, running at 60fps with ease. On Linux, development is underway for X11-based system using OpenGL as the rendering backend (work can be found on the linux-bootstrap branch). It has the infrastructure to do shader hot-reloads, instrumented profiling, logging asserts, frame buffer captures, visual debugging, plots, text editing, and more! One might say it's awesome!
+This project is still in its early stages, so to say. Right now, it supports Windows and has a Direct3D 11 rendering backend, running at 60fps with ease. On Linux, development is underway for X11-based system using OpenGL as the rendering backend (work can be found on the linux-bootstrap branch). It has the infrastructure to do shader hot-reloads, instrumented profiling, logging asserts, frame buffer captures, visual debugging, plots, text editing, and more! One might say it's awesome!
 
 ## Currently working on 
-- Linux build on linux-bootstrap branch
-- OpenGL renderer build-up and general rendering system cleanup
-- Getting user input on Linux
-- General feature parity with Windows
+- Getting mulithreaded systems up and running
+    - [x] Run DX11 commands on separate thread
+    - [ ] Complete I/O reads and writes on pseudo-job system
 
 ## Planned features
 - [ ] Linux! Oh, no..., but going

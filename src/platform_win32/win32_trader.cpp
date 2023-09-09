@@ -37,6 +37,32 @@
 
 #include "..\trader.h"
 
+THREAD_RETURN io_thread_proc(void *_args)
+{
+  unused(_args);
+
+  Global_Platform_State *global_state = platform_get_global_state();
+
+  DWORD       file_bytes_read = 0;
+  ULONG_PTR   completion_key  = NULL;
+  OVERLAPPED *overlapped      = NULL;
+
+  for (;;)
+  {
+    BOOL succeeded = GetQueuedCompletionStatus(global_state->iocp,
+                                               &file_bytes_read,
+                                               &completion_key,
+                                               &overlapped,
+                                               INFINITE);
+
+    if (succeeded)
+    {
+      File_Buffer *file_buffer; file_buffer = (File_Buffer *) completion_key;
+      platform_debug_print((char *) file_buffer->data);
+    }
+  }
+}
+
 THREAD_RETURN render_thread_proc(void *_args)
 {
   uintptr_t *args = (uintptr_t *) _args;
@@ -469,22 +495,10 @@ WinMain(HINSTANCE instance,
     global_state->iocp = iocp_handle;
   }
 
-  Handle *async_handle = handle_make(scu8l("..\\assets\\skybox\\back.jpg"),
+  Handle *async_handle = handle_make(scu8l("..\\README.md"),
                                      handle_flag_file | handle_flag_async);
 
   platform_dispatch_read(global_arena, async_handle, 0, (u64) -1);
-
-  DWORD       file_bytes_read = 0;
-  ULONG_PTR   completion_key  = NULL;
-  OVERLAPPED *overlapped      = NULL;
-
-  /*BOOL success = */GetQueuedCompletionStatus(global_state->iocp,
-                                               &file_bytes_read,
-                                               &completion_key,
-                                               &overlapped,
-                                               INFINITE);
-
-  File_Buffer *file_buffer; file_buffer = (File_Buffer *) completion_key;
 
   String_Const_utf8 notify_dir = string_literal_init_type("..\\src\\platform_win32\\", utf8);
 
@@ -841,6 +855,9 @@ WinMain(HINSTANCE instance,
 
     const uintptr_t render_thread_args[] = {1};
     HANDLE render_thread_handle = CreateThread(NULL, 0, render_thread_proc, (void *) render_thread_args, 0, NULL);
+    HANDLE io_thread_handle = CreateThread(NULL, 0, io_thread_proc, NULL, 0, NULL);
+
+    unused(io_thread_handle);
     unused(render_thread_handle);
 
     Vertex_Buffer_Element cube_vertices[] = 

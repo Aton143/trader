@@ -5,9 +5,9 @@ An in-development game engine with very few dependencies for a small puzzle game
 This project is still in its early stages, so to say. Right now, it supports Windows and has a Direct3D 11 rendering backend, running at 60fps with ease. On Linux, development is underway for X11-based system using OpenGL as the rendering backend (work can be found on the linux-bootstrap branch). It has the infrastructure to do shader hot-reloads, instrumented profiling, logging asserts, frame buffer captures, visual debugging, plots, text editing, and more! One might say it's awesome!
 
 ## Currently working on 
-- Getting mulithreaded systems up and running
-    - [x] Run DX11 commands on separate thread
-    - [ ] Complete I/O reads and writes on pseudo-job system
+Getting mulithreaded systems up and running
+- [x] Run DX11 commands on separate thread
+- [ ] Complete I/O reads and writes on pseudo-job system
 
 ## Planned features
 - [ ] Linux! Oh, no..., but going

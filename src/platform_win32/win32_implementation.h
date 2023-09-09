@@ -85,9 +85,9 @@ struct Global_Platform_State
   u32             nonclient_mouse_button;
 
   /*
-  HCURSOR         horizontal_resize_cursor_icon;
-  HCURSOR         vertical_resize_cursor_icon;
-  */
+     HCURSOR         horizontal_resize_cursor_icon;
+     HCURSOR         vertical_resize_cursor_icon;
+     */
 
 #if !SHIP_MODE
   u64 frame_count;
@@ -108,19 +108,19 @@ struct Global_Platform_State
 
 global Global_Platform_State win32_global_state  = {};
 global_const String_Const_utf8 default_font_path =
-  string_literal_init_type("C:/windows/fonts/arial.ttf", utf8);
+string_literal_init_type("C:/windows/fonts/arial.ttf", utf8);
 
 global_const u8 platform_path_separator = '\\';
 global_const u8 unix_path_separator = '/';
 global_const f32 default_font_heights[] = {24.0f};
 
-internal Render_Context *render_get_context(void)
+Render_Context *render_get_context(void)
 {
   Render_Context *context = &win32_global_state.render_context;
   return(context);
 }
 
-internal Arena *platform_get_global_arena()
+Arena *platform_get_global_arena()
 {
   return(&platform_get_global_state()->global_arena);
 }
@@ -132,24 +132,24 @@ struct Socket
 
 Socket nil_socket = {INVALID_SOCKET};
 
-internal b32 is_nil(Socket *check)
+b32 is_nil(Socket *check)
 {
   b32 result = (check->socket == nil_socket.socket);
   return(result);
 }
 
-internal void make_nil(Socket *s)
+void make_nil(Socket *s)
 {
   s->socket = INVALID_SOCKET;
 }
 
-internal Global_Platform_State *platform_get_global_state(void)
+Global_Platform_State *platform_get_global_state(void)
 {
   Global_Platform_State *state = &win32_global_state;
   return(state);
 }
 
-internal void meta_init(void)
+void meta_init(void)
 {
   LARGE_INTEGER hpt_freq;
   QueryPerformanceFrequency(&hpt_freq);
@@ -163,20 +163,20 @@ internal void meta_init(void)
 
   temp_arena->used +=
     GetDateFormatA(LOCALE_NAME_USER_DEFAULT,
-                    0,
-                    NULL,
-                    "yyyy'_'MM'_'dd'_'",
-                    (char *) &temp_arena->start[temp_arena->used],
-                    (int) (temp_arena->size - temp_arena->used - 1));
+                   0,
+                   NULL,
+                   "yyyy'_'MM'_'dd'_'",
+                   (char *) &temp_arena->start[temp_arena->used],
+                   (int) (temp_arena->size - temp_arena->used - 1));
   temp_arena->used -= 1;
 
   temp_arena->used += 
     GetTimeFormatA(LOCALE_NAME_USER_DEFAULT,
-                    0,
-                    NULL,
-                    "HH'_'mm'_'ss",
-                    (char *) &temp_arena->start[temp_arena->used],
-                    (int) (temp_arena->size - temp_arena->used - 1));
+                   0,
+                   NULL,
+                   "HH'_'mm'_'ss",
+                   (char *) &temp_arena->start[temp_arena->used],
+                   (int) (temp_arena->size - temp_arena->used - 1));
   temp_arena->used -= 1;
 
   temp_arena->used += copy_string_lit(&temp_arena->start[temp_arena->used], ".log");
@@ -185,11 +185,14 @@ internal void meta_init(void)
   platform_open_file_for_appending(temp_arena->start, temp_arena->used, &meta_info.log_handle);
 }
 
-internal b32 platform_open_file(utf8 *file_path, u64 file_path_size, Handle *out_handle)
+b32 platform_open_file(utf8 *file_path, u64 file_path_size, Handle *out_handle, Thread_Context *thread_context)
 {
+  expect((out_handle != NULL) && (out_handle->flags & handle_flag_file));
+
   b32 result = false;
 
-  Arena *temp_arena = get_temp_arena();
+  Global_Platform_State *global_state = platform_get_global_state();
+  Arena                 *temp_arena   = get_temp_arena(thread_context);
 
   utf8 *file_path_copy = (utf8 *) arena_push_zero(temp_arena, file_path_size);
   if (file_path_copy != NULL)
@@ -203,22 +206,40 @@ internal b32 platform_open_file(utf8 *file_path, u64 file_path_size, Handle *out
                                 (wchar_t *) file_path_utf16, array_count(file_path_utf16));
 
     expect(bytes_written == file_path_size);
-    HANDLE file_handle = CreateFileW((LPCWSTR) file_path_utf16,
-                                     GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
-                                     NULL, OPEN_ALWAYS,
-                                     FILE_ATTRIBUTE_NORMAL, NULL);
 
+    b32    is_async    = out_handle->flags & handle_flag_async;
+    DWORD  file_flags  = FILE_ATTRIBUTE_NORMAL | ((is_async) ? FILE_FLAG_OVERLAPPED : 0);
+    HANDLE file_handle = CreateFileW((LPCWSTR) file_path_utf16,
+                                     GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                     NULL, OPEN_ALWAYS,
+                                     file_flags, NULL);
+    
     if (file_handle != INVALID_HANDLE_VALUE)
     {
-      type_pun(HANDLE, out_handle->file_handle) = file_handle;
+      out_handle->os_handle.__handle = file_handle;
+
+      if (is_async)
+      {
+        HANDLE iocp_return_handle = CreateIoCompletionPort(out_handle->os_handle.__handle,
+                                                           global_state->iocp,
+                                                           (ULONG_PTR) &out_handle->file_buffer,
+                                                           NULL);
+        if (iocp_return_handle != global_state->iocp)
+        {
+          platform_debug_print_system_error();
+        }
+      }
+
       result = true;
     }
+
+
   }
 
   return(result);
 }
 
-internal b32 platform_open_file_for_appending(utf8 *file_path, u64 file_path_size, Handle *out_handle)
+b32 platform_open_file_for_appending(utf8 *file_path, u64 file_path_size, Handle *out_handle)
 {
   b32 result = false;
 
@@ -242,7 +263,7 @@ internal b32 platform_open_file_for_appending(utf8 *file_path, u64 file_path_siz
 
     if (file_handle != INVALID_HANDLE_VALUE)
     {
-      type_pun(HANDLE, out_handle->file_handle) = file_handle;
+      out_handle->os_handle.__handle = file_handle;
       result = true;
     }
   }
@@ -250,7 +271,7 @@ internal b32 platform_open_file_for_appending(utf8 *file_path, u64 file_path_siz
   return(result);
 }
 
-internal File_Buffer platform_read_entire_file(Handle *handle)
+File_Buffer platform_read_entire_file(Handle *handle)
 {
   File_Buffer file_buffer = {};
   Arena *temp_arena = get_temp_arena();
@@ -258,7 +279,7 @@ internal File_Buffer platform_read_entire_file(Handle *handle)
   expect_message(handle != NULL, "idiot! you have to provide a good handle");
 
   LARGE_INTEGER large_file_size;
-  if (GetFileSizeEx(handle->file_handle, &large_file_size))
+  if (GetFileSizeEx(handle->os_handle.__handle, &large_file_size))
   {
     u64 file_size = large_file_size.QuadPart;
     unused(file_size);
@@ -266,10 +287,10 @@ internal File_Buffer platform_read_entire_file(Handle *handle)
     u8 *file_buffer_data = (u8 *) arena_push(temp_arena, file_size);
     if (file_buffer_data)
     {
-      SetFilePointer(handle->file_handle, 0, NULL, FILE_BEGIN);
+      SetFilePointer(handle->os_handle.__handle, 0, NULL, FILE_BEGIN);
 
       u32 bytes_read = 0;
-      if (ReadFile(handle->file_handle, file_buffer_data, (u32) file_size, (LPDWORD) &bytes_read, NULL))
+      if (ReadFile(handle->os_handle.__handle, file_buffer_data, (u32) file_size, (LPDWORD) &bytes_read, NULL))
       {
         expect_message(bytes_read == file_size, "Win32 Error: bytes read does not match expected");
 
@@ -291,7 +312,23 @@ internal File_Buffer platform_read_entire_file(Handle *handle)
   return(file_buffer);
 }
 
-internal File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u64 file_path_size)
+u64 platform_get_file_size(Handle *handle)
+{
+  u64 res = (u64) -1;
+  LARGE_INTEGER large_file_size;
+
+  if (!is_nil(handle))
+  {
+    if (GetFileSizeEx(handle->os_handle.__handle, &large_file_size))
+    {
+      res = large_file_size.QuadPart;
+    }
+  }
+
+  return(res);
+}
+
+File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u64 file_path_size)
 {
   File_Buffer file_buffer = {};
 
@@ -357,7 +394,7 @@ internal File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file
   return(file_buffer);
 }
 
-internal b32 platform_append_to_file(Handle *handle, utf8 *format, va_list args)
+b32 platform_append_to_file(Handle *handle, utf8 *format, va_list args)
 {
   b32 result = false;
   expect_message(handle != NULL, "expected a file handle, numbnuts");
@@ -373,7 +410,7 @@ internal b32 platform_append_to_file(Handle *handle, utf8 *format, va_list args)
   sprinted_text.size = stbsp_vsnprintf((char *) sprinted_text.str, (i32) sprinted_text.cap - 1, (char *) format, args);
 
   u32 bytes_written = 0;
-  WriteFile(handle->file_handle, sprinted_text.str, (DWORD) sprinted_text.size, (DWORD *) &bytes_written, NULL);
+  WriteFile(handle->os_handle.__handle, sprinted_text.str, (DWORD) sprinted_text.size, (DWORD *) &bytes_written, NULL);
 
   if (bytes_written == sprinted_text.size)
   {
@@ -383,7 +420,7 @@ internal b32 platform_append_to_file(Handle *handle, utf8 *format, va_list args)
   return(result);
 }
 
-internal void platform_push_notify_dir(utf8 *dir_path, u64 dir_path_size)
+void platform_push_notify_dir(utf8 *dir_path, u64 dir_path_size)
 {
   if ((dir_path != NULL) && (win32_global_state.iocp != INVALID_HANDLE_VALUE))
   {
@@ -395,10 +432,10 @@ internal void platform_push_notify_dir(utf8 *dir_path, u64 dir_path_size)
     if (bytes_written == dir_path_size)
     {
       HANDLE dir_handle = CreateFileW((LPCWSTR) file_path_utf16,
-                                       GENERIC_READ, FILE_SHARE_READ,
-                                       NULL, OPEN_EXISTING,
-                                       FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
-                                       NULL);
+                                      GENERIC_READ, FILE_SHARE_READ,
+                                      NULL, OPEN_EXISTING,
+                                      FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
+                                      NULL);
       if (dir_handle != INVALID_HANDLE_VALUE)
       {
         // TODO(antonio): completion key?
@@ -428,7 +465,7 @@ internal void platform_push_notify_dir(utf8 *dir_path, u64 dir_path_size)
   }
 }
 
-internal void platform_start_collect_notifications(void)
+void platform_start_collect_notifications(void)
 {
   win32_global_state.notify_overlapped = {};
 
@@ -436,8 +473,8 @@ internal void platform_start_collect_notifications(void)
   expect(((ptr_val) changes & 0x3) == 0);
 
   DWORD notify_filter = FILE_NOTIFY_CHANGE_LAST_WRITE  | FILE_NOTIFY_CHANGE_CREATION   |
-                        FILE_NOTIFY_CHANGE_SIZE        | FILE_NOTIFY_CHANGE_ATTRIBUTES |
-                        FILE_NOTIFY_CHANGE_LAST_ACCESS;
+    FILE_NOTIFY_CHANGE_SIZE        | FILE_NOTIFY_CHANGE_ATTRIBUTES |
+    FILE_NOTIFY_CHANGE_LAST_ACCESS;
 
   u32 bytes_written = 0;
   BOOL got_changes =
@@ -456,7 +493,7 @@ internal void platform_start_collect_notifications(void)
   }
 }
 
-internal void platform_collect_notifications(void)
+void platform_collect_notifications(void)
 {
   if (win32_global_state.notify_dir != INVALID_HANDLE_VALUE)
   {
@@ -508,7 +545,7 @@ internal void platform_collect_notifications(void)
   }
 }
 
-internal b32 platform_did_file_change(utf8 *file_name, u64 file_name_length)
+b32 platform_did_file_change(utf8 *file_name, u64 file_name_length)
 {
   b32 file_changed = false;
 
@@ -536,7 +573,7 @@ internal b32 platform_did_file_change(utf8 *file_name, u64 file_name_length)
   return(file_changed);
 }
 
-internal String_Const_utf8 platform_get_file_name_from_path(String_Const_utf8 *path)
+String_Const_utf8 platform_get_file_name_from_path(String_Const_utf8 *path)
 {
   String_Const_utf8 result = {};
 
@@ -559,7 +596,7 @@ internal String_Const_utf8 platform_get_file_name_from_path(String_Const_utf8 *p
   return(result);
 }
 
-internal Network_Return_Code network_startup(Network_State *out_state)
+Network_Return_Code network_startup(Network_State *out_state)
 {
   unused(out_state);
 
@@ -572,7 +609,7 @@ internal Network_Return_Code network_startup(Network_State *out_state)
   return(result);
 }
 
-internal Network_Return_Code network_connect(Network_State *state, Socket *out_socket, String_Const_utf8 host_name, u16 port)
+Network_Return_Code network_connect(Network_State *state, Socket *out_socket, String_Const_utf8 host_name, u16 port)
 {
   unused(state);
   unused(out_socket);
@@ -628,14 +665,14 @@ internal Network_Return_Code network_connect(Network_State *state, Socket *out_s
   freeaddrinfo(first_addr);
 
   b32 connected = WSAConnectByNameA(out_socket->socket,
-                                   (char *) host_name.str, (char *) port_name,
-                                   0, NULL, 0, NULL, NULL, NULL);
+                                    (char *) host_name.str, (char *) port_name,
+                                    0, NULL, 0, NULL, NULL, NULL);
   expect_message(connected, "expected connection");
 
   return(result);
 }
 
-internal Network_Return_Code network_send_simple(Network_State *state, Socket *in_socket, Buffer *send_buffer)
+Network_Return_Code network_send_simple(Network_State *state, Socket *in_socket, Buffer *send_buffer)
 {
   Network_Return_Code result = network_ok;
 
@@ -649,7 +686,7 @@ internal Network_Return_Code network_send_simple(Network_State *state, Socket *i
   return(result);
 }
 
-internal Network_Return_Code network_receive_simple(Network_State *state, Socket *in_socket, Buffer *receive_buffer)
+Network_Return_Code network_receive_simple(Network_State *state, Socket *in_socket, Buffer *receive_buffer)
 {
   unused(state);
   unused(receive_buffer);
@@ -684,11 +721,11 @@ internal Network_Return_Code network_receive_simple(Network_State *state, Socket
   return(result);
 }
 
-internal Network_Return_Code network_do_websocket_handshake(Network_State *state,
-                                                            Socket *in_out_socket,
-                                                            String_Const_utf8 host_name,
-                                                            String_Const_utf8 query_path,
-                                                            String_Const_utf8 api_key)
+Network_Return_Code network_do_websocket_handshake(Network_State *state,
+                                                   Socket *in_out_socket,
+                                                   String_Const_utf8 host_name,
+                                                   String_Const_utf8 query_path,
+                                                   String_Const_utf8 api_key)
 {
   Network_Return_Code result = network_ok;
 
@@ -701,17 +738,17 @@ internal Network_Return_Code network_do_websocket_handshake(Network_State *state
   base64_encode(websocket_key, sec_websocket_key, array_count(sec_websocket_key));
 
 #if 0
-GET /chat HTTP/1.1
-Host: server.example.com
-Upgrade: websocket
-Connection: Upgrade
-Sec-WebSocket-Key: x3JJHMbDL1EzLkh9GBhXDw==
-Sec-WebSocket-Protocol: chat, superchat
-Sec-WebSocket-Version: 13
-Origin: http://example.com
+  GET /chat HTTP/1.1
+    Host: server.example.com
+    Upgrade: websocket
+    Connection: Upgrade
+    Sec-WebSocket-Key: x3JJHMbDL1EzLkh9GBhXDw==
+    Sec-WebSocket-Protocol: chat, superchat
+    Sec-WebSocket-Version: 13
+    Origin: http://example.com
 #endif
 
-  Buffer websocket_handshake_send = stack_alloc_buffer(1024);
+    Buffer websocket_handshake_send = stack_alloc_buffer(1024);
 
   websocket_handshake_send.used =
     stbsp_snprintf((char *) websocket_handshake_send.data, (int) websocket_handshake_send.size,
@@ -734,7 +771,7 @@ Origin: http://example.com
   return(result);
 }
 
-internal Network_Return_Code network_disconnect(Network_State *state, Socket *in_out_socket)
+Network_Return_Code network_disconnect(Network_State *state, Socket *in_out_socket)
 {
   unused(state);
 
@@ -749,7 +786,7 @@ internal Network_Return_Code network_disconnect(Network_State *state, Socket *in
   return(result);
 }
 
-internal Network_Return_Code network_cleanup(Network_State *state)
+Network_Return_Code network_cleanup(Network_State *state)
 {
   unused(state);
 
@@ -760,12 +797,12 @@ internal Network_Return_Code network_cleanup(Network_State *state)
   return(result);
 }
 
-internal void platform_debug_print(char *text)
+void platform_debug_print(char *text)
 {
   OutputDebugStringA(text);
 }
 
-internal void platform_debug_print_system_error()
+void platform_debug_print_system_error()
 {
   DWORD error = GetLastError();
 
@@ -786,7 +823,7 @@ internal void platform_debug_print_system_error()
   }
 }
 
-internal void *render_compile_vertex_shader(File_Buffer *source, char *entry_point, void *out_shader)
+void *render_compile_vertex_shader(File_Buffer *source, char *entry_point, void *out_shader)
 {
   ID3DBlob *vertex_shader_blob = NULL;
   ID3DBlob *shader_compile_errors_blob = NULL;
@@ -827,7 +864,7 @@ internal void *render_compile_vertex_shader(File_Buffer *source, char *entry_poi
   return(vertex_shader_blob);
 }
 
-internal void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *shader, b32 force)
+void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *shader, b32 force)
 {
   void *blob = NULL;
 
@@ -843,7 +880,7 @@ internal void *render_load_vertex_shader(Handle *shader_handle, Vertex_Shader *s
   return(blob);
 }
 
-internal void render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shader, b32 force)
+void render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shader, b32 force)
 {
   if (force || platform_did_file_change(shader_handle->id.str, shader_handle->id.size))
   {
@@ -894,7 +931,7 @@ internal void render_load_pixel_shader(Handle *shader_handle, Pixel_Shader *shad
   }
 }
 
-internal i64 render_get_font_height_index(f32 font_height)
+i64 render_get_font_height_index(f32 font_height)
 {
   Texture_Atlas *atlas = win32_global_state.render_context.atlas;
 
@@ -913,7 +950,7 @@ internal i64 render_get_font_height_index(f32 font_height)
   return(result);
 }
 
-internal u64 platform_get_high_precision_timer(void)
+u64 platform_get_high_precision_timer(void)
 {
   u64 result = {};
 
@@ -924,126 +961,126 @@ internal u64 platform_get_high_precision_timer(void)
   return(result);
 }
 
-internal double platform_convert_high_precision_time_to_seconds(u64 hpt)
+double platform_convert_high_precision_time_to_seconds(u64 hpt)
 {
   double result = ((double) hpt) / ((double) meta_info.high_precision_timer_frequency);
   return(result);
 }
 
 #define TRADER_KEYPAD_ENTER (VK_RETURN + 256)
-internal Key_Event platform_convert_key_to_our_key(u64 key_value)
+Key_Event platform_convert_key_to_our_key(u64 key_value)
 {
-    switch (key_value)
-    {
-        case VK_TAB:              return key_event_tab;
-        case VK_LEFT:             return key_event_left_arrow;
-        case VK_RIGHT:            return key_event_right_arrow;
-        case VK_UP:               return key_event_up_arrow;
-        case VK_DOWN:             return key_event_down_arrow;
-        case VK_PRIOR:            return key_event_page_up;
-        case VK_NEXT:             return key_event_page_down;
-        case VK_HOME:             return key_event_home;
-        case VK_END:              return key_event_end;
-        case VK_INSERT:           return key_event_insert;
-        case VK_DELETE:           return key_event_delete;
-        case VK_BACK:             return key_event_backspace;
-        case VK_SPACE:            return key_event_space;
-        case VK_RETURN:           return key_event_enter;
-        case VK_ESCAPE:           return key_event_escape;
-        case VK_OEM_7:            return key_event_apostrophe;
-        case VK_OEM_COMMA:        return key_event_comma;
-        case VK_OEM_MINUS:        return key_event_minus;
-        case VK_OEM_PERIOD:       return key_event_period;
-        case VK_OEM_2:            return key_event_slash;
-        case VK_OEM_1:            return key_event_semicolon;
-        case VK_OEM_PLUS:         return key_event_equal;
-        case VK_OEM_4:            return key_event_left_bracket;
-        case VK_OEM_5:            return key_event_backslash;
-        case VK_OEM_6:            return key_event_right_bracket;
-        case VK_OEM_3:            return key_event_grave_accent;
-        case VK_CAPITAL:          return key_event_caps_lock;
-        case VK_SCROLL:           return key_event_scroll_lock;
-        case VK_NUMLOCK:          return key_event_num_lock;
-        case VK_SNAPSHOT:         return key_event_print_screen;
-        case VK_PAUSE:            return key_event_pause;
-        case VK_NUMPAD0:          return key_event_keypad_0;
-        case VK_NUMPAD1:          return key_event_keypad_1;
-        case VK_NUMPAD2:          return key_event_keypad_2;
-        case VK_NUMPAD3:          return key_event_keypad_3;
-        case VK_NUMPAD4:          return key_event_keypad_4;
-        case VK_NUMPAD5:          return key_event_keypad_5;
-        case VK_NUMPAD6:          return key_event_keypad_6;
-        case VK_NUMPAD7:          return key_event_keypad_7;
-        case VK_NUMPAD8:          return key_event_keypad_8;
-        case VK_NUMPAD9:          return key_event_keypad_9;
-        case VK_DECIMAL:          return key_event_keypad_decimal;
-        case VK_DIVIDE:           return key_event_keypad_divide;
-        case VK_MULTIPLY:         return key_event_keypad_multiply;
-        case VK_SUBTRACT:         return key_event_keypad_subtract;
-        case VK_ADD:              return key_event_keypad_add;
-        case TRADER_KEYPAD_ENTER: return key_event_keypad_enter;
-        case VK_LSHIFT:           return key_event_left_shift;
-        case VK_LCONTROL:         return key_event_left_ctrl;
-        case VK_LMENU:            return key_event_left_alt;
-        case VK_LWIN:             return key_event_left_super;
-        case VK_RSHIFT:           return key_event_right_shift;
-        case VK_RCONTROL:         return key_event_right_ctrl;
-        case VK_RMENU:            return key_event_right_alt;
-        case VK_RWIN:             return key_event_right_super;
-        case VK_APPS:             return key_event_menu;
-        case '0':                 return key_event_0;
-        case '1':                 return key_event_1;
-        case '2':                 return key_event_2;
-        case '3':                 return key_event_3;
-        case '4':                 return key_event_4;
-        case '5':                 return key_event_5;
-        case '6':                 return key_event_6;
-        case '7':                 return key_event_7;
-        case '8':                 return key_event_8;
-        case '9':                 return key_event_9;
-        case 'A':                 return key_event_a;
-        case 'B':                 return key_event_b;
-        case 'C':                 return key_event_c;
-        case 'D':                 return key_event_d;
-        case 'E':                 return key_event_e;
-        case 'F':                 return key_event_f;
-        case 'G':                 return key_event_g;
-        case 'H':                 return key_event_h;
-        case 'I':                 return key_event_i;
-        case 'J':                 return key_event_j;
-        case 'K':                 return key_event_k;
-        case 'L':                 return key_event_l;
-        case 'M':                 return key_event_m;
-        case 'N':                 return key_event_n;
-        case 'O':                 return key_event_o;
-        case 'P':                 return key_event_p;
-        case 'Q':                 return key_event_q;
-        case 'R':                 return key_event_r;
-        case 'S':                 return key_event_s;
-        case 'T':                 return key_event_t;
-        case 'U':                 return key_event_u;
-        case 'V':                 return key_event_v;
-        case 'W':                 return key_event_w;
-        case 'X':                 return key_event_x;
-        case 'Y':                 return key_event_y;
-        case 'Z':                 return key_event_z;
-        case VK_F1:               return key_event_f1;
-        case VK_F2:               return key_event_f2;
-        case VK_F3:               return key_event_f3;
-        case VK_F4:               return key_event_f4;
-        case VK_F5:               return key_event_f5;
-        case VK_F6:               return key_event_f6;
-        case VK_F7:               return key_event_f7;
-        case VK_F8:               return key_event_f8;
-        case VK_F9:               return key_event_f9;
-        case VK_F10:              return key_event_f10;
-        case VK_F11:              return key_event_f11;
-        case VK_F12:              return key_event_f12;
-        default:                  return key_event_none;
-    }
+  switch (key_value)
+  {
+  case VK_TAB:              return key_event_tab;
+  case VK_LEFT:             return key_event_left_arrow;
+  case VK_RIGHT:            return key_event_right_arrow;
+  case VK_UP:               return key_event_up_arrow;
+  case VK_DOWN:             return key_event_down_arrow;
+  case VK_PRIOR:            return key_event_page_up;
+  case VK_NEXT:             return key_event_page_down;
+  case VK_HOME:             return key_event_home;
+  case VK_END:              return key_event_end;
+  case VK_INSERT:           return key_event_insert;
+  case VK_DELETE:           return key_event_delete;
+  case VK_BACK:             return key_event_backspace;
+  case VK_SPACE:            return key_event_space;
+  case VK_RETURN:           return key_event_enter;
+  case VK_ESCAPE:           return key_event_escape;
+  case VK_OEM_7:            return key_event_apostrophe;
+  case VK_OEM_COMMA:        return key_event_comma;
+  case VK_OEM_MINUS:        return key_event_minus;
+  case VK_OEM_PERIOD:       return key_event_period;
+  case VK_OEM_2:            return key_event_slash;
+  case VK_OEM_1:            return key_event_semicolon;
+  case VK_OEM_PLUS:         return key_event_equal;
+  case VK_OEM_4:            return key_event_left_bracket;
+  case VK_OEM_5:            return key_event_backslash;
+  case VK_OEM_6:            return key_event_right_bracket;
+  case VK_OEM_3:            return key_event_grave_accent;
+  case VK_CAPITAL:          return key_event_caps_lock;
+  case VK_SCROLL:           return key_event_scroll_lock;
+  case VK_NUMLOCK:          return key_event_num_lock;
+  case VK_SNAPSHOT:         return key_event_print_screen;
+  case VK_PAUSE:            return key_event_pause;
+  case VK_NUMPAD0:          return key_event_keypad_0;
+  case VK_NUMPAD1:          return key_event_keypad_1;
+  case VK_NUMPAD2:          return key_event_keypad_2;
+  case VK_NUMPAD3:          return key_event_keypad_3;
+  case VK_NUMPAD4:          return key_event_keypad_4;
+  case VK_NUMPAD5:          return key_event_keypad_5;
+  case VK_NUMPAD6:          return key_event_keypad_6;
+  case VK_NUMPAD7:          return key_event_keypad_7;
+  case VK_NUMPAD8:          return key_event_keypad_8;
+  case VK_NUMPAD9:          return key_event_keypad_9;
+  case VK_DECIMAL:          return key_event_keypad_decimal;
+  case VK_DIVIDE:           return key_event_keypad_divide;
+  case VK_MULTIPLY:         return key_event_keypad_multiply;
+  case VK_SUBTRACT:         return key_event_keypad_subtract;
+  case VK_ADD:              return key_event_keypad_add;
+  case TRADER_KEYPAD_ENTER: return key_event_keypad_enter;
+  case VK_LSHIFT:           return key_event_left_shift;
+  case VK_LCONTROL:         return key_event_left_ctrl;
+  case VK_LMENU:            return key_event_left_alt;
+  case VK_LWIN:             return key_event_left_super;
+  case VK_RSHIFT:           return key_event_right_shift;
+  case VK_RCONTROL:         return key_event_right_ctrl;
+  case VK_RMENU:            return key_event_right_alt;
+  case VK_RWIN:             return key_event_right_super;
+  case VK_APPS:             return key_event_menu;
+  case '0':                 return key_event_0;
+  case '1':                 return key_event_1;
+  case '2':                 return key_event_2;
+  case '3':                 return key_event_3;
+  case '4':                 return key_event_4;
+  case '5':                 return key_event_5;
+  case '6':                 return key_event_6;
+  case '7':                 return key_event_7;
+  case '8':                 return key_event_8;
+  case '9':                 return key_event_9;
+  case 'A':                 return key_event_a;
+  case 'B':                 return key_event_b;
+  case 'C':                 return key_event_c;
+  case 'D':                 return key_event_d;
+  case 'E':                 return key_event_e;
+  case 'F':                 return key_event_f;
+  case 'G':                 return key_event_g;
+  case 'H':                 return key_event_h;
+  case 'I':                 return key_event_i;
+  case 'J':                 return key_event_j;
+  case 'K':                 return key_event_k;
+  case 'L':                 return key_event_l;
+  case 'M':                 return key_event_m;
+  case 'N':                 return key_event_n;
+  case 'O':                 return key_event_o;
+  case 'P':                 return key_event_p;
+  case 'Q':                 return key_event_q;
+  case 'R':                 return key_event_r;
+  case 'S':                 return key_event_s;
+  case 'T':                 return key_event_t;
+  case 'U':                 return key_event_u;
+  case 'V':                 return key_event_v;
+  case 'W':                 return key_event_w;
+  case 'X':                 return key_event_x;
+  case 'Y':                 return key_event_y;
+  case 'Z':                 return key_event_z;
+  case VK_F1:               return key_event_f1;
+  case VK_F2:               return key_event_f2;
+  case VK_F3:               return key_event_f3;
+  case VK_F4:               return key_event_f4;
+  case VK_F5:               return key_event_f5;
+  case VK_F6:               return key_event_f6;
+  case VK_F7:               return key_event_f7;
+  case VK_F8:               return key_event_f8;
+  case VK_F9:               return key_event_f9;
+  case VK_F10:              return key_event_f10;
+  case VK_F11:              return key_event_f11;
+  case VK_F12:              return key_event_f12;
+  default:                  return key_event_none;
+  }
 }
 
-internal String_Const_utf8 platform_get_file_from_system_prompt()
+String_Const_utf8 platform_get_file_from_system_prompt()
 {
   Arena *temp_arena = get_temp_arena();
 
@@ -1070,7 +1107,7 @@ internal String_Const_utf8 platform_get_file_from_system_prompt()
   // TODO(antonio): OFN_EXPLORER 
   open_file.Flags             = //OFN_CREATEPROMPT | OFN_FORCESHOWHIDDEN |
                                 //OFN_HIDEREADONLY | OFN_LONGNAMES       |
-                                OFN_PATHMUSTEXIST;
+    OFN_PATHMUSTEXIST;
 
   open_file.nFileOffset       = 0;
   open_file.nFileExtension    = 0;
@@ -1104,7 +1141,7 @@ internal String_Const_utf8 platform_get_file_from_system_prompt()
   return(res);
 }
 
-internal File_Buffer platform_open_and_read_entire_file_from_system_prompt(Arena *arena)
+File_Buffer platform_open_and_read_entire_file_from_system_prompt(Arena *arena)
 {
   File_Buffer res = {};
   String_Const_utf8 file_path = platform_get_file_from_system_prompt();
@@ -1115,21 +1152,21 @@ internal File_Buffer platform_open_and_read_entire_file_from_system_prompt(Arena
   return(res);
 }
 
-internal Thread_Handle platform_create_thread(Thread_Routine routine, void *routine_arg)
+Thread_Handle platform_create_thread(Thread_Routine routine, void *routine_arg)
 {
   Thread_Handle res = {};
   res._handle = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) routine, routine_arg, 0, NULL);
   return(res);
 }
 
-internal void platform_set_cursor(Cursor_Kind cursor)
+void platform_set_cursor(Cursor_Kind cursor)
 {
   expect(cursor < cursor_kind_count);
   expect(cursors[cursor]._handle != NULL);
   SetCursor(cursors[cursor]._handle);
 }
 
-internal String_Const_utf8 platform_read_clipboard_contents(Arena *arena)
+String_Const_utf8 platform_read_clipboard_contents(Arena *arena)
 {
   String_Const_utf8 result = {};
   if (OpenClipboard(win32_global_state.window_handle))
@@ -1186,7 +1223,7 @@ internal String_Const_utf8 platform_read_clipboard_contents(Arena *arena)
   return(result);
 }
 
-internal void platform_write_clipboard_contents(String_utf8 string)
+void platform_write_clipboard_contents(String_utf8 string)
 {
   if (OpenClipboard(win32_global_state.window_handle))
   {
@@ -1238,19 +1275,19 @@ internal void platform_write_clipboard_contents(String_utf8 string)
   platform_debug_print_system_error();
 }
 
-internal u8 *platform_allocate_memory_pages(u64 bytes, void *start)
+u8 *platform_allocate_memory_pages(u64 bytes, void *start)
 {
   u8 *pages = (u8 *) VirtualAlloc(start, bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
   return(pages);
 }
 
-internal u64 platform_get_processor_time_stamp(void)
+u64 platform_get_processor_time_stamp(void)
 {
   u64 ts = (u64) __rdtsc();
   return(ts);
 }
 
-internal void win32_load_skybox(Bitmap *bitmaps)
+void win32_load_skybox(Bitmap *bitmaps)
 {
   Arena *temp_arena = get_temp_arena();
   u64 prev_used = temp_arena->used;
@@ -1258,11 +1295,11 @@ internal void win32_load_skybox(Bitmap *bitmaps)
   local_persist String_Const_utf8 skybox_file_paths[]
   {
     scu8l("..\\assets\\skybox\\right.jpg"),
-    scu8l("..\\assets\\skybox\\left.jpg"),
-    scu8l("..\\assets\\skybox\\top.jpg"),
-    scu8l("..\\assets\\skybox\\bottom.jpg"),
-    scu8l("..\\assets\\skybox\\front.jpg"),
-    scu8l("..\\assets\\skybox\\back.jpg"),
+      scu8l("..\\assets\\skybox\\left.jpg"),
+      scu8l("..\\assets\\skybox\\top.jpg"),
+      scu8l("..\\assets\\skybox\\bottom.jpg"),
+      scu8l("..\\assets\\skybox\\front.jpg"),
+      scu8l("..\\assets\\skybox\\back.jpg"),
   };
 
   for (u32 path_index = 0;
@@ -1284,29 +1321,29 @@ internal void win32_load_skybox(Bitmap *bitmaps)
     cur_bitmap->height   = (f32) height;
 
     /*
-    u8 *image = (u8 *) arena_push(&win32_global_state.global_arena, 4 * sizeof(u8) * width * height);
+       u8 *image = (u8 *) arena_push(&win32_global_state.global_arena, 4 * sizeof(u8) * width * height);
 
-    u32 data_pos  = 0;
-    u32 image_pos = 0;
+       u32 data_pos  = 0;
+       u32 image_pos = 0;
 
-    for (i32 row = 0; row < height; ++row)
-    {
-      for (i32 col = 0; col < width; ++col)
-      {
-        image[image_pos++] = 255;
-        image[image_pos++] = data[data_pos++];
-        image[image_pos++] = data[data_pos++];
-        image[image_pos++] = data[data_pos++];
-      }
-    }
-    */
+       for (i32 row = 0; row < height; ++row)
+       {
+       for (i32 col = 0; col < width; ++col)
+       {
+       image[image_pos++] = 255;
+       image[image_pos++] = data[data_pos++];
+       image[image_pos++] = data[data_pos++];
+       image[image_pos++] = data[data_pos++];
+       }
+       }
+       */
 
     cur_bitmap->data = data;
     temp_arena->used = prev_used;
   }
 }
 
-internal void render_create_cubemap(Bitmap *bitmaps, u32 bitmap_count, void *out_textures)
+void render_create_cubemap(Bitmap *bitmaps, u32 bitmap_count, void *out_textures)
 {
   expect(bitmap_count > 0); 
 
@@ -1356,13 +1393,13 @@ internal void render_create_cubemap(Bitmap *bitmaps, u32 bitmap_count, void *out
   expect(SUCCEEDED(result));
 }
 
-internal b32 is_vk_down(i32 vk)
+b32 is_vk_down(i32 vk)
 {
   b32 vk_down = (GetKeyState(vk) & 0x8000) != 0;
   return(vk_down);
 }
 
-internal void win32_message_fiber(void *args)
+void win32_message_fiber(void *args)
 {
   unused(args);
 
@@ -1384,7 +1421,7 @@ internal void win32_message_fiber(void *args)
   }
 }
 
-internal LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM wparam, LPARAM lparam)
+LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM wparam, LPARAM lparam)
 {
   LRESULT result = 0;
 
@@ -1392,7 +1429,7 @@ internal LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM
 
   switch (message)
   {
-    case WM_INPUT:
+  case WM_INPUT:
     {
       // NOTE(antonio): https://gist.github.com/luluco250/ac79d72a734295f167851ffdb36d77ee 
       // RAWINPUT does not guarantee that accumulated deltas will be consistent, unlike WM_MOUSEDATA
@@ -1432,15 +1469,15 @@ internal LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM
       }
     } break;
 
-    case WM_GETMINMAXINFO:
+  case WM_GETMINMAXINFO:
     {
       MINMAXINFO *window_tracking_info = (MINMAXINFO *) lparam;
       window_tracking_info->ptMinTrackSize = {400, 300};
     } break;
 
     // TODO(antonio): when y ~= 0, mouse is registered as not in client
-    case WM_MOUSEMOVE:
-    case WM_NCMOUSEMOVE: // NOTE(antonio): NC - non-client
+  case WM_MOUSEMOVE:
+  case WM_NCMOUSEMOVE: // NOTE(antonio): NC - non-client
     {
       POINT mouse_pos =
       {
@@ -1501,7 +1538,7 @@ internal LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM
       };
     } break;
 
-    case WM_NCLBUTTONDOWN:
+  case WM_NCLBUTTONDOWN:
     {
       if (wparam == HTCAPTION)
       {
@@ -1514,17 +1551,17 @@ internal LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM
       }
     } break;
 
-    case WM_MOUSELEAVE:
-    case WM_NCMOUSELEAVE:
+  case WM_MOUSELEAVE:
+  case WM_NCMOUSELEAVE:
     {
       ui->mouse_pos = {max_f32, max_f32};
       ui->mouse_area = mouse_area_out_client;
     } break;
 
-    case WM_LBUTTONDOWN: case WM_LBUTTONDBLCLK:
-    case WM_RBUTTONDOWN: case WM_RBUTTONDBLCLK:
-    case WM_MBUTTONDOWN: case WM_MBUTTONDBLCLK:
-    case WM_XBUTTONDOWN: case WM_XBUTTONDBLCLK:
+  case WM_LBUTTONDOWN: case WM_LBUTTONDBLCLK:
+  case WM_RBUTTONDOWN: case WM_RBUTTONDBLCLK:
+  case WM_MBUTTONDOWN: case WM_MBUTTONDBLCLK:
+  case WM_XBUTTONDOWN: case WM_XBUTTONDBLCLK:
     {
       Mouse_Event mouse_event = mouse_event_none;
       if ((message == WM_LBUTTONDOWN) || (message == WM_LBUTTONDBLCLK)) {mouse_event = mouse_event_lclick;}
@@ -1539,10 +1576,10 @@ internal LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM
       }
     } break;
 
-    case WM_LBUTTONUP:
-    case WM_RBUTTONUP:
-    case WM_MBUTTONUP:
-    case WM_XBUTTONUP:
+  case WM_LBUTTONUP:
+  case WM_RBUTTONUP:
+  case WM_MBUTTONUP:
+  case WM_XBUTTONUP:
     {
       Mouse_Event mouse_event_to_remove = mouse_event_none;
       if (message == WM_LBUTTONUP) {mouse_event_to_remove = mouse_event_lclick;}
@@ -1557,25 +1594,25 @@ internal LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM
       }
     }
 
-    case WM_MOUSEWHEEL:
+  case WM_MOUSEWHEEL:
     {
       ui->mouse_wheel_delta = {0.0f, (f32) GET_WHEEL_DELTA_WPARAM(wparam) / (f32) WHEEL_DELTA};
     } break;
-    case WM_MOUSEHWHEEL:
+  case WM_MOUSEHWHEEL:
     {
       ui->mouse_wheel_delta = {(f32) -GET_WHEEL_DELTA_WPARAM(wparam) / (f32) WHEEL_DELTA, 0.0f};
     } break;
 
-    case WM_SETFOCUS:  // NOTE(antonio): after the window has gained focus
-    case WM_KILLFOCUS: // NOTE(antonio): right *before* the window loses focus
+  case WM_SETFOCUS:  // NOTE(antonio): after the window has gained focus
+  case WM_KILLFOCUS: // NOTE(antonio): right *before* the window loses focus
     {
       win32_global_state.focus_event = (message == WM_SETFOCUS) ? focus_event_gain : focus_event_lose;
     } break;
 
-    case WM_KEYUP:
-    case WM_KEYDOWN:
-    case WM_SYSKEYUP:
-    case WM_SYSKEYDOWN:
+  case WM_KEYUP:
+  case WM_KEYDOWN:
+  case WM_SYSKEYUP:
+  case WM_SYSKEYDOWN:
     {
       b32 is_key_down = ((message == WM_KEYDOWN) || (message == WM_SYSKEYDOWN));
       // b32 was_key_down = (((lparam >> 30)) & 1) == 0 ;
@@ -1605,19 +1642,19 @@ internal LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM
         // Submit individual left/right modifier events
         if (vk == VK_SHIFT)
         {
-          // Important: Shift keys tend to get stuck when pressed together, missing key-up events are corrected in ImGui_ImplWin32_ProcessKeyEventsWorkarounds()
-          if (IsVkDown(VK_LSHIFT) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_LeftShift, is_key_down, VK_LSHIFT, scancode); }
-          if (IsVkDown(VK_RSHIFT) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_RightShift, is_key_down, VK_RSHIFT, scancode); }
+        // Important: Shift keys tend to get stuck when pressed together, missing key-up events are corrected in ImGui_ImplWin32_ProcessKeyEventsWorkarounds()
+        if (IsVkDown(VK_LSHIFT) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_LeftShift, is_key_down, VK_LSHIFT, scancode); }
+        if (IsVkDown(VK_RSHIFT) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_RightShift, is_key_down, VK_RSHIFT, scancode); }
         }
         else if (vk == VK_CONTROL)
         {
-          if (IsVkDown(VK_LCONTROL) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_LeftCtrl, is_key_down, VK_LCONTROL, scancode); }
-          if (IsVkDown(VK_RCONTROL) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_RightCtrl, is_key_down, VK_RCONTROL, scancode); }
+        if (IsVkDown(VK_LCONTROL) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_LeftCtrl, is_key_down, VK_LCONTROL, scancode); }
+        if (IsVkDown(VK_RCONTROL) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_RightCtrl, is_key_down, VK_RCONTROL, scancode); }
         }
         else if (vk == VK_MENU)
         {
-          if (IsVkDown(VK_LMENU) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_LeftAlt, is_key_down, VK_LMENU, scancode); }
-          if (IsVkDown(VK_RMENU) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_RightAlt, is_key_down, VK_RMENU, scancode); }
+        if (IsVkDown(VK_LMENU) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_LeftAlt, is_key_down, VK_LMENU, scancode); }
+        if (IsVkDown(VK_RMENU) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_RightAlt, is_key_down, VK_RMENU, scancode); }
         }
         */
       }
@@ -1629,31 +1666,31 @@ internal LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM
       result = DefWindowProc(window_handle, message, wparam, lparam);
     } break;
 
-    case WM_SIZE:
+  case WM_SIZE:
     {
       win32_global_state.window_resized = true;
       //result = DefWindowProc(window_handle, message, wparam, lparam);
     } break;
 
-    case WM_SIZING:
+  case WM_SIZING:
     {
       result = TRUE;
     } break;
 
-    case WM_ENTERSIZEMOVE:
-    case WM_ENTERMENULOOP:
+  case WM_ENTERSIZEMOVE:
+  case WM_ENTERMENULOOP:
     {
       SetTimer(window_handle, 1, 2, NULL);
     } break;
 
-    case WM_EXITSIZEMOVE:
-    case WM_EXITMENULOOP:
+  case WM_EXITSIZEMOVE:
+  case WM_EXITMENULOOP:
     {
       KillTimer(window_handle, 1);
       result = DefWindowProcW(window_handle, message, wparam, lparam);
     } break;
 
-    case WM_TIMER:
+  case WM_TIMER:
     {
       if (wparam == 1)
       {
@@ -1662,17 +1699,17 @@ internal LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM
       }
     } break;
 
-    case WM_SYSCOMMAND:
+  case WM_SYSCOMMAND:
     {
       switch (wparam & 0xff0)
       {
-        case SC_SCREENSAVE:
-        case SC_MONITORPOWER:
+      case SC_SCREENSAVE:
+      case SC_MONITORPOWER:
         {
 
         } break;
 
-        case SC_KEYMENU:
+      case SC_KEYMENU:
         {
 
         } break;
@@ -1681,14 +1718,14 @@ internal LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM
       result = DefWindowProcW(window_handle, message, wparam, lparam);
     } break;
 
-    case WM_QUIT:
-    case WM_DESTROY:
-    case WM_CLOSE:
+  case WM_QUIT:
+  case WM_DESTROY:
+  case WM_CLOSE:
     {
       win32_global_state.running = false;
     } break;
 
-    default:
+  default:
     {
       result = DefWindowProcW(window_handle, message, wparam, lparam);
     } break;

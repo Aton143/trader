@@ -1,6 +1,6 @@
 #include "trader_handle.h"
 
-internal b32 is_nil(Handle *handle)
+b32 is_nil(Handle *handle)
 {
   b32 result = (handle->generation == nil_handle.generation) &&
                (handle->flags      == nil_handle.flags);
@@ -8,12 +8,19 @@ internal b32 is_nil(Handle *handle)
   return(result);
 }
 
-internal void make_nil(Handle *handle)
+void make_nil(Handle *handle)
 {
   copy_struct(handle, (Handle *) &nil_handle);
 }
 
-internal Handle *make_handle(String_Const_utf8 id, Handle_Flag flags, Handle *previous_handle)
+void asset_node_put_back(Asset_Node *node)
+{
+  expect(node != NULL);
+  node->next = global_asset_pool.free_list_head;
+  global_asset_pool.free_list_head = node;
+}
+
+Handle *make_handle(String_Const_utf8 id, Handle_Flag flags, Handle *previous_handle, Thread_Context *thread_context)
 {
   Handle *result = NULL;
 
@@ -22,14 +29,15 @@ internal Handle *make_handle(String_Const_utf8 id, Handle_Flag flags, Handle *pr
 
   if (previous_handle == NULL)
   {
-    if (flags & handle_flag_notify)
+    if (flags & handle_flag_file)
     {
       expect(flags & handle_flag_file);
 
       result = &first->handle;
       zero_struct(result);
+      result->flags = flags;
 
-      if (platform_open_file(id.str, id.size, result))
+      if (platform_open_file(id.str, id.size, result, thread_context))
       {
         String_Const_utf8 file_name = platform_get_file_name_from_path(&id);
 
@@ -38,6 +46,13 @@ internal Handle *make_handle(String_Const_utf8 id, Handle_Flag flags, Handle *pr
 
         global_asset_pool.free_list_head = global_asset_pool.free_list_head->next;
         first->next = NULL;
+      }
+      else
+      {
+        // TODO(antonio): put back to free list atomically
+        asset_node_put_back(first);
+
+        make_nil(result);
       }
     }
   }

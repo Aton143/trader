@@ -3,6 +3,9 @@
 #define TRADER_VERSION 1LL
 #include "trader_base_defines.h"
 
+global_const u32            thread_count                  = 2;
+global       Thread_Context thread_contexts[thread_count] = {};
+
 #if COMPILER_CL
 # pragma warning(push)
 # pragma warning(disable: 4996 4244)

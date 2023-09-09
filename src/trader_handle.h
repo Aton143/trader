@@ -3,10 +3,10 @@
 #include <stdio.h>
 #include "trader_base_defines.h"
 #include "trader_memory.h"
+#include "trader_string_utilities.h"
 
 #if OS_WINDOWS
 
-/*
 struct OS_Handle
 {
   HANDLE     __handle;
@@ -15,9 +15,6 @@ struct OS_Handle
     OVERLAPPED __overlapped;
   };
 };
-*/
-
-typedef HANDLE OS_Handle;
 
 #elif OS_LINUX
 struct OS_Handle
@@ -27,9 +24,12 @@ struct OS_Handle
 #endif
 
 enum {
-  handle_flag_none   = 0,
-  handle_flag_file   = (1 << 0),
-  handle_flag_notify = (1 << 1),
+  handle_flag_none          = 0,
+
+  handle_flag_file          = (1 << 0),
+  handle_flag_notify        = (1 << 1),
+  handle_flag_variable_size = (1 << 2),
+  handle_flag_async         = (1 << 3),
 };
 typedef u32 Handle_Flag;
 
@@ -37,8 +37,13 @@ struct Handle {
   u32               generation;
   Handle_Flag       flags;
   String_Const_utf8 id;
+  
+  union
+  {
+    File_Buffer     file_buffer;
+  };
 
-  OS_Handle file_handle;
+  OS_Handle         os_handle;
 };
 
 typedef Handle File_Notify_Handle;
@@ -71,14 +76,15 @@ struct Asset_Pool
 global Asset_Pool global_asset_pool;
 
 typedef Handle Asset_Handle;
-global_const Handle nil_handle = {};
+global_const Handle nil_handle = {0, handle_flag_none, scu8l("nil")};
 
 internal b32  is_nil(Handle *handle);
 internal void make_nil(Handle *handle);
 
 internal Handle *make_handle(String_Const_utf8  id,
                              Handle_Flag        flags,
-                             Handle            *previous_handle = NULL);
+                             Handle            *previous_handle = NULL,
+                             Thread_Context    *thread_context = thread_contexts);
 internal u64     handle_node_count(Handle *handle);
 
 #define TRADER_HANDLE_H

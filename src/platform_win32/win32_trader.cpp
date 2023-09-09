@@ -469,6 +469,32 @@ WinMain(HINSTANCE instance,
     global_state->iocp = iocp_handle;
   }
 
+  Handle *async_handle = make_handle(scu8l("..\\README.md"),
+                                     handle_flag_file | handle_flag_async);
+
+  u64         async_file_size       = platform_get_file_size(async_handle);
+  DWORD       async_file_bytes_read = 0;
+
+  async_handle->file_buffer.data = (u8 *) arena_push(global_arena, async_file_size);
+  async_handle->file_buffer.size = async_file_size;
+
+  ReadFile(async_handle->os_handle.__handle,
+           async_handle->file_buffer.data,
+           (DWORD) async_handle->file_buffer.size,
+           &async_file_bytes_read,
+           &async_handle->os_handle.__overlapped);
+
+  ULONG_PTR   completion_key = NULL;
+  OVERLAPPED *overlapped     = NULL;
+
+  GetQueuedCompletionStatus(global_state->iocp,
+                            &async_file_bytes_read,
+                            &completion_key,
+                            &overlapped,
+                            INFINITE);
+
+  File_Buffer *file_buffer; file_buffer = (File_Buffer *) completion_key;
+
   String_Const_utf8 notify_dir = string_literal_init_type("..\\src\\platform_win32\\", utf8);
 
   platform_push_notify_dir(notify_dir.str, notify_dir.size);

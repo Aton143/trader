@@ -40,12 +40,6 @@ struct Bucket
 
 global_const u32 bucket_list_invalid_id = (u32) -1;
 
-// TODO(antonio): store_ptr/load_ptr versions
-// i.e. ring_buffer_append(..., &widget) caused issues in the past
-
-global_const u32            thread_count                  = 2;
-global       Thread_Context thread_contexts[thread_count] = {};
-
 #if SHIP_MODE
 global_const void *global_memory_start_addr = NULL;
 #else

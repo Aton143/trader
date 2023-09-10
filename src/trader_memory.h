@@ -140,7 +140,15 @@ internal inline Ring_Buffer ring_buffer_make(u8    *buffer, u64 size);
 internal inline void        ring_buffer_reset(Ring_Buffer *rb);
 
 internal inline void *ring_buffer_get_write_ptr(Ring_Buffer *rb);
+
+// NOTE(antonio): 
+// for ring buffer pop and push,
+// use the following with the read/write ptr replacing "^" appropriately
+// |----------|---------|
+//  ^returned  ^incremented to here
 internal inline void *ring_buffer_push(Ring_Buffer *ring_buffer, u64 size);
+internal inline void *ring_buffer_atomic_push(Ring_Buffer *ring_buffer, u64 size);
+
 #define ring_buffer_push_struct(rb, type)       \
   (type *) ring_buffer_push((rb), sizeof(type))
 internal inline void *ring_buffer_append(Ring_Buffer *ring_buffer,
@@ -150,6 +158,7 @@ internal inline void *ring_buffer_append(Ring_Buffer *ring_buffer,
 internal inline void *ring_buffer_pop(Ring_Buffer *ring_buffer, u64 size);
 #define ring_buffer_pop_struct(rb, type) \
   (type *) ring_buffer_pop((rb), sizeof(type))
+internal inline void *ring_buffer_atomic_pop(Ring_Buffer *ring_buffer, u64 size);
 
 internal inline void ring_buffer_pop_and_put(Ring_Buffer *ring_buffer,
                                              void        *data,

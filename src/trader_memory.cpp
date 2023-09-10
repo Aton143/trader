@@ -251,6 +251,43 @@ void ring_buffer_pop_and_put(Ring_Buffer *rb, void *data, u64 size)
   copy_memory_block(data, read, size);
 }
 
+internal inline void *ring_buffer__atomic_pop_or_push(Ring_Buffer *__rb, uintptr_t *__rw_ptr, u64 size)
+{
+  Ring_Buffer volatile *ring_buffer = (Ring_Buffer volatile *) __rb;
+  uintptr_t volatile *rw_ptr = (uintptr_t volatile *) __rw_ptr;
+
+  uintptr_t cur_rw_value = 1;
+  uintptr_t initial_value  = 0;
+  uintptr_t rel_rw_pos, desired_value;
+
+  while (cur_rw_value != initial_value)
+  {
+    cur_rw_value = *rw_ptr;
+
+    rel_rw_pos = cur_rw_value - ((uintptr_t) ring_buffer->start);
+    rel_rw_pos = (rel_rw_pos + size) % ring_buffer->size;
+
+    desired_value = ((uintptr_t) ring_buffer->start) + rel_rw_pos;
+    initial_value = atomic_compare_exchange64((u64 volatile *) __rw_ptr,
+                                              cur_rw_value,
+                                              desired_value);
+  }
+
+  return((void *) initial_value);
+}
+
+void *ring_buffer_atomic_push(Ring_Buffer *ring_buffer, u64 size)
+{
+  void *initial_value = ring_buffer__atomic_pop_or_push(ring_buffer, (uintptr_t *) &ring_buffer->write, size);
+  return(initial_value);
+}
+
+void *ring_buffer_atomic_pop(Ring_Buffer *ring_buffer, u64 size)
+{
+  void *initial_value = ring_buffer__atomic_pop_or_push(ring_buffer, (uintptr_t *) &ring_buffer->read, size);
+  return(initial_value);
+}
+
 Arena *get_temp_arena(Thread_Context *context)
 {
   Temp_Arena *temp_arena = &context->local_temp_arena;

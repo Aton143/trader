@@ -254,10 +254,10 @@ void ring_buffer_pop_and_put(Ring_Buffer *rb, void *data, u64 size)
 internal inline void *ring_buffer__atomic_pop_or_push(Ring_Buffer *__rb, uintptr_t *__rw_ptr, u64 size)
 {
   Ring_Buffer volatile *ring_buffer = (Ring_Buffer volatile *) __rb;
-  uintptr_t volatile *rw_ptr = (uintptr_t volatile *) __rw_ptr;
+  uintptr_t   volatile *rw_ptr      = (uintptr_t volatile *) __rw_ptr;
 
-  uintptr_t cur_rw_value = 1;
-  uintptr_t initial_value  = 0;
+  uintptr_t cur_rw_value  = 1;
+  uintptr_t initial_value = 0;
   uintptr_t rel_rw_pos, desired_value;
 
   while (cur_rw_value != initial_value)

@@ -47,33 +47,32 @@ u64 popcount64(u64 n)
   return(res);
 }
 
+#define __sb_find(op) \
+  u32 pos; \
+  if (!op((DWORD *) &pos, n)) pos = 0; \
+  return(pos);
+
 u32 first_lsb_pos32(u32 n)
 {
-  u32 pos;
-  if (!_BitScanForward((DWORD *) &pos, n)) pos = 0;
-  return(pos);
+  __sb_find(_BitScanForward);
 }
 
 u32 first_lsb_pos64(u64 n)
 {
-  u32 pos;
-  if (!_BitScanForward64((DWORD *) &pos, n)) pos = 0;
-  return(pos);
+  __sb_find(_BitScanForward64);
 }
 
 u32 first_msb_pos32(u32 n)
 {
-  u32 pos;
-  if (!_BitScanReverse((DWORD *) &pos, n)) pos = 0;
-  return(pos);
+  __sb_find(_BitScanReverse);
 }
 
 u32 first_msb_pos64(u64 n)
 {
-  u32 pos;
-  if (!_BitScanReverse64((DWORD *) &pos, n)) pos = 0;
-  return(pos);
+  __sb_find(_BitScanReverse64);
 }
+
+#undef __sb_find
 
 u32 atomic_add32(u32 volatile *addend, u32 value)
 {

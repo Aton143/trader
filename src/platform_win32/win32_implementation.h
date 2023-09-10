@@ -79,6 +79,7 @@ struct Global_Platform_State
   HANDLE          sync_event;
 
   OVERLAPPED      notify_overlapped;
+  Ring_Buffer    *job_queue;
 
   void           *main_fiber_address;
   u64             nonclient_mouse_pos;

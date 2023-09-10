@@ -87,5 +87,17 @@ u64 atomic_add64(u64 volatile *addend, u64 value)
   return(res);
 }
 
+u32 atomic_compare_exchange32(u32 volatile *dest, u32 compare, u32 new_value)
+{
+  u32 intial_value_at_dest = _InterlockedCompareExchange(dest, new_value, compare);
+  return(intial_value_at_dest);
+}
+
+u64 atomic_compare_exchange64(u64 volatile *dest, u64 compare, u64 new_value)
+{
+  u64 initial_value_at_dest = _InterlockedCompareExchange64((volatile LONG64 *) dest, new_value, compare);
+  return(initial_value_at_dest);
+}
+
 #define CL_IMPL_H
 #endif

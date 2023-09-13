@@ -41,11 +41,6 @@ static int   cube_line_it_order[] = {4, 0, 1, 2, 3, 5};
   printf("%" #format "]\n", (arr)[access_begin((count) - 1)access_end]);
 
 #define print_array(arr, count) print_array_access(arr, count, , , d)
-  /*
-  printf(#arr ":\n["); \
-  for (int i = 0; i < (count) - 1; ++i) printf("%d, ", (arr)[i]); \
-  printf("%d]\n", (arr)[(count) - 1]);
-  */
 
 #define print_static_array(arr) print_array(arr, array_count(arr))
 
@@ -125,27 +120,27 @@ void rotate_face(char *cube, int face, int dir)
     r[1] = copy[5];
     r[2] = copy[8];
 
-    r[4] = copy[1];
-    r[5] = copy[4];
-    r[6] = copy[7];
+    r[3] = copy[1];
+    r[4] = copy[4];
+    r[5] = copy[7];
 
-    r[7] = copy[0];
-    r[8] = copy[3];
-    r[9] = copy[6];
+    r[6] = copy[0];
+    r[7] = copy[3];
+    r[8] = copy[6];
   }
   else
   {
     r[0] = copy[6];
     r[1] = copy[3];
     r[2] = copy[0];
-
-    r[4] = copy[7];
-    r[5] = copy[4];
-    r[6] = copy[1];
-
-    r[7] = copy[8];
-    r[8] = copy[5];
-    r[9] = copy[2];
+        
+    r[3] = copy[7];
+    r[4] = copy[4];
+    r[5] = copy[1];
+        
+    r[6] = copy[8];
+    r[7] = copy[5];
+    r[8] = copy[2];
   }
 }
 
@@ -163,19 +158,6 @@ void rotate_slice(char *cube, int *slice, int dir)
   int start = (dir > 0) ? 0 : 4;
   int adder = (dir > 0) ? 2 : -2;
 
-  /*
-  char saved[12];
-
-  for (int i = 0; i < 12; ++i)
-  {
-    saved[i] = cube[slice[i]];
-  }
-
-  print_static_array(saved);
-  print_array_access(cube, 12, slice[, ], c);
-  print_array(slice, 12);
-  */
-
   for (int i = 0; i < 3; ++i)
   {
     for (int j = 0; j < 3; ++j)
@@ -184,16 +166,6 @@ void rotate_slice(char *cube, int *slice, int dir)
     }
     start += adder;
   }
-  /*
-
-  print_array(slice, 12);
-  print_array_access(cube, 12, slice[, ], c);
-
-  for (int i = 0; i < 9; ++i)
-  {
-    c[saved[i]] = slice[i];
-  }
-  */
 }
 
 void do_move(Move move)
@@ -224,14 +196,12 @@ void do_move(Move move)
 
   rotate_slice(c, slice, move.dir);
 
-  /*
-  if (move.level != 2)
+  if (move.level != 1)
   {
     int faces_map[2] = {4, 1};
     int face_to_rotate = faces_map[move.orientation] + (move.level / 2);
     rotate_face(c, face_to_rotate, move.dir);
   }
-  */
 }
 
 void print_cube(char *cube)
@@ -260,22 +230,6 @@ int main()
   {
     cube_line_it_order[i] *= 9;
   }
-
-  Move move = {cw, ud, 0};
-  do_move(move);
-  print_cube(c);
-
-  move = {cw, ud, 0};
-  do_move(move);
-  print_cube(c);
-
-  move = {cw, ud, 0};
-  do_move(move);
-  print_cube(c);
-
-  move = {cw, ud, 0};
-  do_move(move);
-  print_cube(c);
 
   return(0);
 }

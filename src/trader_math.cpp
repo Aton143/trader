@@ -265,6 +265,12 @@ internal inline f32 dot(V3_f32 u, V3_f32 v)
   return(dot_product);
 }
 
+V3_f32 operator +(V3_f32 a, V3_f32 b)
+{
+  V3_f32 res = add(a, b);
+  return(res);
+}
+
 internal inline V3_f32 normalize(V3_f32 u)
 {
   f32 squared_length_rec = sqrtf(dot(u, u));

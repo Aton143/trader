@@ -53,6 +53,28 @@ global_const i8 index_associations[26][3] =
   {26, 15, 51},
 };
 
+global_const f32 rsubcube_width = 0.25f;
+
+global_const V3_f32 rc_f = V3(0.0f, 0.0f,  rsubcube_width);
+global_const V3_f32 rc_b = V3(0.0f, 0.0f, -rsubcube_width);
+global_const V3_f32 rc_l = V3(-rsubcube_width, 0.0f, 0.0f);
+global_const V3_f32 rc_r = V3( rsubcube_width, 0.0f, 0.0f);
+global_const V3_f32 rc_u = V3(0.0f,  rsubcube_width, 0.0f);
+global_const V3_f32 rc_d = V3(0.0f, -rsubcube_width, 0.0f);
+
+global V3_f32 cube_translations[26] = 
+{
+  rc_f + rc_l + rc_u, 
+  rc_f        + rc_u,
+  rc_f + rc_r + rc_u,
+  rc_f + rc_l,
+  rc_f,
+  rc_f + rc_r,
+  rc_f + rc_l + rc_d,
+  rc_f        + rc_d,
+  rc_f + rc_r + rc_d,
+};
+
 typedef i8 Face_Color_Slot;
 enum
 {

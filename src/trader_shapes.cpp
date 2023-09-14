@@ -400,12 +400,13 @@ Render_Position make_cube(Arena *render_data, RGBA_f32 *face_colors)
   V2_f32 solid_color_uv = render_get_solid_color_uv();
 
   V4_f32 tl, tr, bl, br, normal;
+  f32 mag = rsubcube_width / 2.0f;
 
   // front
-  tl = V4(-0.25f,  0.25f,  0.25f, 1.0f);
-  tr = V4( 0.25f,  0.25f,  0.25f, 1.0f);
-  bl = V4(-0.25f, -0.25f,  0.25f, 1.0f);
-  br = V4( 0.25f, -0.25f,  0.25f, 1.0f);
+  tl = V4(-mag,  mag,  mag, 1.0f);
+  tr = V4( mag,  mag,  mag, 1.0f);
+  bl = V4(-mag, -mag,  mag, 1.0f);
+  br = V4( mag, -mag,  mag, 1.0f);
   normal = V4(0.0f, 0.0f, 1.0f, 1.0f);
 
   put_quad(&cur_vertex, tl, tr, bl, br, *face_colors++, normal);
@@ -417,10 +418,10 @@ Render_Position make_cube(Arena *render_data, RGBA_f32 *face_colors)
   put_quad(&cur_vertex, tl, tr, bl, br, *face_colors++, normal);
 
   // top
-  tl = V4(-0.25f,  0.25f, -0.25f, 1.0f);
-  tr = V4( 0.25f,  0.25f, -0.25f, 1.0f);
-  bl = V4(-0.25f,  0.25f,  0.25f, 1.0f);
-  br = V4( 0.25f,  0.25f,  0.25f, 1.0f);
+  tl = V4(-mag,  mag, -mag, 1.0f);
+  tr = V4( mag,  mag, -mag, 1.0f);
+  bl = V4(-mag,  mag,  mag, 1.0f);
+  br = V4( mag,  mag,  mag, 1.0f);
   normal = V4(0.0f, 1.0f, 0.0f, 1.0f);
 
   put_quad(&cur_vertex, tl, tr, bl, br, *face_colors++, normal);
@@ -432,10 +433,10 @@ Render_Position make_cube(Arena *render_data, RGBA_f32 *face_colors)
   put_quad(&cur_vertex, tl, tr, bl, br, *face_colors++, normal);
 
   // left
-  tl = V4( 0.25f,  0.25f, -0.25f, 1.0f);
-  tr = V4( 0.25f,  0.25f,  0.25f, 1.0f);
-  bl = V4( 0.25f, -0.25f, -0.25f, 1.0f);
-  br = V4( 0.25f, -0.25f,  0.25f, 1.0f);
+  tl = V4( mag,  mag, -mag, 1.0f);
+  tr = V4( mag,  mag,  mag, 1.0f);
+  bl = V4( mag, -mag, -mag, 1.0f);
+  br = V4( mag, -mag,  mag, 1.0f);
   normal = V4(-1.0f, 0.0f, 0.0f, 1.0f);
 
   put_quad(&cur_vertex, tl, tr, bl, br, *face_colors++, normal);

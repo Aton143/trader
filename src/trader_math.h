@@ -64,6 +64,9 @@ internal inline f32 dot(V3_f32 u, V3_f32 v);
 internal inline V3_f32 normalize(V3_f32 u);
 internal inline V3_f32 cross(V3_f32 u, V3_f32 v);
 
+internal inline V3_f32 add(V3_f32 u, V3_f32 v);
+internal inline V3_f32 operator +(V3_f32 a, V3_f32 b);
+
 internal inline V3_f32 triangle_normal_ccw(f32 *vertices, u32 to_next_vertex);
 
 internal inline f32 dot(V4_f32 u, V4_f32 v);

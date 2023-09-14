@@ -495,10 +495,12 @@ WinMain(HINSTANCE instance,
     global_state->iocp = iocp_handle;
   }
 
+  /*
   Handle *async_handle = handle_make(scu8l("..\\README.md"),
                                      handle_flag_file | handle_flag_async);
 
   platform_dispatch_read(global_arena, async_handle, 0, (u64) -1);
+  */
 
   String_Const_utf8 notify_dir = string_literal_init_type("..\\src\\platform_win32\\", utf8);
 
@@ -874,7 +876,6 @@ WinMain(HINSTANCE instance,
     // u32 sector_count = 4;
     // f32 point_count = (f32) array_count(points);
 
-    f32 shot_time = 0.0f;
     f32 pacc_time = 0.0f;
 
     Bucket_List particle_buckets = bucket_list_make(global_arena, 
@@ -988,6 +989,59 @@ WinMain(HINSTANCE instance,
         constant_buffer_items.projection = projection;
       }
 
+      RGBA_f32 face_colors[6] =
+      {
+        rgba_white,
+        rgba(1.0f, 0.0, 0.0f, 1.0f),
+        rgba(0.0f, 1.0, 0.0f, 1.0f),
+        rgba(0.0f, 0.0, 1.0f, 1.0f),
+        rgba(1.0f, 1.0, 0.0f, 1.0f),
+        rgba(1.0f, 0.0, 1.0f, 1.0f),
+      };
+
+      Render_Position cube_rp = make_cube(&common_render->triangle_render_data, face_colors);
+
+      {
+        Render_Command *command = (Render_Command *) common_render->command_queue.write;
+        RCK_Draw       *draw    = &command->draw;
+
+        u8 *vs_data_start = NULL;
+
+        {
+          draw = &command->draw;
+
+          command->kind = rck_draw;
+
+          vs_data_start = common_render->triangle_render_data.start + (cube_rp.start_pos * sizeof(Vertex_Buffer_Element));
+
+          draw->buffer_id       = 0;
+          draw->topology        = (u32) D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+          draw->per_vertex_size = sizeof(Vertex_Buffer_Element);
+          draw->vertex_count    = cube_rp.count;
+          draw->vertex_data     = vs_data_start;
+          draw->vertex_shader   = triangle_vertex_shader;
+          draw->pixel_shader    = triangle_pixel_shader;
+          draw->textures[0].srv = font_texture_view;
+          draw->textures[1].srv = cubemap_texture_view;
+
+          Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, -2.00f);
+          Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(pacc_time / 10.0f);
+          Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(pacc_time / 10.0f);
+
+          constant_buffer_items.model = matrix4x4_multiply(translation, matrix4x4_multiply(y_rotation, z_rotation));
+
+          copy_memory_block((void *) draw->constant_buffer_data, &constant_buffer_items, sizeof(constant_buffer_items));
+
+          pacc_time += (f32) global_state->dt;
+          if (pacc_time > 10.0f)
+          {
+            pacc_time = 0.0f;
+          }
+        }
+
+        render_push_commands(1);
+      }
+
       /*
       Render_Position cylinder_rp = make_cylinder(&common_render->triangle_render_data,
                                                   1.0f, 1.0f, 1.0f, 16, 1);
@@ -995,6 +1049,7 @@ WinMain(HINSTANCE instance,
       make_cylinder_along_path(&common_render->triangle_render_data, points, (u32) point_count, 0.05f, sector_count);
         */
 
+      /*
       pacc_time += 1.0f / 60.0f;
       if (pacc_time > 0.5f)
       {
@@ -1127,6 +1182,7 @@ WinMain(HINSTANCE instance,
 
         render_push_commands(4);
       }
+      */
 
       // NOTE(antonio): instances
       Render_Command *end = (Render_Command *) render->command_queue.write;

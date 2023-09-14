@@ -1,6 +1,6 @@
 #include "trader_shapes.h"
 
-void put_quad(Vertex_Buffer_Element **vertices, V4_f32 tl, V4_f32 tr, V4_f32 bl, V4_f32 br, RGBA_f32 color)
+void put_quad(Vertex_Buffer_Element **vertices, V4_f32 tl, V4_f32 tr, V4_f32 bl, V4_f32 br, RGBA_f32 color, V4_f32 normal)
 {
   Vertex_Buffer_Element *cur_vertex = *vertices;
   V2_f32 solid_color_uv = render_get_solid_color_uv();
@@ -10,21 +10,24 @@ void put_quad(Vertex_Buffer_Element **vertices, V4_f32 tl, V4_f32 tr, V4_f32 bl,
     vbe(
         tl,
         color,
-        solid_color_uv
+        solid_color_uv,
+        normal
        );
 
   *cur_vertex++ = 
     vbe(
         tr,
         color,
-        solid_color_uv
+        solid_color_uv,
+        normal
        );
 
   *cur_vertex++ = 
     vbe(
         bl,
         color,
-        solid_color_uv
+        solid_color_uv,
+        normal
        );
 
   // NOTE(antonio): tom triangle
@@ -32,21 +35,24 @@ void put_quad(Vertex_Buffer_Element **vertices, V4_f32 tl, V4_f32 tr, V4_f32 bl,
     vbe(
         tr,
         color,
-        solid_color_uv
+        solid_color_uv,
+        normal
        );
 
   *cur_vertex++ = 
     vbe(
         bl,
         color,
-        solid_color_uv
+        solid_color_uv,
+        normal
        );
 
   *cur_vertex++ = 
     vbe(
         br,
         color,
-        solid_color_uv
+        solid_color_uv,
+        normal
        );
 
   *vertices = cur_vertex;
@@ -382,7 +388,100 @@ Render_Position make_player(Arena *render_data)
   return(rp);
 }
 
-internal void batch_make_circle_particles(Bucket_List *bucket_list,
+Render_Position make_cube(Arena *render_data, RGBA_f32 *face_colors)
+{
+  u32 face_count = 6;
+  u32 cube_triangle_count = 2 * face_count;
+  u32 vertex_count = (vertices_per_triangle * cube_triangle_count);
+
+  Render_Position rp = {(u32) (render_data->used / sizeof(Vertex_Buffer_Element)), vertex_count};
+  Vertex_Buffer_Element *cur_vertex = push_array(render_data, Vertex_Buffer_Element, rp.count);
+
+  V2_f32 solid_color_uv = render_get_solid_color_uv();
+
+  V4_f32 tl, tr, bl, br, normal;
+
+  // front
+  tl = V4(-0.25f,  0.25f,  0.25f, 1.0f);
+  tr = V4( 0.25f,  0.25f,  0.25f, 1.0f);
+  bl = V4(-0.25f, -0.25f,  0.25f, 1.0f);
+  br = V4( 0.25f, -0.25f,  0.25f, 1.0f);
+  normal = V4(0.0f, 0.0f, 1.0f, 1.0f);
+
+  put_quad(&cur_vertex, tl, tr, bl, br, *face_colors++, normal);
+
+  // back
+  tl.z = tr.z = bl.z = br.z *= -1.0f;
+  normal.z *= -1.0f;
+
+  put_quad(&cur_vertex, tl, tr, bl, br, *face_colors++, normal);
+
+  // top
+  tl = V4(-0.25f,  0.25f, -0.25f, 1.0f);
+  tr = V4( 0.25f,  0.25f, -0.25f, 1.0f);
+  bl = V4(-0.25f,  0.25f,  0.25f, 1.0f);
+  br = V4( 0.25f,  0.25f,  0.25f, 1.0f);
+  normal = V4(0.0f, 1.0f, 0.0f, 1.0f);
+
+  put_quad(&cur_vertex, tl, tr, bl, br, *face_colors++, normal);
+
+  // bottom
+  tl.y = tr.y = bl.y = br.y *= -1.0f;
+  normal.y *= -1.0f;
+
+  put_quad(&cur_vertex, tl, tr, bl, br, *face_colors++, normal);
+
+  // left
+  tl = V4( 0.25f,  0.25f, -0.25f, 1.0f);
+  tr = V4( 0.25f,  0.25f,  0.25f, 1.0f);
+  bl = V4( 0.25f, -0.25f, -0.25f, 1.0f);
+  br = V4( 0.25f, -0.25f,  0.25f, 1.0f);
+  normal = V4(-1.0f, 0.0f, 0.0f, 1.0f);
+
+  put_quad(&cur_vertex, tl, tr, bl, br, *face_colors++, normal);
+
+  // right
+  tl.x = tr.x = bl.x = br.x *= -1.0f;
+  normal.x *= -1.0f;
+
+  put_quad(&cur_vertex, tl, tr, bl, br, *face_colors++, normal);
+
+  return(rp);
+}
+
+Render_Position make_rcube(Arena *render_data, R_Cube *cube)
+{
+  unused(cube);
+
+  u32 face_count = 6;
+  u32 cube_triangle_count = 2 * face_count;
+  u32 cube_vertex_count = (vertices_per_triangle * cube_triangle_count);
+
+  Render_Position rp = {(u32) (render_data->used / sizeof(Vertex_Buffer_Element)), cube_vertex_count * 26};
+
+  RGBA_f32 clear = rgba(0.0f, 0.0f, 0.0f, 0.0f);
+  RGBA_f32 clear_face_colors[6] = {clear, clear, clear, clear, clear, clear};
+  RGBA_f32 face_colors[6];
+
+  for (u32 association_index = 0;
+       association_index < array_count(index_associations);
+       ++association_index)
+  {
+    i8 *cur_associations = (i8 *) index_associations[association_index];
+    copy_memory_block(face_colors, clear_face_colors, sizeof(clear_face_colors));
+
+    for (u32 sticker_index = 0;
+         sticker_index < 3;
+         ++sticker_index)
+    {
+    unused(cur_associations);
+    }
+  }
+
+  return(rp);
+}
+
+void batch_make_circle_particles(Bucket_List *bucket_list,
                                           f32 min_lifetime,
                                           f32 max_lifetime,
                                           u32 min_count,

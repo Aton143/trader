@@ -450,9 +450,10 @@ Render_Position make_cube(Arena *render_data, RGBA_f32 *face_colors)
   return(rp);
 }
 
-internal inline u32 rcube_index_to_face(u32 index)
+internal inline u32 rcube_index_to_mesh_face(u32 index)
 {
-  u32 face = index / rcube_stickers_per_face;
+  static u32 map[6] = {0, 5, 1, 4, 2, 3};
+  u32 face = map[index / rcube_stickers_per_face];
   return(face);
 }
 
@@ -488,8 +489,8 @@ Render_Position make_rcube(Arena *render_data, R_Cube *cube)
         break;
       }
 
-      u32       association_face    = rcube_index_to_face(association);
       RGBA_f32 *association_color   = cube->color_map + cube->faces[association];
+      u32       association_face    = rcube_index_to_mesh_face(association);
       face_colors[association_face] = *association_color;
     }
 

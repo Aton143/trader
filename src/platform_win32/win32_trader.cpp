@@ -41,6 +41,7 @@ THREAD_RETURN io_thread_proc(void *_args)
 {
   unused(_args);
 
+  /*
   Global_Platform_State *global_state = platform_get_global_state();
 
   DWORD       file_bytes_read = 0;
@@ -61,6 +62,8 @@ THREAD_RETURN io_thread_proc(void *_args)
       platform_debug_print((char *) file_buffer->data);
     }
   }
+    */
+  return(0);
 }
 
 THREAD_RETURN render_thread_proc(void *_args)
@@ -1047,7 +1050,7 @@ WinMain(HINSTANCE instance,
 
           Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, -2.00f);
           Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(pacc_time / 10.0f);
-          Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(pacc_time / 5.0f);
+          Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(0.0f / 5.0f);
 
           constant_buffer_items.model = matrix4x4_multiply(translation, matrix4x4_multiply(y_rotation, z_rotation));
 

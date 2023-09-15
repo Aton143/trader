@@ -50,7 +50,7 @@ global_const i8 index_associations[26][3] =
   {21, 32, -1},
   {22, -1, -1},
   {23, 12, -1},
-  {24, 53, 25},
+  {24, 35, 25},
   {25, 52, -1},
   {26, 15, 51},
 };
@@ -87,15 +87,15 @@ global V3_f32 cube_translations[26] =
          rc_r + rc_d, // 34
                 rc_d, // 49
 
-  rc_b + rc_l + rc_u, 
-  rc_b        + rc_u,
-  rc_b + rc_r + rc_u,
-  rc_b + rc_l,
-  rc_b,
-  rc_b + rc_r,
-  rc_b + rc_l + rc_d,
-  rc_b        + rc_d,
-  rc_b + rc_r + rc_d,
+  rc_b + rc_r + rc_u, // 18
+  rc_b        + rc_u, // 19
+  rc_b + rc_l + rc_u, // 20
+  rc_b + rc_r,        // 21
+  rc_b,               // 22
+  rc_b + rc_l,        // 23
+  rc_b + rc_r + rc_d, // 24
+  rc_b        + rc_d, // 25
+  rc_b + rc_l + rc_d, // 26
 };
 
 typedef i8 Face_Color_Slot;

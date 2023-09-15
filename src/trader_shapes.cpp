@@ -450,15 +450,22 @@ Render_Position make_cube(Arena *render_data, RGBA_f32 *face_colors)
   return(rp);
 }
 
+internal inline u32 rcube_index_to_face(u32 index)
+{
+  u32 face = index / rcube_stickers_per_face;
+  return(face);
+}
+
 Render_Position make_rcube(Arena *render_data, R_Cube *cube)
 {
-  unused(cube);
-
   u32 face_count = 6;
   u32 cube_triangle_count = 2 * face_count;
   u32 cube_vertex_count = (vertices_per_triangle * cube_triangle_count);
 
   Render_Position rp = {(u32) (render_data->used / sizeof(Vertex_Buffer_Element)), cube_vertex_count * 26};
+
+  Vertex_Buffer_Element *cube_vertices;
+  Render_Position        cube_rp;
 
   RGBA_f32 clear = rgba(0.0f, 0.0f, 0.0f, 0.0f);
   RGBA_f32 clear_face_colors[6] = {clear, clear, clear, clear, clear, clear};
@@ -475,8 +482,27 @@ Render_Position make_rcube(Arena *render_data, R_Cube *cube)
          sticker_index < 3;
          ++sticker_index)
     {
-    unused(cur_associations);
+      i8 association = cur_associations[sticker_index];
+      if (association == -1)
+      {
+        break;
+      }
+
+      u32       association_face    = rcube_index_to_face(association);
+      RGBA_f32 *association_color   = cube->color_map + cube->faces[association];
+      face_colors[association_face] = *association_color;
     }
+
+     cube_rp       = make_cube(render_data, face_colors);
+     cube_vertices = ((Vertex_Buffer_Element *) render_data->start) + cube_rp.start_pos;
+
+     for (u32 vertex_index = 0;
+          vertex_index < cube_rp.count;
+          ++vertex_index)
+     {
+       cube_vertices->position._xyz = add(cube_vertices->position._xyz, cube_translations[association_index]);
+       cube_vertices++;
+     }
   }
 
   return(rp);

@@ -876,6 +876,27 @@ WinMain(HINSTANCE instance,
     // u32 sector_count = 4;
     // f32 point_count = (f32) array_count(points);
 
+    R_Cube cube;
+
+    cube.color_map[0] = rgba(1.0f, 0.0f, 0.0f, 1.0f);
+    cube.color_map[1] = rgba(0.0f, 1.0f, 0.0f, 1.0f);
+    cube.color_map[2] = rgba(0.0f, 0.0f, 1.0f, 1.0f);
+    cube.color_map[3] = rgba(1.0f, 1.0f, 0.0f, 1.0f);
+    cube.color_map[4] = rgba(1.0f, 0.0f, 1.0f, 1.0f);
+    cube.color_map[5] = rgba(0.0f, 1.0f, 1.0f, 1.0f);
+
+    for (u32 face_index = 0;
+         face_index < cube_face_count;
+         ++face_index)
+    {
+      for (u32 sticker_index = 0;
+           sticker_index < rcube_stickers_per_face;
+           ++sticker_index)
+      {
+        cube.faces[face_index * rcube_stickers_per_face + sticker_index] = (u8) face_index;
+      }
+    }
+
     f32 pacc_time = 0.0f;
 
     Bucket_List particle_buckets = bucket_list_make(global_arena, 
@@ -999,7 +1020,7 @@ WinMain(HINSTANCE instance,
         rgba(1.0f, 0.0, 1.0f, 1.0f),
       };
 
-      Render_Position cube_rp = make_cube(&common_render->triangle_render_data, face_colors);
+      Render_Position cube_rp = make_rcube(&common_render->triangle_render_data, &cube);
 
       {
         Render_Command *command = (Render_Command *) common_render->command_queue.write;

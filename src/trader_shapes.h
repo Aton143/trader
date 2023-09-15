@@ -20,7 +20,7 @@ struct Circle_Particle
 struct R_Cube
 {
   RGBA_f32 color_map[6];
-  u8       faces[54];
+  u8       faces[54]; // indices into color_map
 };
 
 global_const i8 index_associations[26][3] = 
@@ -34,6 +34,7 @@ global_const i8 index_associations[26][3] =
   { 6, 17, 45},
   { 7, 46, -1},
   { 8, 47, 33},
+
   {10, 39, -1},
   {13, -1, -1},
   {16, 48, -1},
@@ -42,6 +43,7 @@ global_const i8 index_associations[26][3] =
   {31, -1, -1},
   {34, 50, -1},
   {49, -1, -1},
+
   {18, 39, 29},
   {19, 37, -1},
   {20, 36,  9},
@@ -53,6 +55,8 @@ global_const i8 index_associations[26][3] =
   {26, 15, 51},
 };
 
+global_const u32 cube_face_count         = 6;
+global_const u32 rcube_stickers_per_face = 9;
 global_const f32 rsubcube_width = 0.25f;
 
 global_const V3_f32 rc_f = V3(0.0f, 0.0f,  rsubcube_width);
@@ -73,6 +77,25 @@ global V3_f32 cube_translations[26] =
   rc_f + rc_l + rc_d,
   rc_f        + rc_d,
   rc_f + rc_r + rc_d,
+
+         rc_l + rc_u, // 10
+         rc_l,        // 13
+         rc_l + rc_d, // 16
+                rc_u, // 40
+         rc_r + rc_u, // 41 
+         rc_r,        // 31
+         rc_r + rc_d, // 34
+                rc_d, // 49
+
+  rc_b + rc_l + rc_u, 
+  rc_b        + rc_u,
+  rc_b + rc_r + rc_u,
+  rc_b + rc_l,
+  rc_b,
+  rc_b + rc_r,
+  rc_b + rc_l + rc_d,
+  rc_b        + rc_d,
+  rc_b + rc_r + rc_d,
 };
 
 typedef i8 Face_Color_Slot;

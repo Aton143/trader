@@ -900,6 +900,10 @@ WinMain(HINSTANCE instance,
       }
     }
 
+    cube.cur_rotation       = -0.24f;
+    cube.face_moving        = 3;
+    cube.rotation_direction = 1;
+
     f32 pacc_time = 0.0f;
 
     Bucket_List particle_buckets = bucket_list_make(global_arena, 
@@ -998,7 +1002,7 @@ WinMain(HINSTANCE instance,
 
         Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, -0.8f, -1.5f);
         Matrix_f32_4x4 x_rotation  = matrix4x4_rotate_about_x(0.0f / 10.0f);
-        Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(0.0f / 10.0f);
+        Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(5.0f / 10.0f);
         Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(player_context->rotation);
 
         /*
@@ -1023,7 +1027,17 @@ WinMain(HINSTANCE instance,
         rgba(1.0f, 0.0, 1.0f, 1.0f),
       };
 
-      Render_Position cube_rp = make_rcube(&common_render->triangle_render_data, &cube);
+      Matrix_f32_4x4 translation    = matrix4x4_translate(0.0f, 0.0f, -2.0f);
+      Matrix_f32_4x4 y_rotation     = matrix4x4_rotate_about_y(5.0f / 10.0f);
+      Matrix_f32_4x4 z_rotation     = matrix4x4_rotate_about_z(0.0f / 10.0f);
+
+      Matrix_f32_4x4 cube_transform = matrix4x4_multiply(y_rotation, z_rotation);
+
+      Render_Position cube_rp = make_rcube(&common_render->triangle_render_data,
+                                           &cube,
+                                           &cube_transform,
+                                           V3(0.0f, 0.0f, -2.0f),
+                                           ui->mouse_pos);
 
       {
         Render_Command *command = (Render_Command *) common_render->command_queue.write;
@@ -1048,11 +1062,7 @@ WinMain(HINSTANCE instance,
           draw->textures[0].srv = font_texture_view;
           draw->textures[1].srv = cubemap_texture_view;
 
-          Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, -2.00f);
-          Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(pacc_time / 10.0f);
-          Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(0.0f / 5.0f);
-
-          constant_buffer_items.model = matrix4x4_multiply(translation, matrix4x4_multiply(y_rotation, z_rotation));
+          constant_buffer_items.model = matrix4x4_identity();
 
           copy_memory_block((void *) draw->constant_buffer_data, &constant_buffer_items, sizeof(constant_buffer_items));
 

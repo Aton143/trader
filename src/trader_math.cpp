@@ -45,7 +45,7 @@ internal inline f32 fast_powf(f32 a, f32 b) {
 
 internal inline f32 sin01f(f32 x)
 {
-  expect(is_between_inclusive(0.0f, x, 1.0f));
+  // expect(is_between_inclusive(0.0f, x, 1.0f));
   x *= tau_f32;
   f32 res = sinf(x);
   return(res);
@@ -53,7 +53,7 @@ internal inline f32 sin01f(f32 x)
 
 internal inline f32 cos01f(f32 x)
 {
-  expect(is_between_inclusive(0.0f, x, 1.0f));
+  // expect(is_between_inclusive(0.0f, x, 1.0f));
   x *= tau_f32;
   f32 res = cosf(x);
   return(res);
@@ -594,12 +594,13 @@ internal inline V3_f32 triangle_normal_ccw(f32 *vertices, u32 to_next_vertex)
 }
 
 // NOTE(antonio): ripped from Real-Time Collision Detecion
-internal inline b32 line_segment_triangle_intersect(V3_f32  p,
-                                                    V3_f32  q,
-                                                    V3_f32  a,
-                                                    V3_f32  b,
-                                                    V3_f32  c,
-                                                    f32    *intersect_t)
+internal inline b32 line_ray_triangle_intersect(V3_f32  p,
+                                                V3_f32  q,
+                                                V3_f32  a,
+                                                V3_f32  b,
+                                                V3_f32  c,
+                                                V3_f32  n,
+                                                f32    *intersect_t)
 {
   f32 t = 0.0f;
 
@@ -607,7 +608,7 @@ internal inline b32 line_segment_triangle_intersect(V3_f32  p,
   V3_f32 ca = subtract(c, a);
   V3_f32 pq = subtract(p, q);
 
-  V3_f32 n = cross(ba, ca);
+  // n = cross(ca, ba);
 
   f32 denom = dot(pq, n);
   if (denom <= 0.0f)
@@ -618,7 +619,7 @@ internal inline b32 line_segment_triangle_intersect(V3_f32  p,
   V3_f32 pa = subtract(p, a);
   t = dot(pa, n);
 
-  if (is_between_exclusive(0.0f, t, denom))
+  if (t < 0.0f)
   {
     return(false);
   }
@@ -626,13 +627,13 @@ internal inline b32 line_segment_triangle_intersect(V3_f32  p,
   V3_f32 e = cross(pq, pa);
 
   f32 v = dot(ca, e);
-  if ((0.0f < v) || (v > denom))
+  if ((v < 0.0f) || (v > denom))
   {
     return(false);
   }
 
   f32 w = -dot(ba, e);
-  if ((0.0f < w) || ((w + v) > denom))
+  if ((w < 0.0f) || ((w + v) > denom))
   {
     return(false);
   }

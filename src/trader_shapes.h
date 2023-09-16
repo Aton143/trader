@@ -21,6 +21,10 @@ struct R_Cube
 {
   RGBA_f32 color_map[6];
   u8       faces[54]; // indices into color_map
+
+  f32      cur_rotation;
+  i32      face_moving;
+  i32      rotation_direction;
 };
 
 global_const i8 index_associations[26][3] = 
@@ -44,13 +48,13 @@ global_const i8 index_associations[26][3] =
   {34, 50, -1},
   {49, -1, -1},
 
-  {18, 39, 29},
+  {18, 38, 29},
   {19, 37, -1},
   {20, 36,  9},
   {21, 32, -1},
   {22, -1, -1},
   {23, 12, -1},
-  {24, 35, 25},
+  {24, 35, 53},
   {25, 52, -1},
   {26, 15, 51},
 };

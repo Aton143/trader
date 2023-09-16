@@ -101,8 +101,8 @@ internal inline Matrix_f32_4x4 scale(f32 scale, Matrix_f32_4x4 a);
 
 internal inline Rect_f32 translate(Rect_f32 rect, V2_f32 v);
 
-internal inline b32 line_segment_triangle_intersect(V3_f32 line_segment_p0, V3_f32 line_segment_p1,
-                                                    V3_f32 triangle_a, V3_f32 triangle_b, V3_f32 triangle_c, f32 *t);
+internal inline b32 line_ray_triangle_intersect(V3_f32 line_segment_p0, V3_f32 line_segment_p1,
+                                                V3_f32 triangle_a, V3_f32 triangle_b, V3_f32 triangle_c, f32 *t);
 
 #define TRADER_MATH_H
 #endif

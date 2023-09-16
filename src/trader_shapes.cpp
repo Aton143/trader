@@ -16,7 +16,7 @@ void put_quad(Vertex_Buffer_Element **vertices, V4_f32 tl, V4_f32 tr, V4_f32 bl,
 
   *cur_vertex++ = 
     vbe(
-        tr,
+        bl,
         color,
         solid_color_uv,
         normal
@@ -24,13 +24,13 @@ void put_quad(Vertex_Buffer_Element **vertices, V4_f32 tl, V4_f32 tr, V4_f32 bl,
 
   *cur_vertex++ = 
     vbe(
-        bl,
+        tr,
         color,
         solid_color_uv,
         normal
        );
 
-  // NOTE(antonio): tom triangle
+  // NOTE(antonio): bottom triangle
   *cur_vertex++ = 
     vbe(
         tr,
@@ -450,15 +450,27 @@ Render_Position make_cube(Arena *render_data, RGBA_f32 *face_colors)
   return(rp);
 }
 
-internal inline u32 rcube_index_to_mesh_face(u32 index)
+internal inline i32 rcube_index_to_face(u32 index)
 {
-  static u32 map[6] = {0, 4, 1, 5, 2, 3};
-  u32 face = map[index / rcube_stickers_per_face];
+  i32 face = index / rcube_stickers_per_face;
   return(face);
 }
 
-Render_Position make_rcube(Arena *render_data, R_Cube *cube)
+internal inline u32 rcube_index_to_mesh_face(u32 index)
 {
+  static u32 map[6] = {0, 4, 1, 5, 2, 3};
+  u32 face = map[rcube_index_to_face(index)];
+  return(face);
+}
+
+Render_Position make_rcube(Arena *render_data,
+                           R_Cube *cube,
+                           Matrix_f32_4x4 *rotation_mat,
+                           V3_f32 translation,
+                           V2_f32 mouse_pos)
+{
+  //mouse_pos = V2(1178.0f, 494.0f);
+
   u32 face_count = 6;
   u32 cube_triangle_count = 2 * face_count;
   u32 cube_vertex_count   = (vertices_per_triangle * cube_triangle_count);
@@ -468,25 +480,43 @@ Render_Position make_rcube(Arena *render_data, R_Cube *cube)
   Vertex_Buffer_Element *cube_vertices;
   Render_Position        cube_rp;
 
+  Rect_f32 client_rect   = render_get_client_rect();
+  V3_f32   mouse_pos_3d  = V3((2 * (mouse_pos.x / rect_get_width(&client_rect))) - 1.0f,
+                              1.0f - (2 * (mouse_pos.y / rect_get_height(&client_rect))),
+                              -1.0f);
+  
+  f32 min_t = infinity_f32;
+  unused(min_t);
+
   RGBA_f32 clear = rgba(0.0f, 0.0f, 0.0f, 0.0f);
   RGBA_f32 clear_face_colors[6] = {clear, clear, clear, clear, clear, clear};
   RGBA_f32 face_colors[6];
 
-  u32 test = 23;
-  unused(test);
+  Matrix_f32_4x4 identity = matrix4x4_identity();
+  Matrix_f32_4x4 rotation = identity;
 
-#if 0
-  for (u32 association_index = test;
-       association_index < test + 1;
-       ++association_index)
-#else
+  if (cube->face_moving != -1)
+  {
+    f32 rot = lerpf(cube->cur_rotation, 0.01f, -cube->rotation_direction * 0.25f);
+
+    switch (cube->face_moving)
+    {
+      case 0: case 2: rotation = matrix4x4_rotate_about_z(rot); break;
+      case 1: case 3: rotation = matrix4x4_rotate_about_x(rot); break;
+      case 4: case 5: rotation = matrix4x4_rotate_about_y(rot); break;
+    }
+
+    cube->cur_rotation = rot;
+  }
+
   for (u32 association_index = 0;
        association_index < array_count(index_associations);
        ++association_index)
-#endif
   {
     i8 *cur_associations = (i8 *) index_associations[association_index];
     copy_memory_block(face_colors, clear_face_colors, sizeof(clear_face_colors));
+
+    b32 do_rotate = false;
 
     for (u32 sticker_index = 0;
          sticker_index < 3;
@@ -501,18 +531,71 @@ Render_Position make_rcube(Arena *render_data, R_Cube *cube)
       RGBA_f32 *association_color   = cube->color_map + cube->faces[association];
       u32       association_face    = rcube_index_to_mesh_face(association);
       face_colors[association_face] = *association_color;
+
+      if (cube->face_moving == rcube_index_to_face(association))
+      {
+        do_rotate = true;
+      }
     }
 
-     cube_rp       = make_cube(render_data, face_colors);
-     cube_vertices = ((Vertex_Buffer_Element *) render_data->start) + cube_rp.start_pos;
+    Matrix_f32_4x4 *cube_vertex_transform = do_rotate ? &rotation : &identity;
 
-     for (u32 vertex_index = 0;
-          vertex_index < cube_rp.count;
-          ++vertex_index)
-     {
-       cube_vertices->position._xyz = add(cube_vertices->position._xyz, cube_translations[association_index]);
-       cube_vertices++;
-     }
+    cube_rp       = make_cube(render_data, face_colors);
+    cube_vertices = ((Vertex_Buffer_Element *) render_data->start) + cube_rp.start_pos;
+
+    for (u32 vertex_index = 0;
+         vertex_index < cube_rp.count;
+         vertex_index += 3)
+    {
+      for (u32 tri_vert_index = 0;
+           tri_vert_index < 3;
+           ++tri_vert_index)
+      {
+        Vertex_Buffer_Element *cur_vert = cube_vertices + tri_vert_index;
+
+        V4_f32 cube_translation = V4(cube_translations[association_index], 1.0f);
+        cube_translation = transform(*cube_vertex_transform, cube_translation);
+
+        cur_vert->position = transform(*cube_vertex_transform, cur_vert->position);
+        cur_vert->position._xyz = add(cur_vert->position._xyz, cube_translation._xyz);
+        cur_vert->position = transform(*rotation_mat, cur_vert->position);
+        cur_vert->position = add(cur_vert->position, V4(translation, 0.0f));
+
+        cur_vert->normal._xyz = normalize(transform(*rotation_mat, cur_vert->normal)._xyz);
+      }
+
+      f32 t = infinity_f32;
+      b32 intersection_result =
+        line_ray_triangle_intersect(V3(0.0f, 0.0f, 0.0f), mouse_pos_3d,
+                                    cube_vertices[0].position._xyz, 
+                                    cube_vertices[1].position._xyz, 
+                                    cube_vertices[2].position._xyz, 
+                                    cube_vertices[0].normal._xyz,
+                                    &t);
+
+      if (intersection_result)
+      {
+        cube_vertices[0].color = rgba(0.5f, 0.5f, 0.5f, 1.0f);
+        cube_vertices[1].color = rgba(0.5f, 0.5f, 0.5f, 1.0f);
+        cube_vertices[2].color = rgba(0.5f, 0.5f, 0.5f, 1.0f);
+
+        line_ray_triangle_intersect(V3(0.0f, 0.0f, 0.0f), mouse_pos_3d,
+                                    cube_vertices[0].position._xyz, 
+                                    cube_vertices[1].position._xyz, 
+                                    cube_vertices[2].position._xyz, 
+                                    cube_vertices[0].normal._xyz,
+                                    NULL);
+      }
+
+      cube_vertices += 3;
+    }
+  }
+
+  if (absf(cube->cur_rotation) == 0.25f)
+  {
+    cube->cur_rotation = 0.0f;
+    cube->face_moving  = -1;
+    cube->rotation_direction = 0;
   }
 
   return(rp);

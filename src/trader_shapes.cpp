@@ -469,7 +469,7 @@ Render_Position make_rcube(Arena *render_data,
                            V3_f32 translation,
                            V2_f32 mouse_pos)
 {
-  //mouse_pos = V2(1178.0f, 494.0f);
+  // mouse_pos = V2(1178.0f, 494.0f);
 
   u32 face_count = 6;
   u32 cube_triangle_count = 2 * face_count;
@@ -481,6 +481,8 @@ Render_Position make_rcube(Arena *render_data,
   Render_Position        cube_rp;
 
   Rect_f32 client_rect   = render_get_client_rect();
+  // mouse_pos = V2(client_rect.x1 / 2.0f, client_rect.y1 / 2.0f);
+
   V3_f32   mouse_pos_3d  = V3((2 * (mouse_pos.x / rect_get_width(&client_rect))) - 1.0f,
                               1.0f - (2 * (mouse_pos.y / rect_get_height(&client_rect))),
                               -1.0f);
@@ -560,18 +562,27 @@ Render_Position make_rcube(Arena *render_data,
         cur_vert->position._xyz = add(cur_vert->position._xyz, cube_translation._xyz);
         cur_vert->position = transform(*rotation_mat, cur_vert->position);
         cur_vert->position = add(cur_vert->position, V4(translation, 0.0f));
+      }
 
-        cur_vert->normal._xyz = normalize(transform(*rotation_mat, cur_vert->normal)._xyz);
+      V4_f32 rotated_normal      = transform(*rotation_mat, cube_vertices[0].normal);
+      b32    do_swap_for_winding = (dot(rotated_normal._xyz, cube_vertices[0].normal._xyz) < 0.0f);
+
+      V3_f32 triangle[3] =
+      {
+        cube_vertices[0].position._xyz, 
+        cube_vertices[1].position._xyz, 
+        cube_vertices[2].position._xyz, 
+      };
+
+      if (do_swap_for_winding)
+      {
+        swap(V3_f32, triangle[0], triangle[1]);
       }
 
       f32 t = infinity_f32;
       b32 intersection_result =
         line_ray_triangle_intersect(V3(0.0f, 0.0f, 0.0f), mouse_pos_3d,
-                                    cube_vertices[0].position._xyz, 
-                                    cube_vertices[1].position._xyz, 
-                                    cube_vertices[2].position._xyz, 
-                                    cube_vertices[0].normal._xyz,
-                                    &t);
+                                    triangle[0], triangle[1], triangle[2], &t);
 
       if (intersection_result)
       {
@@ -583,7 +594,6 @@ Render_Position make_rcube(Arena *render_data,
                                     cube_vertices[0].position._xyz, 
                                     cube_vertices[1].position._xyz, 
                                     cube_vertices[2].position._xyz, 
-                                    cube_vertices[0].normal._xyz,
                                     NULL);
       }
 

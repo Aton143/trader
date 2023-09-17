@@ -900,7 +900,7 @@ WinMain(HINSTANCE instance,
       }
     }
 
-    cube.cur_rotation       = -0.24f;
+    cube.cur_rotation       = -0.25f;
     cube.face_moving        = 3;
     cube.rotation_direction = 1;
 
@@ -1002,7 +1002,7 @@ WinMain(HINSTANCE instance,
 
         Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, -0.8f, -1.5f);
         Matrix_f32_4x4 x_rotation  = matrix4x4_rotate_about_x(0.0f / 10.0f);
-        Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(5.0f / 10.0f);
+        Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(0.0f / 10.0f);
         Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(player_context->rotation);
 
         /*
@@ -1028,7 +1028,7 @@ WinMain(HINSTANCE instance,
       };
 
       Matrix_f32_4x4 translation    = matrix4x4_translate(0.0f, 0.0f, -2.0f);
-      Matrix_f32_4x4 y_rotation     = matrix4x4_rotate_about_y(5.0f / 10.0f);
+      Matrix_f32_4x4 y_rotation     = matrix4x4_rotate_about_y(0.0f / 10.0f);
       Matrix_f32_4x4 z_rotation     = matrix4x4_rotate_about_z(0.0f / 10.0f);
 
       Matrix_f32_4x4 cube_transform = matrix4x4_multiply(y_rotation, z_rotation);

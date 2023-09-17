@@ -599,7 +599,6 @@ internal inline b32 line_ray_triangle_intersect(V3_f32  p,
                                                 V3_f32  a,
                                                 V3_f32  b,
                                                 V3_f32  c,
-                                                V3_f32  n,
                                                 f32    *intersect_t)
 {
   f32 t = 0.0f;
@@ -608,7 +607,7 @@ internal inline b32 line_ray_triangle_intersect(V3_f32  p,
   V3_f32 ca = subtract(c, a);
   V3_f32 pq = subtract(p, q);
 
-  // n = cross(ca, ba);
+  V3_f32 n = cross(ba, ca);
 
   f32 denom = dot(pq, n);
   if (denom <= 0.0f)
@@ -640,7 +639,7 @@ internal inline b32 line_ray_triangle_intersect(V3_f32  p,
 
   if (intersect_t != NULL) 
   {
-    *intersect_t = t;
+    *intersect_t = (t / denom);
   }
 
   return(true);

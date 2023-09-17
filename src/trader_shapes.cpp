@@ -469,8 +469,6 @@ Render_Position make_rcube(Arena *render_data,
                            V3_f32 translation,
                            V2_f32 mouse_pos)
 {
-  // mouse_pos = V2(1178.0f, 494.0f);
-
   u32 face_count = 6;
   u32 cube_triangle_count = 2 * face_count;
   u32 cube_vertex_count   = (vertices_per_triangle * cube_triangle_count);
@@ -480,10 +478,10 @@ Render_Position make_rcube(Arena *render_data,
   Vertex_Buffer_Element *cube_vertices;
   Render_Position        cube_rp;
 
-  Rect_f32 client_rect   = render_get_client_rect();
-  // mouse_pos = V2(client_rect.x1 / 2.0f, client_rect.y1 / 2.0f);
+  Rect_f32 client_rect  = render_get_client_rect();
 
-  V3_f32   mouse_pos_3d  = V3((2 * (mouse_pos.x / rect_get_width(&client_rect))) - 1.0f,
+  // mouse_pos = V2(1140.0f, 485.0f);
+  V3_f32   mouse_pos_3d = V3((2 * (mouse_pos.x / rect_get_width(&client_rect))) - 1.0f,
                               1.0f - (2 * (mouse_pos.y / rect_get_height(&client_rect))),
                               -1.0f);
   
@@ -564,8 +562,7 @@ Render_Position make_rcube(Arena *render_data,
         cur_vert->position = add(cur_vert->position, V4(translation, 0.0f));
       }
 
-      V4_f32 rotated_normal      = transform(*rotation_mat, cube_vertices[0].normal);
-      b32    do_swap_for_winding = (dot(rotated_normal._xyz, cube_vertices[0].normal._xyz) < 0.0f);
+      V4_f32 rotated_normal = transform(*rotation_mat, transform(*cube_vertex_transform, cube_vertices[0].normal));
 
       V3_f32 triangle[3] =
       {
@@ -574,6 +571,13 @@ Render_Position make_rcube(Arena *render_data,
         cube_vertices[2].position._xyz, 
       };
 
+      V3_f32 ba    = subtract(triangle[1], triangle[0]);
+      V3_f32 ca    = subtract(triangle[2], triangle[0]);
+      V3_f32 tri_n = cross(ba, ca);
+
+      f32 n_tri_n_dot = dot(rotated_normal._xyz, tri_n);
+
+      b32 do_swap_for_winding = (n_tri_n_dot <= 0.0f);
       if (do_swap_for_winding)
       {
         swap(V3_f32, triangle[0], triangle[1]);
@@ -591,10 +595,7 @@ Render_Position make_rcube(Arena *render_data,
         cube_vertices[2].color = rgba(0.5f, 0.5f, 0.5f, 1.0f);
 
         line_ray_triangle_intersect(V3(0.0f, 0.0f, 0.0f), mouse_pos_3d,
-                                    cube_vertices[0].position._xyz, 
-                                    cube_vertices[1].position._xyz, 
-                                    cube_vertices[2].position._xyz, 
-                                    NULL);
+                                    triangle[0], triangle[1], triangle[2], NULL);
       }
 
       cube_vertices += 3;

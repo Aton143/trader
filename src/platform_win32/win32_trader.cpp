@@ -900,7 +900,7 @@ WinMain(HINSTANCE instance,
       }
     }
 
-    cube.cur_rotation       = -0.25f;
+    cube.cur_rotation       = 0.0f;
     cube.face_moving        = 3;
     cube.rotation_direction = 1;
 
@@ -978,6 +978,7 @@ WinMain(HINSTANCE instance,
       ui_make_panel(axis_split_vertical, &panel_floats[panel_float_index++], string_literal_init_type("first", utf8));
       ui_do_string(string_literal_init_type("Hello World!", utf8));
       ui_do_formatted_string("Mouse: (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
+      // platform_debug_printf("Mouse: (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
 
       ui_do_formatted_string("Raw Input Mouse: (%.0f, %.0f)",
                              global_player_context.mouse_pos.x,
@@ -1028,8 +1029,8 @@ WinMain(HINSTANCE instance,
       };
 
       Matrix_f32_4x4 translation    = matrix4x4_translate(0.0f, 0.0f, -2.0f);
-      Matrix_f32_4x4 y_rotation     = matrix4x4_rotate_about_y(0.0f / 10.0f);
-      Matrix_f32_4x4 z_rotation     = matrix4x4_rotate_about_z(0.0f / 10.0f);
+      Matrix_f32_4x4 y_rotation     = matrix4x4_rotate_about_y(pacc_time / 10.0f);
+      Matrix_f32_4x4 z_rotation     = matrix4x4_rotate_about_z(pacc_time / 10.0f);
 
       Matrix_f32_4x4 cube_transform = matrix4x4_multiply(y_rotation, z_rotation);
 

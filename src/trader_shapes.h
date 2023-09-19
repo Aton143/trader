@@ -23,7 +23,8 @@ struct R_Cube
   u8       faces[54]; // indices into color_map
 
   f32      cur_rotation;
-  i32      face_moving;
+  i32      face_rotating;
+  i32      level_rotating;
   i32      rotation_direction;
 };
 

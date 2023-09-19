@@ -526,18 +526,6 @@ Render_Position make_rcube(Arena          *render_data,
   Matrix_f32_4x4 identity = matrix4x4_identity();
   Matrix_f32_4x4 rotation = identity;
 
-  local_persist u32 rotating_indices[9]     = {};
-  local_persist u32 nonrotating_indices[26] = {};
-
-  u32 rotating_index    = 0;
-  u32 nonrotating_index = 0;
-
-  unused(rotating_index);
-  unused(nonrotating_index);
-
-  set_memory_block(rotating_indices,    (u8) -1, sizeof(rotating_indices));
-  set_memory_block(nonrotating_indices, (u8) -1, sizeof(nonrotating_indices));
-
   switch (cube->face_rotating)
   {
     case 0: case 2: rotation = matrix4x4_rotate_about_z(cube->cur_rotation); break;
@@ -649,12 +637,21 @@ Render_Position make_rcube(Arena          *render_data,
   }
 
   i32 user_rotating_face = (face_normal != NULL) ? rcube_face_normal_to_face(face_normal) : -1;
-  if (user_rotating_face != -1)
+  if (player_context->dragging)
+  {
+    if (cube->face_rotating == -1)
+    {
+      cube->face_rotating = user_rotating_face;
+    }
+  }
+  else
+  {
+    cube->face_rotating = -1;;
+  }
+
+  if (cube->face_rotating != -1)
   {
     platform_debug_printf("User is pointing at face normal: %d\n", user_rotating_face);
-
-    // now we try to do a rotation
-    cube->face_rotating = user_rotating_face;
 
     V2_f32 _cur_mouse_v  = subtract(cur_mouse_pos_norm, initial_mouse_pos_norm);
     V2_f32 _prev_mouse_v = subtract(prev_mouse_pos_norm, initial_mouse_pos_norm);

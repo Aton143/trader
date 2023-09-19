@@ -21,10 +21,12 @@ struct Player_Context
   f32 rotation;
   f32 lerp_factor;
 
-  b32    dragging;
+  b32 dragging;
+  u32 choose; // 0 -> no, 1 -> x, 2 -> y
 
   V2_f32 initial_mouse_pos;
   V2_f32 cur_mouse_pos;
+  V2_f32 prev_mouse_pos;
 };
 
 global u8 __input_queue_buffer[128];

@@ -512,8 +512,9 @@ Render_Position make_rcube(Arena          *render_data,
   Render_Position        cube_rp;
 
   // mouse_pos = V2(1140.0f, 485.0f);
-  V2_f32 mouse_pos_norm         = mouse_pos_normalize(player_context->cur_mouse_pos);
   V2_f32 initial_mouse_pos_norm = mouse_pos_normalize(player_context->initial_mouse_pos);
+  V2_f32 cur_mouse_pos_norm     = mouse_pos_normalize(player_context->cur_mouse_pos);
+  V2_f32 prev_mouse_pos_norm    = mouse_pos_normalize(player_context->prev_mouse_pos);
 
   f32     min_t       = infinity_f32;
   V4_f32 *face_normal = NULL;
@@ -642,17 +643,31 @@ Render_Position make_rcube(Arena          *render_data,
     // now we try to do a rotation
     cube->face_moving = user_rotating_face;
 
-    V2_f32 _mouse_v = subtract(mouse_pos_norm, initial_mouse_pos_norm);
-    V3_f32 mouse_v  = V3(_mouse_v.x, _mouse_v.y, 0.0f);
+    V2_f32 _cur_mouse_v  = subtract(cur_mouse_pos_norm, initial_mouse_pos_norm);
+    V2_f32 _prev_mouse_v = subtract(prev_mouse_pos_norm, initial_mouse_pos_norm);
+
+    V3_f32 cur_mouse_v  = V3(_cur_mouse_v.x, _cur_mouse_v.y, 0.0f);
 
     V3_f32 rotation_x_axis = matrix4x4_get_cols(*rotation_mat, 0)._xyz;
     V3_f32 rotation_y_axis = matrix4x4_get_cols(*rotation_mat, 1)._xyz;
 
-    f32 mouse_v_x_dot = dot(mouse_v, rotation_x_axis);
-    f32 mouse_v_y_dot = dot(mouse_v, rotation_y_axis);
+    f32 mouse_v_x_dot = dot(cur_mouse_v, rotation_x_axis);
+    f32 mouse_v_y_dot = dot(cur_mouse_v, rotation_y_axis);
 
-    f32 *choice = (absf(mouse_v_x_dot) > absf(mouse_v_y_dot)) ? &mouse_v_x_dot : &mouse_v_y_dot;
-    cube->cur_rotation = -*choice;
+    const f32 inner_circle_radius = 0.002f;
+    b32 cur_in  = (squared_length(_cur_mouse_v)  < inner_circle_radius);
+    b32 prev_in = (squared_length(_prev_mouse_v) < inner_circle_radius);
+
+    if (cur_in != prev_in)
+    {
+      if (prev_in) player_context->choose = (absf(mouse_v_x_dot) < absf(mouse_v_y_dot)) + 1;
+      else         player_context->choose = 0;
+    }
+
+    if (player_context->choose != 0)
+    {
+      cube->cur_rotation = -1.0f * (player_context->choose == 1 ? mouse_v_x_dot : mouse_v_y_dot);
+    }
   }
 
   if (absf(cube->cur_rotation) == 0.25f)

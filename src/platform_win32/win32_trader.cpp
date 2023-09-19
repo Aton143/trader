@@ -1247,6 +1247,7 @@ WinMain(HINSTANCE instance,
 
       // Post-frame
       global_state->focus_event = focus_event_none;
+      player_context->prev_mouse_pos = player_context->cur_mouse_pos;
 
       for (u32 file_index = 0;
            file_index < array_count(global_state->changed_files);

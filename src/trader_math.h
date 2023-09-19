@@ -78,9 +78,10 @@ internal inline V4_f32 reflect_about_xz(V4_f32 v);
 internal inline V4_f32 reflect_about_xy(V4_f32 v);
 internal inline V4_f32 reflect_about_yz(V4_f32 v);
 
-#define matrix_row_count(m) array_count((m)->rows)
-#define matrix_col_count(m) array_count((m)->row0.v)
+#define matrix_row_count(m) (array_count((m)->rows))
+#define matrix_col_count(m) (array_count((m)->row0.v))
 
+internal inline V4_f32         matrix4x4_get_cols(Matrix_f32_4x4 matrix, u32 n);
 internal inline Matrix_f32_4x4 matrix4x4_from_rows(V4_f32 row0, V4_f32 row1, V4_f32 row2, V4_f32 row3);
 internal inline Matrix_f32_4x4 matrix4x4_translate(f32 x, f32 y, f32 z);
 internal inline Matrix_f32_4x4 matrix4x4_diagonals(f32 row0, f32 row1, f32 row2, f32 row3);

@@ -901,8 +901,8 @@ WinMain(HINSTANCE instance,
     }
 
     cube.cur_rotation       = 0.0f;
-    cube.face_moving        = 3;
-    cube.rotation_direction = 1;
+    cube.face_moving        = -1;
+    cube.rotation_direction = 0;
 
     f32 pacc_time = 0.0f;
 
@@ -925,6 +925,21 @@ WinMain(HINSTANCE instance,
       TIMED_BLOCK_START();
 
       SwitchToFiber(win32_message_fiber_handle);
+
+      if (ui->cur_frame_mouse_event & mouse_event_lclick)
+      {
+        if (!player_context->dragging)
+        {
+          player_context->dragging = true;
+          player_context->initial_mouse_pos = ui->mouse_pos;
+        }
+      }
+      else
+      {
+        player_context->dragging = false;
+      }
+
+      player_context->cur_mouse_pos = ui->mouse_pos;
       
       global_state->render_thread_can_start_processing = true;
 
@@ -978,15 +993,6 @@ WinMain(HINSTANCE instance,
       ui_make_panel(axis_split_vertical, &panel_floats[panel_float_index++], string_literal_init_type("first", utf8));
       ui_do_string(string_literal_init_type("Hello World!", utf8));
       ui_do_formatted_string("Mouse: (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
-      // platform_debug_printf("Mouse: (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
-
-      ui_do_formatted_string("Raw Input Mouse: (%.0f, %.0f)",
-                             global_player_context.mouse_pos.x,
-                             global_player_context.mouse_pos.y);
-
-      ui_do_formatted_string("Raw Input Mouse Delta: (%.0f, %.0f)",
-                             global_player_context.mouse_delta.x,
-                             global_player_context.mouse_delta.y);
 
       ui_prepare_render_from_panels(ui_get_sentinel_panel(), client_rect);
 
@@ -1028,9 +1034,9 @@ WinMain(HINSTANCE instance,
         rgba(1.0f, 0.0, 1.0f, 1.0f),
       };
 
-      Matrix_f32_4x4 translation    = matrix4x4_translate(0.0f, 0.0f, -2.0f);
-      Matrix_f32_4x4 y_rotation     = matrix4x4_rotate_about_y(pacc_time / 10.0f);
-      Matrix_f32_4x4 z_rotation     = matrix4x4_rotate_about_z(pacc_time / 10.0f);
+      Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, -2.0f);
+      Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(1 / 10.0f);
+      Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(0 / 10.0f);
 
       Matrix_f32_4x4 cube_transform = matrix4x4_multiply(y_rotation, z_rotation);
 
@@ -1038,7 +1044,7 @@ WinMain(HINSTANCE instance,
                                            &cube,
                                            &cube_transform,
                                            V3(0.0f, 0.0f, -2.0f),
-                                           ui->mouse_pos);
+                                           player_context);
 
       {
         Render_Command *command = (Render_Command *) common_render->command_queue.write;

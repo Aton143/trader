@@ -242,5 +242,7 @@ internal b32 render_atlas_initialize(Arena         *arena,
 internal THREAD_RETURN THREAD_CALL_CONVENTION render_thread_proc(void *args);
 internal inline void render_push_commands(u32 count);
 
+internal inline V2_f32 mouse_pos_normalize(V2_f32 mouse_pos);
+
 #define TRADER_RENDER_H
 #endif

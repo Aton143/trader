@@ -335,6 +335,13 @@ internal inline V4_f32 wide_clamp(V4_f32 bottom, V4_f32 v, V4_f32 top)
   return(res);
 }
 
+V4_f32 matrix4x4_get_cols(Matrix_f32_4x4 matrix, u32 n)
+{
+  expect(is_between_inclusive(0, n, 4));
+  V4_f32 result = V4(matrix.row0.v[n], matrix.row1.v[n], matrix.row2.v[n], matrix.row3.v[n]);
+  return(result);
+}
+
 internal inline Matrix_f32_4x4 matrix4x4_from_rows(V4_f32 row0, V4_f32 row1, V4_f32 row2, V4_f32 row3)
 {
   Matrix_f32_4x4 mat = {row0, row1, row2, row3};
@@ -594,12 +601,7 @@ internal inline V3_f32 triangle_normal_ccw(f32 *vertices, u32 to_next_vertex)
 }
 
 // NOTE(antonio): ripped from Real-Time Collision Detecion
-internal inline b32 line_ray_triangle_intersect(V3_f32  p,
-                                                V3_f32  q,
-                                                V3_f32  a,
-                                                V3_f32  b,
-                                                V3_f32  c,
-                                                f32    *intersect_t)
+b32 line_ray_triangle_intersect(V3_f32 p, V3_f32 q, V3_f32 a, V3_f32 b, V3_f32 c, f32 *intersect_t)
 {
   f32 t = 0.0f;
 

@@ -463,11 +463,44 @@ internal inline u32 rcube_index_to_mesh_face(u32 index)
   return(face);
 }
 
-Render_Position make_rcube(Arena *render_data,
-                           R_Cube *cube,
+internal inline i32 rcube_face_normal_to_face(V4_f32 *face_normal)
+{
+  if (face_normal->x == 1.0f)
+  {
+    return 3;
+  }
+  else if (face_normal->x == -1.0f)
+  {
+    return 1;
+  }
+  else if (face_normal->y == 1.0f)
+  {
+    return 4;
+  }
+  else if (face_normal->y == -1.0f)
+  {
+    return 5;
+  }
+  else if (face_normal->z == 1.0f)
+  {
+    return 0;
+  }
+  else if (face_normal->z == -1.0f)
+  {
+    return 2;
+  }
+  else
+  {
+    expect_message(false, "Did not expect this face_normal");
+    return -1;
+  }
+}
+
+Render_Position make_rcube(Arena          *render_data,
+                           R_Cube         *cube,
                            Matrix_f32_4x4 *rotation_mat,
-                           V3_f32 translation,
-                           V2_f32 mouse_pos)
+                           V3_f32          translation,
+                           Player_Context *player_context)
 {
   u32 face_count = 6;
   u32 cube_triangle_count = 2 * face_count;
@@ -478,15 +511,12 @@ Render_Position make_rcube(Arena *render_data,
   Vertex_Buffer_Element *cube_vertices;
   Render_Position        cube_rp;
 
-  Rect_f32 client_rect  = render_get_client_rect();
-
   // mouse_pos = V2(1140.0f, 485.0f);
-  V3_f32   mouse_pos_3d = V3((2 * (mouse_pos.x / rect_get_width(&client_rect))) - 1.0f,
-                              1.0f - (2 * (mouse_pos.y / rect_get_height(&client_rect))),
-                              -1.0f);
-  
-  f32 min_t = infinity_f32;
-  unused(min_t);
+  V2_f32 mouse_pos_norm         = mouse_pos_normalize(player_context->cur_mouse_pos);
+  V2_f32 initial_mouse_pos_norm = mouse_pos_normalize(player_context->initial_mouse_pos);
+
+  f32     min_t       = infinity_f32;
+  V4_f32 *face_normal = NULL;
 
   RGBA_f32 clear = rgba(0.0f, 0.0f, 0.0f, 0.0f);
   RGBA_f32 clear_face_colors[6] = {clear, clear, clear, clear, clear, clear};
@@ -495,18 +525,11 @@ Render_Position make_rcube(Arena *render_data,
   Matrix_f32_4x4 identity = matrix4x4_identity();
   Matrix_f32_4x4 rotation = identity;
 
-  if (cube->face_moving != -1)
+  switch (cube->face_moving)
   {
-    f32 rot = lerpf(cube->cur_rotation, 0.01f, -cube->rotation_direction * 0.25f);
-
-    switch (cube->face_moving)
-    {
-      case 0: case 2: rotation = matrix4x4_rotate_about_z(rot); break;
-      case 1: case 3: rotation = matrix4x4_rotate_about_x(rot); break;
-      case 4: case 5: rotation = matrix4x4_rotate_about_y(rot); break;
-    }
-
-    cube->cur_rotation = rot;
+    case 0: case 2: rotation = matrix4x4_rotate_about_z(cube->cur_rotation); break;
+    case 1: case 3: rotation = matrix4x4_rotate_about_x(cube->cur_rotation); break;
+    case 4: case 5: rotation = matrix4x4_rotate_about_y(cube->cur_rotation); break;
   }
 
   for (u32 association_index = 0;
@@ -562,44 +585,74 @@ Render_Position make_rcube(Arena *render_data,
         cur_vert->position = add(cur_vert->position, V4(translation, 0.0f));
       }
 
-      V4_f32 rotated_normal = transform(*rotation_mat, transform(*cube_vertex_transform, cube_vertices[0].normal));
-
-      V3_f32 triangle[3] =
+      if (player_context->dragging)
       {
-        cube_vertices[0].position._xyz, 
-        cube_vertices[1].position._xyz, 
-        cube_vertices[2].position._xyz, 
-      };
+        V4_f32 rotated_normal = transform(*rotation_mat, transform(*cube_vertex_transform, cube_vertices[0].normal));
 
-      V3_f32 ba    = subtract(triangle[1], triangle[0]);
-      V3_f32 ca    = subtract(triangle[2], triangle[0]);
-      V3_f32 tri_n = cross(ba, ca);
+        V3_f32 triangle[3] =
+        {
+          cube_vertices[0].position._xyz, 
+          cube_vertices[1].position._xyz, 
+          cube_vertices[2].position._xyz, 
+        };
 
-      f32 n_tri_n_dot = dot(rotated_normal._xyz, tri_n);
+        V3_f32 ba    = subtract(triangle[1], triangle[0]);
+        V3_f32 ca    = subtract(triangle[2], triangle[0]);
+        V3_f32 tri_n = cross(ba, ca);
 
-      b32 do_swap_for_winding = (n_tri_n_dot <= 0.0f);
-      if (do_swap_for_winding)
-      {
-        swap(V3_f32, triangle[0], triangle[1]);
-      }
+        f32 n_tri_n_dot = dot(rotated_normal._xyz, tri_n);
 
-      f32 t = infinity_f32;
-      b32 intersection_result =
-        line_ray_triangle_intersect(V3(0.0f, 0.0f, 0.0f), mouse_pos_3d,
-                                    triangle[0], triangle[1], triangle[2], &t);
+        b32 do_swap_for_winding = (n_tri_n_dot <= 0.0f);
+        if (do_swap_for_winding)
+        {
+          swap(V3_f32, triangle[0], triangle[1]);
+        }
 
-      if (intersection_result)
-      {
-        cube_vertices[0].color = rgba(0.5f, 0.5f, 0.5f, 1.0f);
-        cube_vertices[1].color = rgba(0.5f, 0.5f, 0.5f, 1.0f);
-        cube_vertices[2].color = rgba(0.5f, 0.5f, 0.5f, 1.0f);
+        f32 t = infinity_f32;
+        V3_f32 mouse_pos_3d = V3(initial_mouse_pos_norm.x, initial_mouse_pos_norm.y, -1.0f);
 
-        line_ray_triangle_intersect(V3(0.0f, 0.0f, 0.0f), mouse_pos_3d,
-                                    triangle[0], triangle[1], triangle[2], NULL);
+        b32 intersection_result =
+          line_ray_triangle_intersect(V3(0.0f, 0.0f, 0.0f), mouse_pos_3d,
+                                      triangle[0], triangle[1], triangle[2], &t);
+
+        if (intersection_result && (t < min_t))
+        {
+          RGBA_f32 tri_color = rgba((mouse_pos_3d.x + 1.0f) / 2.0f,
+                                    (mouse_pos_3d.y + 1.0f) / 2.0f,
+                                    1.0f, 1.0f);
+
+          cube_vertices[0].color = tri_color;
+          cube_vertices[1].color = tri_color;
+          cube_vertices[2].color = tri_color;
+
+          min_t = t;
+          face_normal = &cube_vertices[0].normal;
+        }
       }
 
       cube_vertices += 3;
     }
+  }
+
+  i32 user_rotating_face = (face_normal != NULL) ? rcube_face_normal_to_face(face_normal) : -1;
+  if (user_rotating_face != -1)
+  {
+    platform_debug_printf("User is pointing at face normal: %d\n", user_rotating_face);
+
+    // now we try to do a rotation
+    cube->face_moving = user_rotating_face;
+
+    V2_f32 _mouse_v = subtract(mouse_pos_norm, initial_mouse_pos_norm);
+    V3_f32 mouse_v  = V3(_mouse_v.x, _mouse_v.y, 0.0f);
+
+    V3_f32 rotation_x_axis = matrix4x4_get_cols(*rotation_mat, 0)._xyz;
+    V3_f32 rotation_y_axis = matrix4x4_get_cols(*rotation_mat, 1)._xyz;
+
+    f32 mouse_v_x_dot = dot(mouse_v, rotation_x_axis);
+    f32 mouse_v_y_dot = dot(mouse_v, rotation_y_axis);
+
+    f32 *choice = (absf(mouse_v_x_dot) > absf(mouse_v_y_dot)) ? &mouse_v_x_dot : &mouse_v_y_dot;
+    cube->cur_rotation = -*choice;
   }
 
   if (absf(cube->cur_rotation) == 0.25f)

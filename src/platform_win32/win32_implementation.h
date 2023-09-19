@@ -1317,6 +1317,14 @@ u64 platform_get_processor_time_stamp(void)
   return(ts);
 }
 
+V2_f32 mouse_pos_normalize(V2_f32 mouse_pos)
+{
+  Rect_f32 client_rect = render_get_client_rect();
+  V2_f32   normed      = V2((2 * (mouse_pos.x / rect_get_width(&client_rect))) - 1.0f,
+                            1.0f - (2 * (mouse_pos.y / rect_get_height(&client_rect))));
+  return(normed);
+}
+
 void win32_load_skybox(Bitmap *bitmaps)
 {
   Arena *temp_arena = get_temp_arena();
@@ -1486,15 +1494,13 @@ LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM wparam, 
           f32 width  = (f32) GetSystemMetrics(virtual_desktop ? SM_CXVIRTUALSCREEN : SM_CXSCREEN);
           f32 height = (f32) GetSystemMetrics(virtual_desktop ? SM_CYVIRTUALSCREEN : SM_CYSCREEN);
 
-          global_player_context.mouse_pos = V2((mouse_data->lLastX / 65535.0f) * width,
-                                               (mouse_data->lLastY / 65535.0f) * height);
+          unused(width);
+          unused(height);
         }
         else if ((mouse_data->usFlags & MOUSE_MOVE_RELATIVE) == MOUSE_MOVE_RELATIVE)
         {
           V2_f32 mouse_delta = V2((f32) mouse_data->lLastX, (f32) mouse_data->lLastY);
-
-          global_player_context.mouse_delta = mouse_delta;
-          global_player_context.mouse_pos   = add(global_player_context.mouse_pos, mouse_delta);
+          unused(mouse_delta);
         }
       }
     } break;
@@ -1667,26 +1673,6 @@ LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM wparam, 
           ui_add_key_event(key, is_key_down);
           player_add_input(key, is_key_down);
         }
-
-        /*
-        // Submit individual left/right modifier events
-        if (vk == VK_SHIFT)
-        {
-        // Important: Shift keys tend to get stuck when pressed together, missing key-up events are corrected in ImGui_ImplWin32_ProcessKeyEventsWorkarounds()
-        if (IsVkDown(VK_LSHIFT) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_LeftShift, is_key_down, VK_LSHIFT, scancode); }
-        if (IsVkDown(VK_RSHIFT) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_RightShift, is_key_down, VK_RSHIFT, scancode); }
-        }
-        else if (vk == VK_CONTROL)
-        {
-        if (IsVkDown(VK_LCONTROL) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_LeftCtrl, is_key_down, VK_LCONTROL, scancode); }
-        if (IsVkDown(VK_RCONTROL) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_RightCtrl, is_key_down, VK_RCONTROL, scancode); }
-        }
-        else if (vk == VK_MENU)
-        {
-        if (IsVkDown(VK_LMENU) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_LeftAlt, is_key_down, VK_LMENU, scancode); }
-        if (IsVkDown(VK_RMENU) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_RightAlt, is_key_down, VK_RMENU, scancode); }
-        }
-        */
       }
 
       if (wparam == VK_ESCAPE)

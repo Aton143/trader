@@ -903,7 +903,6 @@ WinMain(HINSTANCE instance,
     cube.cur_rotation       = 0.0f;
     cube.face_rotating      = -1;
     cube.level_rotating     = -1;
-    cube.rotation_direction = 0;
 
     f32 pacc_time = 0.0f;
 

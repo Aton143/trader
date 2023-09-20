@@ -496,6 +496,38 @@ internal inline i32 rcube_face_normal_to_face(V4_f32 *face_normal)
   }
 }
 
+internal inline void rcube_normal_association_to_move_direction(RCube_Move_Direction *move_directions,
+                                                                V4_f32               *normal,
+                                                                u32                   association_index)
+{
+  i32 face = rcube_face_normal_to_face(normal);
+
+  i8 *associations = (i8 *) index_associations[association_index];
+  for (u32 sticker_index = 0; sticker_index < 3; ++sticker_index)
+  {
+    i32 association = associations[sticker_index];
+    if (association == -1)
+    {
+      break;
+    }
+
+    i32 association_face = association / rcube_stickers_per_face;
+    if (face == association_face)
+    {
+      i32 remapped_association_face = association % rcube_stickers_per_face;
+
+      move_directions->face        = (i8) face;
+      move_directions->level       = (i8) (remapped_association_face / 3);
+      move_directions->orientation = (i8) oud;
+
+      move_directions++;
+      move_directions->face        = (i8) face;
+      move_directions->level       = (i8) (remapped_association_face % 3);
+      move_directions->orientation = (i8) olr;
+    }
+  }
+}
+
 Render_Position make_rcube(Arena          *render_data,
                            R_Cube         *cube,
                            Matrix_f32_4x4 *rotation_mat,
@@ -518,6 +550,9 @@ Render_Position make_rcube(Arena          *render_data,
   f32     min_t        = infinity_f32;
   V4_f32 *face_normal  = NULL;
   i32     chosen_index = -1;
+
+  RCube_Move_Direction move_directions[2];
+  unused(move_directions);
 
   RGBA_f32 clear = rgba(0.0f, 0.0f, 0.0f, 0.0f);
   RGBA_f32 clear_face_colors[6] = {clear, clear, clear, clear, clear, clear};
@@ -558,7 +593,10 @@ Render_Position make_rcube(Arena          *render_data,
 
       if (cube->face_rotating == rcube_index_to_face(association))
       {
-        do_rotate = true;
+        i32 remapped_association = association % rcube_stickers_per_face;
+        i32 level = (cube->orientation == oud) ? (remapped_association / 3) : (remapped_association % 3);
+
+        do_rotate = (cube->level_rotating == level);
       }
     }
 
@@ -641,12 +679,13 @@ Render_Position make_rcube(Arena          *render_data,
   {
     if (cube->face_rotating == -1)
     {
-      cube->face_rotating = user_rotating_face;
+      rcube_normal_association_to_move_direction(move_directions, face_normal, chosen_index);
+      cube->face_rotating = move_directions[0].face;
     }
   }
   else
   {
-    cube->face_rotating = -1;;
+    cube->face_rotating = -1;
   }
 
   if (cube->face_rotating != -1)
@@ -670,13 +709,23 @@ Render_Position make_rcube(Arena          *render_data,
 
     if (cur_in != prev_in)
     {
-      if (prev_in) player_context->choose = (absf(mouse_v_x_dot) < absf(mouse_v_y_dot)) + 1;
-      else         player_context->choose = 0;
+      if (prev_in)
+      {
+        player_context->choose = (absf(mouse_v_x_dot) < absf(mouse_v_y_dot)) + 1;
+      }
+      else
+      {
+        player_context->choose = 0;
+      }
     }
 
     if (player_context->choose != 0)
     {
-      cube->cur_rotation = -1.0f * (player_context->choose == 1 ? mouse_v_x_dot : mouse_v_y_dot);
+      cube->cur_rotation   = -1.0f * ((player_context->choose == 1) ? mouse_v_x_dot : mouse_v_y_dot);
+
+      i32 move_direction_index = player_context->choose - 1;
+      cube->level_rotating     = move_directions[move_direction_index].level;
+      cube->level_rotating     = move_directions[move_direction_index].orientation;
     }
   }
 
@@ -684,7 +733,6 @@ Render_Position make_rcube(Arena          *render_data,
   {
     cube->cur_rotation = 0.0f;
     cube->face_rotating  = -1;
-    cube->rotation_direction = 0;
   }
 
   return(rp);

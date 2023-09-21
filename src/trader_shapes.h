@@ -24,11 +24,20 @@ enum
 };
 typedef i8 Orientation;
 
+enum
+{
+  ccw = -1,
+  cw  = 1,
+};
+
 struct RCube_Move_Direction
 {
   i8 face;
   i8 level;
+  i8 associated_face;
   Orientation orientation;
+  V3_f32      rotation_vector;
+  i8 accepted_faces[4];
 };
 
 struct R_Cube
@@ -40,6 +49,7 @@ struct R_Cube
   i32         face_rotating;
   i32         level_rotating;
   Orientation orientation;
+  V3_f32      rotating_about;
 };
 
 global_const i8 index_associations[26][3] = 

@@ -674,12 +674,25 @@ Render_Position make_rcube(Arena          *render_data,
         // i32 remapped_association = association % rcube_stickers_per_face;
         // i32 level = (cube->orientation == oud) ? (remapped_association / 3) : (remapped_association % 3);
 
-        i8 band_plane = move_directions[cube->orientation].band_plane;
+        static b8 do_level_switch[6][3] = 
+        {
+          {false, false, false}, // 0
+          {false, false, false}, // 1
+          {false, true,  false}, // 2
+          {false, false, true},  // 3
+          {false, false, false}, // 4
+          {false, false, true},  // 5
+        };
+
+        i8 band_plane        = move_directions[cube->orientation].band_plane;
+        i8 looking_for_level =
+          (i8) (do_level_switch[cube->face_rotating][band_plane] ?  2 - cube->level_rotating: cube->level_rotating);
+
         for (i8 band_index = 0; band_index < 12; ++band_index)
         {
           i8 base_index  = band_indices[band_plane][band_index][0];
           i8 level_mul   = band_indices[band_plane][band_index][1];
-          i8 looking_for = (i8) (base_index + ( cube->level_rotating * level_mul));
+          i8 looking_for = (i8) (base_index + (looking_for_level * level_mul));
 
           b32 match = (association == looking_for);
           do_rotate = do_rotate || match;

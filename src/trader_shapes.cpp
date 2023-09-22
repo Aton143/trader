@@ -565,15 +565,9 @@ internal inline void rcube_normal_association_to_move_direction(RCube_Move_Direc
     { {0, -1, 2}, {1, -1, 3}, }, // 5
   };
 
-  static const i8 accepted_faces[6][2][4] = 
+  static const i8 face_orientation_to_band_plane[6][2] = 
   {
-    {{0, 1, 2, 3}, {0, 4, 2, 5}}, // 0
-    {{0, 1, 2, 3}, {1, 4, 3, 5}}, // 1
-    {{0, 1, 2, 3}, {0, 4, 2, 5}}, // 2
-    {{0, 1, 2, 3}, {1, 4, 3, 5}}, // 3
-
-    {{1, 4, 3, 5}, {0, 1, 2, 3}}, // 4
-    {{1, 4, 3, 5}, {0, 1, 2, 3}}, // 5
+    {band_xz, band_yz}, {band_xz, band_xy}, {band_xz, band_yz}, {band_xz, band_xy}, {band_xy, band_yz}, {band_xy, band_yz},
   };
 
   i32 face = rcube_face_normal_to_face(normal);
@@ -597,21 +591,15 @@ internal inline void rcube_normal_association_to_move_direction(RCube_Move_Direc
       move_directions[0].level           = (i8) (remapped_association_face / 3);
       move_directions[0].associated_face = associated_faces[face][0][move_directions[0].level];
       move_directions[0].orientation     = (i8) oud;
+      move_directions[0].band_plane      = face_orientation_to_band_plane[face][oud];
       move_directions[0].rotation_vector = face_to_rotation_vectors[face][0];
-
-      copy_memory_block(move_directions[0].accepted_faces,
-                        (void *) accepted_faces[face][0],
-                        array_count(accepted_faces[face][0]));
 
       move_directions[1].face            = (i8) face;
       move_directions[1].level           = (i8) (remapped_association_face % 3);
       move_directions[1].associated_face = associated_faces[face][1][move_directions[1].level];
+      move_directions[1].band_plane      = face_orientation_to_band_plane[face][olr];
       move_directions[1].orientation     = (i8) olr;
       move_directions[1].rotation_vector = face_to_rotation_vectors[face][1];
-
-      copy_memory_block(move_directions[1].accepted_faces,
-                        (void *) accepted_faces[face][1],
-                        array_count(accepted_faces[face][1]));
     }
   }
 }
@@ -654,6 +642,9 @@ Render_Position make_rcube(Arena          *render_data,
     rotation = matrix4x4_rotate_about_v_rodrigues(cube->rotating_about, cube->cur_rotation);
   }
 
+  i32 rotatings[54]; set_memory_block(rotatings, (u8) -1, sizeof(rotatings));
+  i32 rotatings_i = 0;
+
   for (u32 association_index = 0;
        association_index < array_count(index_associations);
        ++association_index)
@@ -677,20 +668,29 @@ Render_Position make_rcube(Arena          *render_data,
       u32       association_face    = rcube_index_to_mesh_face(association);
       face_colors[association_face] = *association_color;
 
-      if (player_context->choose)
+      if (player_context->choose && !do_rotate)
       {
         i32 face_association = rcube_index_to_face(association);
-        i32 remapped_association = association % rcube_stickers_per_face;
-        i32 level = (cube->orientation == oud) ? (remapped_association / 3) : (remapped_association % 3);
+        // i32 remapped_association = association % rcube_stickers_per_face;
+        // i32 level = (cube->orientation == oud) ? (remapped_association / 3) : (remapped_association % 3);
 
-        b32 accepted = false;
-        for (u32 accepted_index = 0; accepted_index < 4; ++accepted_index)
+        i8 band_plane = move_directions[cube->orientation].band_plane;
+        for (i8 band_index = 0; band_index < 12; ++band_index)
         {
-          accepted |= (face_association == move_directions[cube->orientation].accepted_faces[accepted_index]);
+          i8 base_index  = band_indices[band_plane][band_index][0];
+          i8 level_mul   = band_indices[band_plane][band_index][1];
+          i8 looking_for = (i8) (base_index + ( cube->level_rotating * level_mul));
+
+          b32 match = (association == looking_for);
+          do_rotate = do_rotate || match;
         }
 
-        do_rotate = (accepted && (cube->level_rotating == level)) ||
-          (face_association == move_directions[cube->orientation].associated_face);
+        do_rotate = do_rotate || (face_association == move_directions[cube->orientation].associated_face);
+
+        if (do_rotate)
+        {
+          rotatings[rotatings_i++] = association;
+        }
       }
     }
 
@@ -826,8 +826,8 @@ Render_Position make_rcube(Arena          *render_data,
 
   if (absf(cube->cur_rotation) == 0.25f)
   {
-    cube->cur_rotation = 0.0f;
-    cube->face_rotating  = -1;
+    cube->cur_rotation  = 0.0f;
+    cube->face_rotating = -1;
   }
 
   return(rp);

@@ -30,14 +30,28 @@ enum
   cw  = 1,
 };
 
+enum
+{
+  band_xz,
+  band_yz,
+  band_xy,
+};
+
+static const i8 band_indices[3][12][2] = 
+{
+  {{0, 3}, {1, 3}, {2, 3}, {9, 3}, {10, 3}, {11, 3}, {18, 3}, {19, 3}, {20, 3}, {27, 3}, {28, 3}, {29, 3}},
+  {{0, 1}, {3, 1}, {6, 1}, {36, 1}, {39, 1}, {42, 1}, {20, -1}, {23, -1}, {26, -1}, {45, 1}, {48, 1}, {51, 1}},
+  {{9, 1}, {12, 1}, {15, 1}, {36, 3}, {37, 3}, {38, 3}, {29, -1}, {32, -1}, {35, -1}, {51, -3}, {52, -3}, {53, -3}},
+};
+
 struct RCube_Move_Direction
 {
-  i8 face;
-  i8 level;
-  i8 associated_face;
+  i8          face;
+  i8          level;
+  i8          associated_face;
+  i8          band_plane;
   Orientation orientation;
   V3_f32      rotation_vector;
-  i8 accepted_faces[4];
 };
 
 struct R_Cube

@@ -503,32 +503,28 @@ internal inline void rotate_slice(u8 *cube_faces, u8 *slice, i32 dir)
   }
 }
 
-internal void rcube_do_move(RCube *cube, RCube_Move_Direction *move)
+local_const u8 face_map[6][6] = 
 {
-  local_const u8 face_map[6][6] = 
-  {
-    {0, 1, 2, 3, 4, 5},
-    {1, 2, 3, 0, 4, 5},
-    {2, 3, 0, 1, 4, 5},
-    {3, 0, 1, 2, 4, 5},
-    {4, 1, 5, 3, 2, 0},
-    {5, 1, 4, 3, 0, 2},
-  };
+  {0, 1, 2, 3, 4, 5},
+  {1, 2, 3, 0, 4, 5},
+  {2, 3, 0, 1, 4, 5},
+  {3, 0, 1, 2, 4, 5},
+  {4, 1, 5, 3, 2, 0},
+  {5, 1, 4, 3, 0, 2},
+};
 
-  local_const u8 face_ccw_rot_map[6][6] = 
-  {
-    {0, 0, 0, 0, 0, 0,},
-    {0, 0, 0, 0, 1, 3,},
-    {0, 0, 0, 0, 2, 2,},
-    {0, 0, 0, 0, 3, 1,},
-    {0, 3, 2, 1, 0, 2,},
-    {0, 1, 2, 3, 2, 0,},
-  };
+local_const u8 face_ccw_rot_map[6][6] = 
+{
+  {0, 0, 0, 0, 0, 0,},
+  {0, 0, 0, 0, 1, 3,},
+  {0, 0, 0, 0, 2, 2,},
+  {0, 0, 0, 0, 3, 1,},
+  {0, 3, 2, 1, 0, 2,},
+  {0, 1, 2, 3, 2, 0,},
+};
 
-  local_persist u8 rcube_faces_rot_copy[54];
-  copy_memory_block(rcube_faces_rot_copy, cube->faces, sizeof(cube->faces));
-
-  i8 base_face = move->face;
+internal inline void rcube_remap(u8 *dest, u8 *rotate, u8 base_face)
+{
   for (u32 face_index = 0;
        face_index < 6;
        ++face_index)
@@ -536,29 +532,50 @@ internal void rcube_do_move(RCube *cube, RCube_Move_Direction *move)
     u32 rot_count = face_ccw_rot_map[base_face][face_index];
     while (rot_count-- > 0)
     {
-      rcube_rotate_face(rcube_faces_rot_copy, face_index, ccw);
+      rcube_rotate_face(rotate, face_index, ccw);
     }
   }
 
-  local_persist u8 rcube_mapped_copy[54] = {};
   for (u32 face_index = 0;
        face_index < 6;
        ++face_index)
   {
-    copy_memory_block(rcube_mapped_copy + (rcube_stickers_per_face * face_index),
-                      rcube_faces_rot_copy + (rcube_stickers_per_face * face_map[base_face][face_index]),
+    copy_memory_block(dest + (rcube_stickers_per_face * face_index),
+                      rotate + (rcube_stickers_per_face * face_map[base_face][face_index]),
                       rcube_stickers_per_face);
   }
+}
+
+internal void rcube_do_move(RCube *cube, RCube_Move_Direction *move)
+{
+  local_persist u8 rcube_faces_rot_copy[54];
+  local_persist u8 rcube_mapped_copy[54];
+  copy_memory_block(rcube_faces_rot_copy, cube->faces, sizeof(cube->faces));
+
+  i8 base_face = move->face;
+  rcube_remap(rcube_mapped_copy, rcube_faces_rot_copy, base_face);
+
+  local_const i8 band_map[6][3] = 
+  {
+    {band_xz,  band_yz, -1},
+    {band_xz, -1, band_yz},
+    {band_xz, band_yz, -1}, // TODO(antonio): do we have to do level clean up?
+    {band_xz, -1, band_yz}, // TODO(antonio): do we have to do level clean up?
+    {-1, band_yz, band_xz},
+    {-1, band_yz, band_xz}, // TODO(antonio): do we have to do level clean up?
+  };
 
   local_persist u8 slice[12]  = {};
-  u32 band_plane = move->band_plane;
 
-  for (u32 slice_index = 0; 
+  i32 band_plane = band_map[base_face][move->band_plane];
+  expect((band_plane != 0) && ((band_plane == band_xz) || (band_plane == band_yz)));
+
+  for (i32 slice_index = 0; 
        slice_index < array_count(slice);
        ++slice_index)
   {
-    u32 band_index        = band_indices[band_plane][slice_index][0];
-    u32 band_level_offset = move->level * band_indices[band_plane][slice_index][1];
+    i32 band_index        = band_indices[band_plane][slice_index][0];
+    i32 band_level_offset = move->level * band_indices[band_plane][slice_index][1];
 
     slice[slice_index] = (u8) (band_index + band_level_offset);
   }
@@ -573,7 +590,12 @@ internal void rcube_do_move(RCube *cube, RCube_Move_Direction *move)
     rcube_rotate_face(rcube_mapped_copy, face_to_rotate, rot_dir);
   }
 
-  copy_memory_block(cube->faces, rcube_mapped_copy, sizeof(rcube_mapped_copy));
+  local_const u8 remap_face[6] = 
+  {
+    0, 3, 2, 1, 5, 4
+  };
+
+  rcube_remap(cube->faces, rcube_mapped_copy, remap_face[base_face]);
 }
 
 internal inline i32 rcube_index_to_face(u32 index)

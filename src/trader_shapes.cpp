@@ -450,10 +450,9 @@ Render_Position make_cube(Arena *render_data, RGBA_f32 *face_colors)
   return(rp);
 }
 
-/*
-internal inline void rcube_rotate_face(R_Cube *cube, i32 face, i32 dir)
+internal inline void rcube_rotate_face(u8 *cube_faces, i32 face, i32 dir)
 {
-  u8 *r = cube->faces + (face * 9);
+  u8 *r = cube_faces + (face * 9);
   u8 copy[9] = {};
   memcpy(copy, r, 9);
 
@@ -487,12 +486,104 @@ internal inline void rcube_rotate_face(R_Cube *cube, i32 face, i32 dir)
   }
 }
 
-internal void rcube_remap_faces(R_Cube *cube, i32 new_zero_face)
+internal inline void rotate_slice(u8 *cube_faces, u8 *slice, i32 dir)
 {
-  unused(cube);
-  unused(new_zero_face);
+  u8 blocks[6] = {0, 3, 0, 6, 0, 9};
+
+  u8 start = (dir > 0) ? 0 : 4;
+  u8 adder = (dir > 0) ? 2 : -2;
+
+  for (u8 i = 0; i < 3; ++i)
+  {
+    for (u8 j = 0; j < 3; ++j)
+    {
+      swap(u8, cube_faces[slice[blocks[start] + j]], cube_faces[slice[blocks[start + 1] + j]]);
+    }
+    start += adder;
+  }
 }
-*/
+
+internal void rcube_do_move(RCube *cube, RCube_Move_Direction *move)
+{
+  local_const u8 face_map[6][6] = 
+  {
+    {0, 1, 2, 3, 4, 5},
+    {1, 2, 3, 0, 4, 5},
+    {2, 3, 0, 1, 4, 5},
+    {3, 0, 1, 2, 4, 5},
+    {4, 1, 5, 3, 2, 0},
+    {5, 1, 4, 3, 0, 2},
+  };
+
+  local_const u8 face_ccw_rot_map[6][6] = 
+  {
+    {0, 0, 0, 0, 0, 0,},
+    {0, 0, 0, 0, 1, 3,},
+    {0, 0, 0, 0, 2, 2,},
+    {0, 0, 0, 0, 3, 1,},
+    {0, 3, 2, 1, 0, 2,},
+    {0, 1, 2, 3, 2, 0,},
+  };
+
+  local_persist u8 rcube_faces_rot_copy[54];
+  copy_memory_block(rcube_faces_rot_copy, cube->faces, sizeof(cube->faces));
+
+  i8 rotating_face = move->face;
+  for (u32 face_index = 0;
+       face_index < 6;
+       ++face_index)
+  {
+    u32 rot_count = face_ccw_rot_map[rotating_face][face_index];
+    while (rot_count > 0)
+    {
+      rcube_rotate_face(rcube_faces_rot_copy, rotating_face, ccw);
+    }
+  }
+
+  local_persist u8 rcube_mapped_copy[54] = {};
+  for (u32 face_index = 0;
+       face_index < 6;
+       ++face_index)
+  {
+    copy_memory_block(rcube_mapped_copy + (rcube_stickers_per_face * face_index),
+                      rcube_faces_rot_copy,
+                      rcube_stickers_per_face);
+  }
+
+  local_const i32 cube_face_iters[2][4] =
+  {
+    {0, 1, 2, 3},
+    {0, 5, 2, 4}
+  };
+
+  u8 slice[12] = {};
+
+  i32 elem_coeff  = (move->orientation == oud) ? 1 : 3;
+  i32 level_coeff = (move->orientation == oud) ? 3 : 1;
+
+  const i32 *face_iter = (move->orientation == oud) ? cube_face_iters[0] : cube_face_iters[1];
+
+  for (i32 face_index = 0;
+       face_index < 4;
+       ++face_index)
+  {
+    i32 cube_face_index_start = (face_iter[face_index] * 9) + (move->level * level_coeff);
+    for (i32 element_index = 0; element_index < 3; ++element_index)
+    {
+      slice[(face_index * 3) + element_index] = (u8) (cube_face_index_start + (element_index * elem_coeff));
+    }
+  }
+
+  i8 rot_dir = (i8) ((cube->cur_rotation >= 0.0f) ? ccw : cw);
+  rotate_slice(rcube_mapped_copy, slice, rot_dir);
+
+  if (move->level != -1)
+  {
+    i32 faces_map[2] = {4, 1};
+    i32 face_to_rotate = faces_map[move->orientation] + (move->level / 2);
+    rcube_rotate_face(rcube_mapped_copy, face_to_rotate, rot_dir);
+  }
+}
 
 internal inline i32 rcube_index_to_face(u32 index)
 {
@@ -605,7 +696,7 @@ internal inline void rcube_normal_association_to_move_direction(RCube_Move_Direc
 }
 
 Render_Position make_rcube(Arena          *render_data,
-                           R_Cube         *cube,
+                           RCube          *cube,
                            Matrix_f32_4x4 *rotation_mat,
                            V3_f32          translation,
                            Player_Context *player_context)
@@ -641,9 +732,6 @@ Render_Position make_rcube(Arena          *render_data,
   {
     rotation = matrix4x4_rotate_about_v_rodrigues(cube->rotating_about, cube->cur_rotation);
   }
-
-  i32 rotatings[54]; set_memory_block(rotatings, (u8) -1, sizeof(rotatings));
-  i32 rotatings_i = 0;
 
   for (u32 association_index = 0;
        association_index < array_count(index_associations);
@@ -699,11 +787,6 @@ Render_Position make_rcube(Arena          *render_data,
         }
 
         do_rotate = do_rotate || (face_association == move_directions[cube->orientation].associated_face);
-
-        if (do_rotate)
-        {
-          rotatings[rotatings_i++] = association;
-        }
       }
     }
 
@@ -792,10 +875,34 @@ Render_Position make_rcube(Arena          *render_data,
   }
   else
   {
-    cube->face_rotating = -1;
+    f32 from_the_nearest_quarter_turn = fmodf(absf(cube->cur_rotation), 0.25f);
+    if (cube->face_rotating != -1)
+    {
+      f32 sign = (cube->cur_rotation < 0.0f) ? -1.0f : 1.0f;
+      f32 end_rotation = 0.0f;
+
+      if (from_the_nearest_quarter_turn <= 0.125f)
+      {
+        end_rotation = absf(cube->cur_rotation) - from_the_nearest_quarter_turn;
+      }
+      else
+      {
+        end_rotation = absf(cube->cur_rotation) + from_the_nearest_quarter_turn;
+      }
+
+      end_rotation *= sign;
+
+      cube->cur_rotation = lerpf(cube->cur_rotation, 0.5f, end_rotation);
+    }
+
+    if (is_between_inclusive(-0.0005f, from_the_nearest_quarter_turn, 0.0005f))
+    {
+      player_context->choose = 0;
+      cube->face_rotating    = -1;
+    }
   }
 
-  if (cube->face_rotating != -1)
+  if (player_context->dragging && (cube->face_rotating != -1))
   {
     platform_debug_printf("User is pointing at face normal: %d\n", user_rotating_face);
 
@@ -837,11 +944,13 @@ Render_Position make_rcube(Arena          *render_data,
     }
   }
 
+  /*
   if (absf(cube->cur_rotation) == 0.25f)
   {
     cube->cur_rotation  = 0.0f;
     cube->face_rotating = -1;
   }
+  */
 
   return(rp);
 }

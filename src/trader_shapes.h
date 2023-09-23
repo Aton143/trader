@@ -29,6 +29,7 @@ enum
   ccw = -1,
   cw  = 1,
 };
+typedef i8 Rotation_Direction;
 
 enum
 {
@@ -54,7 +55,7 @@ struct RCube_Move_Direction
   V3_f32      rotation_vector;
 };
 
-struct R_Cube
+struct RCube
 {
   RGBA_f32    color_map[6];
   u8          faces[54]; // indices into color_map
@@ -170,7 +171,7 @@ internal Vertex_Buffer_Element *make_cylinder_along_path(Arena *, V3_f32 *, u32,
 internal Render_Position make_player(Arena *);
 
 internal Render_Position make_cube(Arena *render_data, RGBA_f32 *face_colors);
-internal Render_Position make_rcube(Arena *render_arena, R_Cube *cube);
+internal Render_Position make_rcube(Arena *render_arena, RCube *cube);
 
 internal void batch_make_circle_particles(Bucket_List *bucket_list, f32 min_lifetime, f32 max_lifetime);
 internal Render_Position render_and_update_particles(Arena *, Bucket_List **, u32);

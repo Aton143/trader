@@ -879,7 +879,7 @@ WinMain(HINSTANCE instance,
     // u32 sector_count = 4;
     // f32 point_count = (f32) array_count(points);
 
-    R_Cube cube;
+    RCube cube;
 
     cube.color_map[0] = rgba(1.0f, 0.0f, 0.0f, 1.0f);
     cube.color_map[1] = rgba(0.0f, 1.0f, 0.0f, 1.0f);

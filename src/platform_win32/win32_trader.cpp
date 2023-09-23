@@ -1022,8 +1022,8 @@ WinMain(HINSTANCE instance,
       };
 
       Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, -2.0f);
-      Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(6.0f / 10.0f);
-      Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(-1 / 10.0f);
+      Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(1.0f / 10.0f);
+      Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(0 / 10.0f);
 
       Matrix_f32_4x4 cube_transform = matrix4x4_multiply(y_rotation, z_rotation);
 

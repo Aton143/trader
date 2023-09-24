@@ -22,6 +22,8 @@ struct Player_Context
   f32 lerp_factor;
 
   b32 dragging;
+  b32 rotating_camera;
+
   u32 choose; // 0 -> no, 1 -> x, 2 -> y
 
   V2_f32 initial_mouse_pos;

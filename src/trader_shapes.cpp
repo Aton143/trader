@@ -568,7 +568,7 @@ internal void rcube_do_move(RCube *cube, RCube_Move_Direction *move)
   local_persist u8 slice[12]  = {};
 
   i32 band_plane = band_map[base_face][move->band_plane];
-  expect((band_plane != 0) && ((band_plane == band_xz) || (band_plane == band_yz)));
+  expect((band_plane != -1) && ((band_plane == band_xz) || (band_plane == band_yz)));
 
   for (i32 slice_index = 0; 
        slice_index < array_count(slice);
@@ -583,10 +583,10 @@ internal void rcube_do_move(RCube *cube, RCube_Move_Direction *move)
   i8 rot_dir = (i8) ((cube->cur_rotation >= 0.0f) ? ccw : cw);
   rotate_slice(rcube_mapped_copy, slice, rot_dir);
 
-  if (move->level != -1)
+  if (move->level != 1)
   {
     i32 faces_map[2] = {4, 1};
-    i32 face_to_rotate = faces_map[move->orientation] + (move->level / 2);
+    i32 face_to_rotate = faces_map[move->orientation] + ((move->orientation == oud) ? (move->level / 2) : move->level);
     rcube_rotate_face(rcube_mapped_copy, face_to_rotate, rot_dir);
   }
 
@@ -651,12 +651,12 @@ internal inline void rcube_normal_association_to_move_direction(RCube_Move_Direc
 {
   static const V3_f32 face_to_rotation_vectors[6][2] = 
   {
-    {V3(0.0f, 1.0f, 0.0f), V3(1.0f, 0.0f, 0.0f)}, // 0
-    {V3(0.0f, 1.0f, 0.0f), V3(0.0f, 0.0f, 1.0f)}, // 1
-    {V3(0.0f, 1.0f, 0.0f), V3(1.0f, 0.0f, 0.0f)}, // 2
-    {V3(0.0f, 1.0f, 0.0f), V3(0.0f, 0.0f, 1.0f)}, // 3
-    {V3(0.0f, 0.0f, 1.0f), V3(1.0f, 0.0f, 0.0f)}, // 4
-    {V3(0.0f, 0.0f, 1.0f), V3(1.0f, 0.0f, 0.0f)}, // 5
+    {V3( 0.0f, -1.0f,  0.0f), V3( 1.0f,  0.0f,  0.0f)}, // 0
+    {V3( 0.0f, -1.0f,  0.0f), V3( 0.0f,  0.0f,  1.0f)}, // 1
+    {V3( 0.0f,  1.0f,  0.0f), V3(-1.0f,  0.0f,  0.0f)}, // 2
+    {V3( 0.0f, -1.0f,  0.0f), V3( 0.0f,  0.0f, -1.0f)}, // 3
+    {V3( 0.0f,  0.0f,  1.0f), V3( 1.0f,  0.0f,  0.0f)}, // 4
+    {V3( 0.0f,  0.0f, -1.0f), V3( 1.0f,  0.0f,  0.0f)}, // 5
   };
 
   static const i8 associated_faces[6][2][3] = 
@@ -904,7 +904,7 @@ Render_Position make_rcube(Arena          *render_data,
       }
 
       end_rotation *= sign;
-      cube->cur_rotation = lerpf(cube->cur_rotation, 0.50f, end_rotation);
+      cube->cur_rotation = lerpf(cube->cur_rotation, 0.55f, end_rotation);
     }
 
     if (player_context->choose && is_between_inclusive(-0.0005f, from_the_nearest_quarter_turn, 0.0005f))
@@ -956,12 +956,22 @@ Render_Position make_rcube(Arena          *render_data,
 
     if (player_context->choose != 0)
     {
-      cube->cur_rotation   = -1.0f * ((player_context->choose == 1) ? mouse_v_x_dot : mouse_v_y_dot);
-
       i32 move_direction_index = player_context->choose - 1;
       cube->level_rotating     = move_directions[move_direction_index].level;
       cube->orientation        = move_directions[move_direction_index].orientation;
       cube->rotating_about     = move_directions[move_direction_index].rotation_vector;
+
+      /*
+      f32 rotation_sign = 1.0f;
+      for (u32 vector_index = 0; vector_index < 3; ++vector_index)
+      {
+        f32 component = cube->rotating_about.v[vector_index];
+        rotation_sign *= (component != 0.0f) ? component : 1.0f;
+      }
+      */
+
+      f32 rotation_from_dot  = (player_context->choose == 1) ? mouse_v_x_dot : mouse_v_y_dot;
+      cube->cur_rotation     = -1.0f * rotation_from_dot;
     }
   }
 

@@ -917,6 +917,14 @@ WinMain(HINSTANCE instance,
 
     Player_Context *player_context = player_get_context();
 
+    f32 x_axis_rotation = 0.0f;
+    f32 y_axis_rotation = 0.0f;
+    f32 z_axis_rotation = 0.0f;
+
+    unused(x_axis_rotation);
+    unused(y_axis_rotation);
+    unused(z_axis_rotation);
+
     WaitForSingleObject(global_state->sync_event, INFINITE);
     ResetEvent(global_state->sync_event);
 
@@ -937,6 +945,19 @@ WinMain(HINSTANCE instance,
       else
       {
         player_context->dragging = false;
+      }
+
+      if (ui->cur_frame_mouse_event & mouse_event_rclick)
+      {
+        // NOTE(antonio): don't allow both mouse inputs
+        if (!player_context->dragging && !player_context->rotating_camera)
+        {
+          player_context->rotating_camera = true;
+        }
+      }
+      else if (player_context->rotating_camera)
+      {
+        player_context->rotating_camera = false;
       }
 
       player_context->cur_mouse_pos = ui->mouse_pos;
@@ -1021,11 +1042,36 @@ WinMain(HINSTANCE instance,
         rgba(1.0f, 0.0, 1.0f, 1.0f),
       };
 
+      if (player_context->rotating_camera)
+      {
+        x_axis_rotation += 0.5f * (ui->mouse_delta.y / rect_get_width(&client_rect));
+        y_axis_rotation += 0.5f * (ui->mouse_delta.x / rect_get_height(&client_rect));
+
+        if (x_axis_rotation < 0.0f)
+        {
+          x_axis_rotation += 1.0f;
+        }
+        else if (x_axis_rotation > 1.0f)
+        {
+          x_axis_rotation = 1.0f - x_axis_rotation;
+        }
+
+        if (y_axis_rotation < 0.0f)
+        {
+          y_axis_rotation += 1.0f;
+        }
+        else if (y_axis_rotation > 1.0f)
+        {
+          y_axis_rotation = 1.0f - y_axis_rotation;
+        }
+      }
+
       Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, -2.0f);
-      Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(1.0f / 10.0f);
+      Matrix_f32_4x4 x_rotation  = matrix4x4_rotate_about_x(x_axis_rotation);
+      Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(y_axis_rotation);
       Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(0 / 10.0f);
 
-      Matrix_f32_4x4 cube_transform = matrix4x4_multiply(y_rotation, z_rotation);
+      Matrix_f32_4x4 cube_transform = matrix4x4_multiply(y_rotation, x_rotation);
 
       Render_Position cube_rp = make_rcube(&common_render->triangle_render_data,
                                            &cube,

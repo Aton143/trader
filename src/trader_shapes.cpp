@@ -580,13 +580,38 @@ internal void rcube_do_move(RCube *cube, RCube_Move_Direction *move)
     slice[slice_index] = (u8) (band_index + band_level_offset);
   }
 
-  i8 rot_dir = (i8) ((cube->cur_rotation >= 0.0f) ? ccw : cw);
+  // NOTE(antonio): remember that we've remapped every face to 0 now
+
+  // faces -> orientation
+  local_const i8 rot_dir_mul[6][2] = 
+  {
+    {-1,  1},
+    {-1,  1},
+    {-1,  1},
+    {-1,  1},
+    {-1,  1},
+    {-1,  1},
+  };
+
+  i8 rotation_sign = move->orientation == oud ? -1 : 1;
+  i8 rot_dir = (i8) ((cube->cur_rotation >= 0.0f) ? ccw : cw) * rotation_sign;
+
   rotate_slice(rcube_mapped_copy, slice, rot_dir);
 
   if (move->level != 1)
   {
     i32 faces_map[2] = {4, 1};
     i32 face_to_rotate = faces_map[move->orientation] + ((move->orientation == oud) ? (move->level / 2) : move->level);
+
+    if ((move->orientation == oud) && (move->level == 2))
+    {
+      rot_dir *= -1;
+    }
+    else if ((move->orientation == olr) && (move->level == 0))
+    {
+      rot_dir *= -1;
+    }
+
     rcube_rotate_face(rcube_mapped_copy, face_to_rotate, rot_dir);
   }
 
@@ -653,7 +678,7 @@ internal inline void rcube_normal_association_to_move_direction(RCube_Move_Direc
   {
     {V3( 0.0f, -1.0f,  0.0f), V3( 1.0f,  0.0f,  0.0f)}, // 0
     {V3( 0.0f, -1.0f,  0.0f), V3( 0.0f,  0.0f,  1.0f)}, // 1
-    {V3( 0.0f,  1.0f,  0.0f), V3(-1.0f,  0.0f,  0.0f)}, // 2
+    {V3( 0.0f, -1.0f,  0.0f), V3(-1.0f,  0.0f,  0.0f)}, // 2
     {V3( 0.0f, -1.0f,  0.0f), V3( 0.0f,  0.0f, -1.0f)}, // 3
     {V3( 0.0f,  0.0f,  1.0f), V3( 1.0f,  0.0f,  0.0f)}, // 4
     {V3( 0.0f,  0.0f, -1.0f), V3( 1.0f,  0.0f,  0.0f)}, // 5
@@ -904,10 +929,10 @@ Render_Position make_rcube(Arena          *render_data,
       }
 
       end_rotation *= sign;
-      cube->cur_rotation = lerpf(cube->cur_rotation, 0.55f, end_rotation);
+      cube->cur_rotation = lerpf(cube->cur_rotation, 0.60f, end_rotation);
     }
 
-    if (player_context->choose && is_between_inclusive(-0.0005f, from_the_nearest_quarter_turn, 0.0005f))
+    if (player_context->choose && is_between_inclusive(-0.0015f, from_the_nearest_quarter_turn, 0.0015f))
     {
       i32 move_direction_index = player_context->choose - 1;
 
@@ -932,11 +957,11 @@ Render_Position make_rcube(Arena          *render_data,
 
     V3_f32 cur_mouse_v  = V3(_cur_mouse_v.x, _cur_mouse_v.y, 0.0f);
 
-    V3_f32 rotation_x_axis = matrix4x4_get_cols(*rotation_mat, 0)._xyz;
-    V3_f32 rotation_y_axis = matrix4x4_get_cols(*rotation_mat, 1)._xyz;
+    // V3_f32 rotation_x_axis = matrix4x4_get_cols(*rotation_mat, 0)._xyz;
+    // V3_f32 rotation_y_axis = matrix4x4_get_cols(*rotation_mat, 1)._xyz;
 
-    f32 mouse_v_x_dot = dot(cur_mouse_v, rotation_x_axis);
-    f32 mouse_v_y_dot = dot(cur_mouse_v, rotation_y_axis);
+    f32 mouse_v_x_dot = cur_mouse_v.x;// dot(cur_mouse_v, rotation_x_axis);
+    f32 mouse_v_y_dot = cur_mouse_v.y;// dot(cur_mouse_v, rotation_y_axis);
 
     const f32 inner_circle_radius = 0.002f;
     b32 cur_in  = (squared_length(_cur_mouse_v)  < inner_circle_radius);

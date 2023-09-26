@@ -486,7 +486,7 @@ internal inline void rcube_rotate_face(u8 *cube_faces, i32 face, i32 dir)
   }
 }
 
-internal inline void rotate_slice(u8 *cube_faces, u8 *slice, i32 dir)
+internal inline void rotate_slice(u8 *cube_faces, u8 *slice, i32 dir, Orientation orientation)
 {
   u8 blocks[6] = {0, 3, 0, 6, 0, 9};
 
@@ -497,9 +497,28 @@ internal inline void rotate_slice(u8 *cube_faces, u8 *slice, i32 dir)
   {
     for (u8 j = 0; j < 3; ++j)
     {
+#if 1
       swap(u8, cube_faces[slice[blocks[start] + j]], cube_faces[slice[blocks[start + 1] + j]]);
+#else
+      unused(cube_faces);
+      swap(u8, slice[blocks[start] + j], slice[blocks[start + 1] + j]);
+#endif
     }
     start += adder;
+  }
+
+  if (orientation == olr)
+  {
+    if (dir == cw)
+    {
+      swap(u8, cube_faces[slice[6]], cube_faces[slice[8]]);
+      swap(u8, cube_faces[slice[9]], cube_faces[slice[11]]);
+    }
+    else
+    {
+      swap(u8, cube_faces[slice[3]], cube_faces[slice[5]]);
+      swap(u8, cube_faces[slice[6]], cube_faces[slice[8]]);
+    }
   }
 }
 
@@ -596,7 +615,7 @@ internal void rcube_do_move(RCube *cube, RCube_Move_Direction *move)
   i8 rotation_sign = move->orientation == oud ? -1 : 1;
   i8 rot_dir = (i8) ((cube->cur_rotation >= 0.0f) ? ccw : cw) * rotation_sign;
 
-  rotate_slice(rcube_mapped_copy, slice, rot_dir);
+  rotate_slice(rcube_mapped_copy, slice, rot_dir, move->orientation);
 
   if (move->level != 1)
   {

@@ -79,8 +79,8 @@ THREAD_RETURN render_thread_proc(void *_args)
 
   Ring_Buffer *command_queue = &common_render->command_queue;
 
-  ID3D11InputLayout *input_layouts[3]  = {};
-  ID3D11Buffer      *draw_buffers[3] = {};
+  ID3D11InputLayout *input_layouts[4]  = {};
+  ID3D11Buffer      *draw_buffers[4] = {};
 
   Arena _render_thread_arena = arena_alloc(1024 * sizeof(Render_Command), 1, NULL);
   Arena *render_thread_arena = &_render_thread_arena;
@@ -103,7 +103,7 @@ THREAD_RETURN render_thread_proc(void *_args)
                                          dummy_shader_path.str,
                                          dummy_shader_path.size);
 
-    char *vertex_mains[3] = {"VS_Main_16", "VS_Main_32", "VS_Main_64"};
+    char *vertex_mains[4] = {"VS_Main_16", "VS_Main_32", "VS_Main_64", "VS_Main_128"};
 
     for (u32 layout_index = 0;
          layout_index < array_count(input_layouts);
@@ -129,6 +129,19 @@ THREAD_RETURN render_thread_proc(void *_args)
             "IN", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
             D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
           },
+          {
+            "IN", 4, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
+            D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
+          }, {
+            "IN", 5, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
+            D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
+          }, {
+            "IN", 6, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
+            D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
+          }, {
+            "IN", 7, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
+            D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
+          },
         };
 
         HRESULT result = render->device->CreateInputLayout(input_element_description,
@@ -144,7 +157,7 @@ THREAD_RETURN render_thread_proc(void *_args)
       {
         D3D11_BUFFER_DESC vertex_buffer_description = {};
 
-        vertex_buffer_description.ByteWidth      = (u32) mb(1);
+        vertex_buffer_description.ByteWidth      = (u32) mb(4);
         vertex_buffer_description.Usage          = D3D11_USAGE_DYNAMIC;
         vertex_buffer_description.BindFlags      = D3D11_BIND_VERTEX_BUFFER;
         vertex_buffer_description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -253,7 +266,7 @@ THREAD_RETURN render_thread_proc(void *_args)
 
   SetEvent(global_state->sync_event);
 
-  u32 buffer_positions[3] = {};
+  u32 buffer_positions[4] = {};
 
   b32 found_begin = false;
   b32 found_end   = false;
@@ -290,7 +303,7 @@ THREAD_RETURN render_thread_proc(void *_args)
 
             u32 input_layout_size  = power_of_2_ceil32(draw->per_vertex_size);
             u32 input_layout_index = first_msb_pos32(input_layout_size) - 4;
-            expect(is_between_inclusive(0, input_layout_index, 2));
+            expect(is_between_inclusive(0, input_layout_index, 3));
 
             D3D11_MAPPED_SUBRESOURCE mapped_buffer = {};
             {
@@ -737,6 +750,10 @@ WinMain(HINSTANCE instance,
     render_load_pixel_shader(shader_source_handle, &renderer_pixel_shader, true);
     safe_release(vertex_shader_blob);
 
+    String_Const_utf8 sticker_shader_source_path =
+      string_literal_init_type("..\\src\\platform_win32\\sticker_shaders.hlsl", utf8);
+    Handle *sticker_shader_source_handle = handle_make(sticker_shader_source_path, handle_flag_file | handle_flag_notify);
+
     String_Const_utf8 triangle_shader_source_path =
       string_literal_init_type("..\\src\\platform_win32\\triangle_shaders.hlsl", utf8);
     Handle *triangle_shader_source_handle = handle_make(triangle_shader_source_path, handle_flag_file | handle_flag_notify);
@@ -751,6 +768,9 @@ WinMain(HINSTANCE instance,
     Vertex_Shader circle_vertex_shader = {};
     Pixel_Shader  circle_pixel_shader = {};
 
+    Vertex_Shader sticker_vertex_shader = {};
+    Pixel_Shader  sticker_pixel_shader = {};
+
     ID3DBlob *triangle_vertex_shader_blob =
       (ID3DBlob *) render_load_vertex_shader(triangle_shader_source_handle, &triangle_vertex_shader, true);
     render_load_pixel_shader(triangle_shader_source_handle, &triangle_pixel_shader, true);
@@ -760,6 +780,11 @@ WinMain(HINSTANCE instance,
       (ID3DBlob *) render_load_vertex_shader(circle_shader_source_handle, &circle_vertex_shader, true);
     render_load_pixel_shader(circle_shader_source_handle, &circle_pixel_shader, true);
     safe_release(circle_vertex_shader_blob);
+
+    ID3DBlob *sticker_vertex_shader_blob =
+      (ID3DBlob *) render_load_vertex_shader(sticker_shader_source_handle, &sticker_vertex_shader, true);
+    render_load_pixel_shader(sticker_shader_source_handle, &sticker_pixel_shader, true);
+    safe_release(sticker_vertex_shader_blob);
 
     ID3D11ShaderResourceView *font_texture_view = NULL;
     {
@@ -1097,8 +1122,8 @@ WinMain(HINSTANCE instance,
           draw->per_vertex_size = sizeof(Vertex_Buffer_Element);
           draw->vertex_count    = cube_rp.count;
           draw->vertex_data     = vs_data_start;
-          draw->vertex_shader   = triangle_vertex_shader;
-          draw->pixel_shader    = triangle_pixel_shader;
+          draw->vertex_shader   = sticker_vertex_shader;
+          draw->pixel_shader    = sticker_pixel_shader;
           draw->textures[0].srv = font_texture_view;
           draw->textures[1].srv = cubemap_texture_view;
 

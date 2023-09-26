@@ -397,6 +397,9 @@ Render_Position make_cube(Arena *render_data, RGBA_f32 *face_colors)
   Render_Position rp = {(u32) (render_data->used / sizeof(Vertex_Buffer_Element)), vertex_count};
   Vertex_Buffer_Element *cur_vertex = push_array(render_data, Vertex_Buffer_Element, rp.count);
 
+  V4_f32 *cur_extra = (V4_f32 *) (((u8 *) cur_vertex) + (sizeof(Vertex_Buffer_Element) / 2));
+  unused(cur_extra);
+
   V2_f32 solid_color_uv = render_get_solid_color_uv();
 
   V4_f32 tl, tr, bl, br, normal;
@@ -852,9 +855,11 @@ Render_Position make_rcube(Arena          *render_data,
     cube_rp       = make_cube(render_data, face_colors);
     cube_vertices = ((Vertex_Buffer_Element *) render_data->start) + cube_rp.start_pos;
 
+    u32 iter_count = 0;
+
     for (u32 vertex_index = 0;
          vertex_index < cube_rp.count;
-         vertex_index += 3)
+         vertex_index += 3, iter_count++)
     {
       for (u32 tri_vert_index = 0;
            tri_vert_index < 3;
@@ -869,6 +874,26 @@ Render_Position make_rcube(Arena          *render_data,
         cur_vert->position._xyz = add(cur_vert->position._xyz, cube_translation._xyz);
         cur_vert->position = transform(*rotation_mat, cur_vert->position);
         cur_vert->position = add(cur_vert->position, V4(translation, 0.0f));
+      }
+
+      if (iter_count & 1)
+      {
+        u32 quad_start = (iter_count - 1) * vertices_per_quad;
+        Vertex_Buffer_Element *tl = &cube_vertices[quad_start];
+        Vertex_Buffer_Element *tr = &cube_vertices[quad_start + 2];
+        Vertex_Buffer_Element *br = &cube_vertices[quad_start + vertices_per_quad - 1];
+
+        V4_f32 center = scale(0.5f, add(tl->position, br->position));
+
+        for (u32 quad_vertex_index = 0;
+             quad_vertex_index < vertices_per_quad;
+             ++quad_vertex_index)
+        {
+          Vertex_Buffer_Element *cur_vert = cube_vertices + quad_vertex_index;
+          cur_vert->res0 = center;
+          cur_vert->res1 = V4(subtract(tr->position._xyz, tl->position._xyz), 1.0f);
+          cur_vert->res2 = V4(subtract(tr->position._xyz, br->position._xyz), 1.0f);
+        }
       }
 
       if (player_context->dragging)

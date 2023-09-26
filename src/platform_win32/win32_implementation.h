@@ -381,7 +381,7 @@ File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u6
       if (GetFileSizeEx(file_handle, &large_file_size))
       {
         u64 file_size = large_file_size.QuadPart;
-        u8 *file_buffer_data = (u8 *) arena_push(arena, file_size);
+        u8 *file_buffer_data = (u8 *) arena_push(arena, file_size + 1);
 
         if (file_buffer_data)
         {
@@ -393,6 +393,8 @@ File_Buffer platform_open_and_read_entire_file(Arena *arena, utf8 *file_path, u6
             file_buffer.data           = file_buffer_data;
             file_buffer.size           = file_size;
             file_buffer.used           = file_size;
+
+            file_buffer_data[file_size] = 0;
 
             CloseHandle(file_handle);
           }

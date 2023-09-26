@@ -125,6 +125,11 @@ struct Vertex_Buffer_Element
   V4_f32   normal;
   V2_f32   uv;
   V2_f32   res;
+
+  V4_f32   res0;
+  V4_f32   res1;
+  V4_f32   res2;
+  V4_f32   res3;
 };
 
 struct Mesh_Face

@@ -37,6 +37,35 @@
 
 #include "..\trader.h"
 
+THREAD_RETURN io_thread_proc(void *_args)
+{
+  unused(_args);
+
+  /*
+  Global_Platform_State *global_state = platform_get_global_state();
+
+  DWORD       file_bytes_read = 0;
+  ULONG_PTR   completion_key  = NULL;
+  OVERLAPPED *overlapped      = NULL;
+
+  for (;;)
+  {
+    BOOL succeeded = GetQueuedCompletionStatus(global_state->iocp,
+                                               &file_bytes_read,
+                                               &completion_key,
+                                               &overlapped,
+                                               INFINITE);
+
+    if (succeeded)
+    {
+      File_Buffer *file_buffer; file_buffer = (File_Buffer *) completion_key;
+      platform_debug_print((char *) file_buffer->data);
+    }
+  }
+    */
+  return(0);
+}
+
 THREAD_RETURN render_thread_proc(void *_args)
 {
   uintptr_t *args = (uintptr_t *) _args;
@@ -50,8 +79,8 @@ THREAD_RETURN render_thread_proc(void *_args)
 
   Ring_Buffer *command_queue = &common_render->command_queue;
 
-  ID3D11InputLayout *input_layouts[3]  = {};
-  ID3D11Buffer      *draw_buffers[3] = {};
+  ID3D11InputLayout *input_layouts[4]  = {};
+  ID3D11Buffer      *draw_buffers[4] = {};
 
   Arena _render_thread_arena = arena_alloc(1024 * sizeof(Render_Command), 1, NULL);
   Arena *render_thread_arena = &_render_thread_arena;
@@ -74,7 +103,7 @@ THREAD_RETURN render_thread_proc(void *_args)
                                          dummy_shader_path.str,
                                          dummy_shader_path.size);
 
-    char *vertex_mains[3] = {"VS_Main_16", "VS_Main_32", "VS_Main_64"};
+    char *vertex_mains[4] = {"VS_Main_16", "VS_Main_32", "VS_Main_64", "VS_Main_128"};
 
     for (u32 layout_index = 0;
          layout_index < array_count(input_layouts);
@@ -100,6 +129,19 @@ THREAD_RETURN render_thread_proc(void *_args)
             "IN", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
             D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
           },
+          {
+            "IN", 4, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
+            D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
+          }, {
+            "IN", 5, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
+            D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
+          }, {
+            "IN", 6, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
+            D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
+          }, {
+            "IN", 7, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
+            D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0
+          },
         };
 
         HRESULT result = render->device->CreateInputLayout(input_element_description,
@@ -115,7 +157,7 @@ THREAD_RETURN render_thread_proc(void *_args)
       {
         D3D11_BUFFER_DESC vertex_buffer_description = {};
 
-        vertex_buffer_description.ByteWidth      = (u32) mb(1);
+        vertex_buffer_description.ByteWidth      = (u32) mb(4);
         vertex_buffer_description.Usage          = D3D11_USAGE_DYNAMIC;
         vertex_buffer_description.BindFlags      = D3D11_BIND_VERTEX_BUFFER;
         vertex_buffer_description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -224,7 +266,7 @@ THREAD_RETURN render_thread_proc(void *_args)
 
   SetEvent(global_state->sync_event);
 
-  u32 buffer_positions[3] = {};
+  u32 buffer_positions[4] = {};
 
   b32 found_begin = false;
   b32 found_end   = false;
@@ -261,7 +303,7 @@ THREAD_RETURN render_thread_proc(void *_args)
 
             u32 input_layout_size  = power_of_2_ceil32(draw->per_vertex_size);
             u32 input_layout_index = first_msb_pos32(input_layout_size) - 4;
-            expect(is_between_inclusive(0, input_layout_index, 2));
+            expect(is_between_inclusive(0, input_layout_index, 3));
 
             D3D11_MAPPED_SUBRESOURCE mapped_buffer = {};
             {
@@ -469,6 +511,13 @@ WinMain(HINSTANCE instance,
     global_state->iocp = iocp_handle;
   }
 
+  /*
+  Handle *async_handle = handle_make(scu8l("..\\README.md"),
+                                     handle_flag_file | handle_flag_async);
+
+  platform_dispatch_read(global_arena, async_handle, 0, (u64) -1);
+  */
+
   String_Const_utf8 notify_dir = string_literal_init_type("..\\src\\platform_win32\\", utf8);
 
   platform_push_notify_dir(notify_dir.str, notify_dir.size);
@@ -501,6 +550,9 @@ WinMain(HINSTANCE instance,
                           (f32 *) default_font_heights,
                           array_count(default_font_heights),
                           512, 512);
+
+  u8 *sdf_alpha_buffer = (u8 *) arena_push(global_arena, 4096 * 4096);
+  make_sdf_shape(sdf_alpha_buffer, 4096, 4096, 1500.0f);
 
   Bitmap skybox_bitmaps[6];
   win32_load_skybox(skybox_bitmaps);
@@ -691,7 +743,7 @@ WinMain(HINSTANCE instance,
     };
 
     String_Const_utf8 shader_source_path   = string_literal_init_type("..\\src\\platform_win32\\shaders.hlsl", utf8);
-    Handle           *shader_source_handle = make_handle(shader_source_path, handle_flag_file | handle_flag_notify);
+    Handle           *shader_source_handle = handle_make(shader_source_path, handle_flag_file | handle_flag_notify);
 
     Vertex_Shader renderer_vertex_shader = {};
     Pixel_Shader  renderer_pixel_shader = {};
@@ -701,19 +753,26 @@ WinMain(HINSTANCE instance,
     render_load_pixel_shader(shader_source_handle, &renderer_pixel_shader, true);
     safe_release(vertex_shader_blob);
 
+    String_Const_utf8 sticker_shader_source_path =
+      string_literal_init_type("..\\src\\platform_win32\\sticker_shaders.hlsl", utf8);
+    Handle *sticker_shader_source_handle = handle_make(sticker_shader_source_path, handle_flag_file | handle_flag_notify);
+
     String_Const_utf8 triangle_shader_source_path =
       string_literal_init_type("..\\src\\platform_win32\\triangle_shaders.hlsl", utf8);
-    Handle *triangle_shader_source_handle = make_handle(triangle_shader_source_path, handle_flag_file | handle_flag_notify);
+    Handle *triangle_shader_source_handle = handle_make(triangle_shader_source_path, handle_flag_file | handle_flag_notify);
 
     String_Const_utf8 circle_shader_source_path = 
       string_literal_init_type("..\\src\\platform_win32\\circle_shaders.hlsl", utf8);
-    Handle *circle_shader_source_handle = make_handle(circle_shader_source_path, handle_flag_file | handle_flag_notify);
+    Handle *circle_shader_source_handle = handle_make(circle_shader_source_path, handle_flag_file | handle_flag_notify);
 
     Vertex_Shader triangle_vertex_shader = {};
     Pixel_Shader  triangle_pixel_shader = {};
 
     Vertex_Shader circle_vertex_shader = {};
     Pixel_Shader  circle_pixel_shader = {};
+
+    Vertex_Shader sticker_vertex_shader = {};
+    Pixel_Shader  sticker_pixel_shader = {};
 
     ID3DBlob *triangle_vertex_shader_blob =
       (ID3DBlob *) render_load_vertex_shader(triangle_shader_source_handle, &triangle_vertex_shader, true);
@@ -724,6 +783,11 @@ WinMain(HINSTANCE instance,
       (ID3DBlob *) render_load_vertex_shader(circle_shader_source_handle, &circle_vertex_shader, true);
     render_load_pixel_shader(circle_shader_source_handle, &circle_pixel_shader, true);
     safe_release(circle_vertex_shader_blob);
+
+    ID3DBlob *sticker_vertex_shader_blob =
+      (ID3DBlob *) render_load_vertex_shader(sticker_shader_source_handle, &sticker_vertex_shader, true);
+    render_load_pixel_shader(sticker_shader_source_handle, &sticker_pixel_shader, true);
+    safe_release(sticker_vertex_shader_blob);
 
     ID3D11ShaderResourceView *font_texture_view = NULL;
     {
@@ -765,6 +829,51 @@ WinMain(HINSTANCE instance,
 
       expect(SUCCEEDED(result));
     }
+
+    ID3D11ShaderResourceView *sdf_texture_view = NULL;
+    {
+      D3D11_TEXTURE2D_DESC texture_description = {};
+      {
+        texture_description.Width            = (u32) 4096;
+        texture_description.Height           = (u32) 4096;
+        texture_description.MipLevels        = 1;
+        texture_description.ArraySize        = 1;
+        texture_description.Format           = DXGI_FORMAT_R8_UNORM;
+        texture_description.SampleDesc.Count = 1;
+        texture_description.Usage            = D3D11_USAGE_DEFAULT;
+        texture_description.BindFlags        = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+        texture_description.CPUAccessFlags   = 0;
+        texture_description.MiscFlags        = D3D11_RESOURCE_MISC_GENERATE_MIPS;
+      }
+
+      D3D11_SUBRESOURCE_DATA subresource = {};
+      {
+        subresource.pSysMem          = sdf_alpha_buffer;
+        subresource.SysMemPitch      = texture_description.Width * 1;
+        subresource.SysMemSlicePitch = 0;
+      }
+
+      ID3D11Texture2D *texture_2d = NULL;
+      HRESULT result = device->CreateTexture2D(&texture_description, &subresource, &texture_2d);
+
+      expect(SUCCEEDED(result));
+
+      D3D11_SHADER_RESOURCE_VIEW_DESC shader_resource_view_description = {};
+      {
+        shader_resource_view_description.Format                    = DXGI_FORMAT_R8_UNORM;
+        shader_resource_view_description.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
+        shader_resource_view_description.Texture2D.MipLevels       = (UINT) -1;
+        shader_resource_view_description.Texture2D.MostDetailedMip = 0;
+      }
+
+      result = device->CreateShaderResourceView(texture_2d, &shader_resource_view_description, &sdf_texture_view);
+      texture_2d->Release();
+
+      expect(SUCCEEDED(result));
+
+      device_context->GenerateMips(sdf_texture_view);
+    }
+
 
     ID3D11ShaderResourceView *cubemap_texture_view = NULL;
     render_create_cubemap(skybox_bitmaps, array_count(skybox_bitmaps), &cubemap_texture_view);
@@ -824,6 +933,9 @@ WinMain(HINSTANCE instance,
 
     const uintptr_t render_thread_args[] = {1};
     HANDLE render_thread_handle = CreateThread(NULL, 0, render_thread_proc, (void *) render_thread_args, 0, NULL);
+    HANDLE io_thread_handle = CreateThread(NULL, 0, io_thread_proc, NULL, 0, NULL);
+
+    unused(io_thread_handle);
     unused(render_thread_handle);
 
     Vertex_Buffer_Element cube_vertices[] = 
@@ -840,7 +952,31 @@ WinMain(HINSTANCE instance,
     // u32 sector_count = 4;
     // f32 point_count = (f32) array_count(points);
 
-    f32 shot_time = 0.0f;
+    RCube cube;
+
+    cube.color_map[0] = rgba(1.0f, 0.0f, 0.0f, 1.0f);
+    cube.color_map[1] = rgba(0.0f, 1.0f, 0.0f, 1.0f);
+    cube.color_map[2] = rgba(0.0f, 0.0f, 1.0f, 1.0f);
+    cube.color_map[3] = rgba(1.0f, 1.0f, 0.0f, 1.0f);
+    cube.color_map[4] = rgba(1.0f, 0.0f, 1.0f, 1.0f);
+    cube.color_map[5] = rgba(0.0f, 1.0f, 1.0f, 1.0f);
+
+    for (u32 face_index = 0;
+         face_index < cube_face_count;
+         ++face_index)
+    {
+      for (u32 sticker_index = 0;
+           sticker_index < rcube_stickers_per_face;
+           ++sticker_index)
+      {
+        cube.faces[face_index * rcube_stickers_per_face + sticker_index] = (u8) face_index;
+      }
+    }
+
+    cube.cur_rotation       = 0.0f;
+    cube.face_rotating      = -1;
+    cube.level_rotating     = -1;
+
     f32 pacc_time = 0.0f;
 
     Bucket_List particle_buckets = bucket_list_make(global_arena, 
@@ -854,6 +990,14 @@ WinMain(HINSTANCE instance,
 
     Player_Context *player_context = player_get_context();
 
+    f32 x_axis_rotation = 0.0f;
+    f32 y_axis_rotation = 0.0f;
+    f32 z_axis_rotation = 0.0f;
+
+    unused(x_axis_rotation);
+    unused(y_axis_rotation);
+    unused(z_axis_rotation);
+
     WaitForSingleObject(global_state->sync_event, INFINITE);
     ResetEvent(global_state->sync_event);
 
@@ -862,6 +1006,34 @@ WinMain(HINSTANCE instance,
       TIMED_BLOCK_START();
 
       SwitchToFiber(win32_message_fiber_handle);
+
+      if (ui->cur_frame_mouse_event & mouse_event_lclick)
+      {
+        if (!player_context->dragging)
+        {
+          player_context->dragging = true;
+          player_context->initial_mouse_pos = ui->mouse_pos;
+        }
+      }
+      else
+      {
+        player_context->dragging = false;
+      }
+
+      if (ui->cur_frame_mouse_event & mouse_event_rclick)
+      {
+        // NOTE(antonio): don't allow both mouse inputs
+        if (!player_context->dragging && !player_context->rotating_camera)
+        {
+          player_context->rotating_camera = true;
+        }
+      }
+      else if (player_context->rotating_camera)
+      {
+        player_context->rotating_camera = false;
+      }
+
+      player_context->cur_mouse_pos = ui->mouse_pos;
       
       global_state->render_thread_can_start_processing = true;
 
@@ -916,14 +1088,6 @@ WinMain(HINSTANCE instance,
       ui_do_string(string_literal_init_type("Hello World!", utf8));
       ui_do_formatted_string("Mouse: (%.0f, %.0f)", ui->mouse_pos.x, ui->mouse_pos.y);
 
-      ui_do_formatted_string("Raw Input Mouse: (%.0f, %.0f)",
-                             global_player_context.mouse_pos.x,
-                             global_player_context.mouse_pos.y);
-
-      ui_do_formatted_string("Raw Input Mouse Delta: (%.0f, %.0f)",
-                             global_player_context.mouse_delta.x,
-                             global_player_context.mouse_delta.y);
-
       ui_prepare_render_from_panels(ui_get_sentinel_panel(), client_rect);
 
       // u32 initial_draw_count = (u32) (global_state->render_context.render_data.used / sizeof(Instance_Buffer_Element));
@@ -937,21 +1101,92 @@ WinMain(HINSTANCE instance,
         constant_buffer_items.client_width  = rect_get_width(&client_rect);
         constant_buffer_items.client_height = rect_get_height(&client_rect);
 
-        Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, -0.8f, -1.5f);
-        Matrix_f32_4x4 x_rotation  = matrix4x4_rotate_about_x(0.0f / 10.0f);
-        Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(0.0f / 10.0f);
-        Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(player_context->rotation);
-
-        /*
-           constant_buffer_items.model = matrix4x4_multiply(translation,
-           matrix4x4_multiply(x_rotation,
-           matrix4x4_multiply(y_rotation, z_rotation)));
-           */
-
-        constant_buffer_items.model = matrix4x4_multiply(z_rotation, translation);
-
         constant_buffer_items.view       = view;
         constant_buffer_items.projection = projection;
+      }
+
+      RGBA_f32 face_colors[6] =
+      {
+        rgba_white,
+        rgba(1.0f, 0.0, 0.0f, 1.0f),
+        rgba(0.0f, 1.0, 0.0f, 1.0f),
+        rgba(0.0f, 0.0, 1.0f, 1.0f),
+        rgba(1.0f, 1.0, 0.0f, 1.0f),
+        rgba(1.0f, 0.0, 1.0f, 1.0f),
+      };
+
+      if (player_context->rotating_camera)
+      {
+        x_axis_rotation += 0.5f * (ui->mouse_delta.y / rect_get_width(&client_rect));
+        y_axis_rotation += 0.5f * (ui->mouse_delta.x / rect_get_height(&client_rect));
+
+        if (x_axis_rotation < 0.0f)
+        {
+          x_axis_rotation += 1.0f;
+        }
+        else if (x_axis_rotation > 1.0f)
+        {
+          x_axis_rotation = 1.0f - x_axis_rotation;
+        }
+
+        if (y_axis_rotation < 0.0f)
+        {
+          y_axis_rotation += 1.0f;
+        }
+        else if (y_axis_rotation > 1.0f)
+        {
+          y_axis_rotation = 1.0f - y_axis_rotation;
+        }
+      }
+
+      Matrix_f32_4x4 translation = matrix4x4_translate(0.0f, 0.0f, -2.0f);
+      Matrix_f32_4x4 x_rotation  = matrix4x4_rotate_about_x(x_axis_rotation);
+      Matrix_f32_4x4 y_rotation  = matrix4x4_rotate_about_y(y_axis_rotation);
+      Matrix_f32_4x4 z_rotation  = matrix4x4_rotate_about_z(0 / 10.0f);
+
+      Matrix_f32_4x4 cube_transform = matrix4x4_multiply(y_rotation, x_rotation);
+
+      Render_Position cube_rp = make_rcube(&common_render->triangle_render_data,
+                                           &cube,
+                                           &cube_transform,
+                                           V3(0.0f, 0.0f, -2.0f),
+                                           player_context);
+
+      {
+        Render_Command *command = (Render_Command *) common_render->command_queue.write;
+        RCK_Draw       *draw    = &command->draw;
+
+        u8 *vs_data_start = NULL;
+
+        {
+          draw = &command->draw;
+
+          command->kind = rck_draw;
+
+          vs_data_start = common_render->triangle_render_data.start + (cube_rp.start_pos * sizeof(Vertex_Buffer_Element));
+
+          draw->buffer_id       = 0;
+          draw->topology        = (u32) D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+          draw->per_vertex_size = sizeof(Vertex_Buffer_Element);
+          draw->vertex_count    = cube_rp.count;
+          draw->vertex_data     = vs_data_start;
+          draw->vertex_shader   = sticker_vertex_shader;
+          draw->pixel_shader    = sticker_pixel_shader;
+          draw->textures[0].srv = sdf_texture_view;
+          draw->textures[1].srv = cubemap_texture_view;
+
+          constant_buffer_items.model = matrix4x4_identity();
+
+          copy_memory_block((void *) draw->constant_buffer_data, &constant_buffer_items, sizeof(constant_buffer_items));
+
+          pacc_time += (f32) global_state->dt;
+          if (pacc_time > 10.0f)
+          {
+            pacc_time = 0.0f;
+          }
+        }
+
+        render_push_commands(1);
       }
 
       /*
@@ -961,6 +1196,7 @@ WinMain(HINSTANCE instance,
       make_cylinder_along_path(&common_render->triangle_render_data, points, (u32) point_count, 0.05f, sector_count);
         */
 
+      /*
       pacc_time += 1.0f / 60.0f;
       if (pacc_time > 0.5f)
       {
@@ -1093,6 +1329,7 @@ WinMain(HINSTANCE instance,
 
         render_push_commands(4);
       }
+      */
 
       // NOTE(antonio): instances
       Render_Command *end = (Render_Command *) render->command_queue.write;
@@ -1116,6 +1353,7 @@ WinMain(HINSTANCE instance,
 
       // Post-frame
       global_state->focus_event = focus_event_none;
+      player_context->prev_mouse_pos = player_context->cur_mouse_pos;
 
       for (u32 file_index = 0;
            file_index < array_count(global_state->changed_files);

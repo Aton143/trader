@@ -40,12 +40,6 @@ struct Bucket
 
 global_const u32 bucket_list_invalid_id = (u32) -1;
 
-// TODO(antonio): store_ptr/load_ptr versions
-// i.e. ring_buffer_append(..., &widget) caused issues in the past
-
-global_const u32            thread_count                  = 2;
-global       Thread_Context thread_contexts[thread_count] = {};
-
 #if SHIP_MODE
 global_const void *global_memory_start_addr = NULL;
 #else
@@ -146,7 +140,15 @@ internal inline Ring_Buffer ring_buffer_make(u8    *buffer, u64 size);
 internal inline void        ring_buffer_reset(Ring_Buffer *rb);
 
 internal inline void *ring_buffer_get_write_ptr(Ring_Buffer *rb);
+
+// NOTE(antonio): 
+// for ring buffer pop and push,
+// use the following with the read/write ptr replacing "^" appropriately
+// |----------|---------|
+//  ^returned  ^incremented to here
 internal inline void *ring_buffer_push(Ring_Buffer *ring_buffer, u64 size);
+internal inline void *ring_buffer_atomic_push(Ring_Buffer *ring_buffer, u64 size);
+
 #define ring_buffer_push_struct(rb, type)       \
   (type *) ring_buffer_push((rb), sizeof(type))
 internal inline void *ring_buffer_append(Ring_Buffer *ring_buffer,
@@ -156,6 +158,7 @@ internal inline void *ring_buffer_append(Ring_Buffer *ring_buffer,
 internal inline void *ring_buffer_pop(Ring_Buffer *ring_buffer, u64 size);
 #define ring_buffer_pop_struct(rb, type) \
   (type *) ring_buffer_pop((rb), sizeof(type))
+internal inline void *ring_buffer_atomic_pop(Ring_Buffer *ring_buffer, u64 size);
 
 internal inline void ring_buffer_pop_and_put(Ring_Buffer *ring_buffer,
                                              void        *data,

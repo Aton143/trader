@@ -64,6 +64,9 @@ internal inline f32 dot(V3_f32 u, V3_f32 v);
 internal inline V3_f32 normalize(V3_f32 u);
 internal inline V3_f32 cross(V3_f32 u, V3_f32 v);
 
+internal inline V3_f32 add(V3_f32 u, V3_f32 v);
+internal inline V3_f32 operator +(V3_f32 a, V3_f32 b);
+
 internal inline V3_f32 triangle_normal_ccw(f32 *vertices, u32 to_next_vertex);
 
 internal inline f32 dot(V4_f32 u, V4_f32 v);
@@ -75,9 +78,10 @@ internal inline V4_f32 reflect_about_xz(V4_f32 v);
 internal inline V4_f32 reflect_about_xy(V4_f32 v);
 internal inline V4_f32 reflect_about_yz(V4_f32 v);
 
-#define matrix_row_count(m) array_count((m)->rows)
-#define matrix_col_count(m) array_count((m)->row0.v)
+#define matrix_row_count(m) (array_count((m)->rows))
+#define matrix_col_count(m) (array_count((m)->row0.v))
 
+internal inline V4_f32         matrix4x4_get_cols(Matrix_f32_4x4 matrix, u32 n);
 internal inline Matrix_f32_4x4 matrix4x4_from_rows(V4_f32 row0, V4_f32 row1, V4_f32 row2, V4_f32 row3);
 internal inline Matrix_f32_4x4 matrix4x4_translate(f32 x, f32 y, f32 z);
 internal inline Matrix_f32_4x4 matrix4x4_diagonals(f32 row0, f32 row1, f32 row2, f32 row3);
@@ -98,8 +102,8 @@ internal inline Matrix_f32_4x4 scale(f32 scale, Matrix_f32_4x4 a);
 
 internal inline Rect_f32 translate(Rect_f32 rect, V2_f32 v);
 
-internal inline b32 line_segment_triangle_intersect(V3_f32 line_segment_p0, V3_f32 line_segment_p1,
-                                                    V3_f32 triangle_a, V3_f32 triangle_b, V3_f32 triangle_c, f32 *t);
+internal inline b32 line_ray_triangle_intersect(V3_f32 line_segment_p0, V3_f32 line_segment_p1,
+                                                V3_f32 triangle_a, V3_f32 triangle_b, V3_f32 triangle_c, f32 *t);
 
 #define TRADER_MATH_H
 #endif

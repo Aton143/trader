@@ -47,33 +47,32 @@ u64 popcount64(u64 n)
   return(res);
 }
 
+#define __sb_find(op) \
+  u32 pos; \
+  if (!op((DWORD *) &pos, n)) pos = 0; \
+  return(pos);
+
 u32 first_lsb_pos32(u32 n)
 {
-  u32 pos;
-  if (!_BitScanForward((DWORD *) &pos, n)) pos = 0;
-  return(pos);
+  __sb_find(_BitScanForward);
 }
 
 u32 first_lsb_pos64(u64 n)
 {
-  u32 pos;
-  if (!_BitScanForward64((DWORD *) &pos, n)) pos = 0;
-  return(pos);
+  __sb_find(_BitScanForward64);
 }
 
 u32 first_msb_pos32(u32 n)
 {
-  u32 pos;
-  if (!_BitScanReverse((DWORD *) &pos, n)) pos = 0;
-  return(pos);
+  __sb_find(_BitScanReverse);
 }
 
 u32 first_msb_pos64(u64 n)
 {
-  u32 pos;
-  if (!_BitScanReverse64((DWORD *) &pos, n)) pos = 0;
-  return(pos);
+  __sb_find(_BitScanReverse64);
 }
+
+#undef __sb_find
 
 u32 atomic_add32(u32 volatile *addend, u32 value)
 {
@@ -85,6 +84,18 @@ u64 atomic_add64(u64 volatile *addend, u64 value)
 {
   u64 res = InterlockedExchangeAdd64((LONG64 volatile *) addend, value);
   return(res);
+}
+
+u32 atomic_compare_exchange32(u32 volatile *dest, u32 compare, u32 new_value)
+{
+  u32 intial_value_at_dest = _InterlockedCompareExchange(dest, new_value, compare);
+  return(intial_value_at_dest);
+}
+
+u64 atomic_compare_exchange64(u64 volatile *dest, u64 compare, u64 new_value)
+{
+  u64 initial_value_at_dest = _InterlockedCompareExchange64((volatile LONG64 *) dest, new_value, compare);
+  return(initial_value_at_dest);
 }
 
 #define CL_IMPL_H

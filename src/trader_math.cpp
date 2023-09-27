@@ -45,7 +45,7 @@ internal inline f32 fast_powf(f32 a, f32 b) {
 
 internal inline f32 sin01f(f32 x)
 {
-  expect(is_between_inclusive(0.0f, x, 1.0f));
+  // expect(is_between_inclusive(0.0f, x, 1.0f));
   x *= tau_f32;
   f32 res = sinf(x);
   return(res);
@@ -53,7 +53,7 @@ internal inline f32 sin01f(f32 x)
 
 internal inline f32 cos01f(f32 x)
 {
-  expect(is_between_inclusive(0.0f, x, 1.0f));
+  // expect(is_between_inclusive(0.0f, x, 1.0f));
   x *= tau_f32;
   f32 res = cosf(x);
   return(res);
@@ -265,6 +265,12 @@ internal inline f32 dot(V3_f32 u, V3_f32 v)
   return(dot_product);
 }
 
+V3_f32 operator +(V3_f32 a, V3_f32 b)
+{
+  V3_f32 res = add(a, b);
+  return(res);
+}
+
 internal inline V3_f32 normalize(V3_f32 u)
 {
   f32 squared_length_rec = sqrtf(dot(u, u));
@@ -327,6 +333,13 @@ internal inline V4_f32 wide_clamp(V4_f32 bottom, V4_f32 v, V4_f32 top)
     clamp(bottom.v[3], v.v[3], top.v[3]),
   };
   return(res);
+}
+
+V4_f32 matrix4x4_get_cols(Matrix_f32_4x4 matrix, u32 n)
+{
+  expect(is_between_inclusive(0, n, 4));
+  V4_f32 result = V4(matrix.row0.v[n], matrix.row1.v[n], matrix.row2.v[n], matrix.row3.v[n]);
+  return(result);
 }
 
 internal inline Matrix_f32_4x4 matrix4x4_from_rows(V4_f32 row0, V4_f32 row1, V4_f32 row2, V4_f32 row3)
@@ -588,12 +601,7 @@ internal inline V3_f32 triangle_normal_ccw(f32 *vertices, u32 to_next_vertex)
 }
 
 // NOTE(antonio): ripped from Real-Time Collision Detecion
-internal inline b32 line_segment_triangle_intersect(V3_f32  p,
-                                                    V3_f32  q,
-                                                    V3_f32  a,
-                                                    V3_f32  b,
-                                                    V3_f32  c,
-                                                    f32    *intersect_t)
+b32 line_ray_triangle_intersect(V3_f32 p, V3_f32 q, V3_f32 a, V3_f32 b, V3_f32 c, f32 *intersect_t)
 {
   f32 t = 0.0f;
 
@@ -612,7 +620,7 @@ internal inline b32 line_segment_triangle_intersect(V3_f32  p,
   V3_f32 pa = subtract(p, a);
   t = dot(pa, n);
 
-  if (is_between_exclusive(0.0f, t, denom))
+  if (t < 0.0f)
   {
     return(false);
   }
@@ -620,20 +628,20 @@ internal inline b32 line_segment_triangle_intersect(V3_f32  p,
   V3_f32 e = cross(pq, pa);
 
   f32 v = dot(ca, e);
-  if ((0.0f < v) || (v > denom))
+  if ((v < 0.0f) || (v > denom))
   {
     return(false);
   }
 
   f32 w = -dot(ba, e);
-  if ((0.0f < w) || ((w + v) > denom))
+  if ((w < 0.0f) || ((w + v) > denom))
   {
     return(false);
   }
 
   if (intersect_t != NULL) 
   {
-    *intersect_t = t;
+    *intersect_t = (t / denom);
   }
 
   return(true);

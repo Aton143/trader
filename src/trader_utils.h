@@ -41,9 +41,12 @@ internal inline u32 first_msb_pos64(u64 n);
 
 internal inline u32 power_of_2_ceil32(u32 n);
 
-// NOTE(antonio): returns initial value of addend
+// NOTE(antonio): returns initial value of volatile pointer
 internal inline u32 atomic_add32(u32 volatile *addend, u32 value);
 internal inline u64 atomic_add64(u64 volatile *addend, u64 value);
+
+internal inline u32 atomic_compare_exchange32(u32 volatile *dest, u32 compare, u32 new_value);
+internal inline u64 atomic_compare_exchange64(u64 volatile *dest, u64 compare, u64 new_value);
 
 internal inline b32 volatile_compare_equals64(void *a, void *b);
 

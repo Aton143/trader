@@ -1594,6 +1594,7 @@ LRESULT win32_window_procedure(HWND window_handle, UINT message, WPARAM wparam, 
     {
       ui->mouse_pos = {max_f32, max_f32};
       ui->mouse_area = mouse_area_out_client;
+      ui->cur_frame_mouse_event = mouse_event_none;
     } break;
 
   case WM_LBUTTONDOWN: case WM_LBUTTONDBLCLK:

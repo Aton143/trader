@@ -990,6 +990,7 @@ WinMain(HINSTANCE instance,
 
     Player_Context *player_context = player_get_context();
 
+    // Mouse_Area 
     f32 x_axis_rotation = 0.0f;
     f32 y_axis_rotation = 0.0f;
     f32 z_axis_rotation = 0.0f;
@@ -1119,6 +1120,16 @@ WinMain(HINSTANCE instance,
       {
         x_axis_rotation += 0.5f * (ui->mouse_delta.y / rect_get_width(&client_rect));
         y_axis_rotation += 0.5f * (ui->mouse_delta.x / rect_get_height(&client_rect));
+
+        if (absf(x_axis_rotation) > 2.0f)
+        {
+          x_axis_rotation = 0.0f;
+        }
+
+        if (absf(y_axis_rotation) > 2.0f)
+        {
+          y_axis_rotation = 0.0f;
+        }
 
         if (x_axis_rotation < 0.0f)
         {

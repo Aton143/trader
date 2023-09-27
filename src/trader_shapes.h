@@ -166,6 +166,8 @@ internal void put_quad(Vertex_Buffer_Element **vertices,
                        V4_f32 tl, V4_f32 tr, V4_f32 bl, V4_f32 br,
                        RGBA_f32 color, V4_f32 normal = v4_zero);
 
+internal void put_quad_uvs(Vertex_Buffer_Element **vertices, V2_f32 tl, V2_f32 tr, V2_f32 bl, V2_f32 br);
+
 internal Render_Position make_cylinder(Arena *, f32, f32, f32, u32, u32);
 internal Vertex_Buffer_Element *make_cylinder_along_path(Arena *, V3_f32 *, u32, f32, u32);
 internal Render_Position make_player(Arena *);
@@ -175,6 +177,8 @@ internal Render_Position make_rcube(Arena *render_arena, RCube *cube);
 
 internal void batch_make_circle_particles(Bucket_List *bucket_list, f32 min_lifetime, f32 max_lifetime);
 internal Render_Position render_and_update_particles(Arena *, Bucket_List **, u32);
+
+internal void make_sdf_shape(u8 *alpha_buffer, u32 width, u32 height, float r);
 
 #define TRADER_SHAPES_H
 #endif

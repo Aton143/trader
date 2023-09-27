@@ -551,6 +551,9 @@ WinMain(HINSTANCE instance,
                           array_count(default_font_heights),
                           512, 512);
 
+  u8 *sdf_alpha_buffer = (u8 *) arena_push(global_arena, 4096 * 4096);
+  make_sdf_shape(sdf_alpha_buffer, 4096, 4096, 1500.0f);
+
   Bitmap skybox_bitmaps[6];
   win32_load_skybox(skybox_bitmaps);
 
@@ -826,6 +829,51 @@ WinMain(HINSTANCE instance,
 
       expect(SUCCEEDED(result));
     }
+
+    ID3D11ShaderResourceView *sdf_texture_view = NULL;
+    {
+      D3D11_TEXTURE2D_DESC texture_description = {};
+      {
+        texture_description.Width            = (u32) 4096;
+        texture_description.Height           = (u32) 4096;
+        texture_description.MipLevels        = 1;
+        texture_description.ArraySize        = 1;
+        texture_description.Format           = DXGI_FORMAT_R8_UNORM;
+        texture_description.SampleDesc.Count = 1;
+        texture_description.Usage            = D3D11_USAGE_DEFAULT;
+        texture_description.BindFlags        = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+        texture_description.CPUAccessFlags   = 0;
+        texture_description.MiscFlags        = D3D11_RESOURCE_MISC_GENERATE_MIPS;
+      }
+
+      D3D11_SUBRESOURCE_DATA subresource = {};
+      {
+        subresource.pSysMem          = sdf_alpha_buffer;
+        subresource.SysMemPitch      = texture_description.Width * 1;
+        subresource.SysMemSlicePitch = 0;
+      }
+
+      ID3D11Texture2D *texture_2d = NULL;
+      HRESULT result = device->CreateTexture2D(&texture_description, &subresource, &texture_2d);
+
+      expect(SUCCEEDED(result));
+
+      D3D11_SHADER_RESOURCE_VIEW_DESC shader_resource_view_description = {};
+      {
+        shader_resource_view_description.Format                    = DXGI_FORMAT_R8_UNORM;
+        shader_resource_view_description.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
+        shader_resource_view_description.Texture2D.MipLevels       = (UINT) -1;
+        shader_resource_view_description.Texture2D.MostDetailedMip = 0;
+      }
+
+      result = device->CreateShaderResourceView(texture_2d, &shader_resource_view_description, &sdf_texture_view);
+      texture_2d->Release();
+
+      expect(SUCCEEDED(result));
+
+      device_context->GenerateMips(sdf_texture_view);
+    }
+
 
     ID3D11ShaderResourceView *cubemap_texture_view = NULL;
     render_create_cubemap(skybox_bitmaps, array_count(skybox_bitmaps), &cubemap_texture_view);
@@ -1124,7 +1172,7 @@ WinMain(HINSTANCE instance,
           draw->vertex_data     = vs_data_start;
           draw->vertex_shader   = sticker_vertex_shader;
           draw->pixel_shader    = sticker_pixel_shader;
-          draw->textures[0].srv = font_texture_view;
+          draw->textures[0].srv = sdf_texture_view;
           draw->textures[1].srv = cubemap_texture_view;
 
           constant_buffer_items.model = matrix4x4_identity();

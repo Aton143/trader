@@ -1,5 +1,30 @@
 #include "trader_shapes.h"
 
+void put_quad_uvs(Vertex_Buffer_Element **vertices, V2_f32 tl, V2_f32 tr, V2_f32 bl, V2_f32 br)
+{
+  Vertex_Buffer_Element *cur_vertex = *vertices;
+
+  cur_vertex->uv = tl;
+  cur_vertex++;
+
+  cur_vertex->uv = bl;
+  cur_vertex++;
+
+  cur_vertex->uv = tr;
+  cur_vertex++;
+
+  cur_vertex->uv = tr;
+  cur_vertex++;
+
+  cur_vertex->uv = bl;
+  cur_vertex++;
+
+  cur_vertex->uv = br;
+  cur_vertex++;
+
+  *vertices = cur_vertex;
+}
+
 void put_quad(Vertex_Buffer_Element **vertices, V4_f32 tl, V4_f32 tr, V4_f32 bl, V4_f32 br, RGBA_f32 color, V4_f32 normal)
 {
   Vertex_Buffer_Element *cur_vertex = *vertices;
@@ -405,6 +430,11 @@ Render_Position make_cube(Arena *render_data, RGBA_f32 *face_colors)
   V4_f32 tl, tr, bl, br, normal;
   f32 mag = rsubcube_width / 2.0f;
 
+  V2_f32 tl_uv = V2(0.0f, 0.0f);
+  V2_f32 tr_uv = V2(1.0f, 0.0f);
+  V2_f32 bl_uv = V2(0.0f, 1.0f);
+  V2_f32 br_uv = V2(1.0f, 1.0f);
+
   // front
   tl = V4(-mag,  mag,  mag, 1.0f);
   tr = V4( mag,  mag,  mag, 1.0f);
@@ -413,12 +443,16 @@ Render_Position make_cube(Arena *render_data, RGBA_f32 *face_colors)
   normal = V4(0.0f, 0.0f, 1.0f, 1.0f);
 
   put_quad(&cur_vertex, tl, tr, bl, br, *face_colors++, normal);
+  cur_vertex -= vertices_per_quad;
+  put_quad_uvs(&cur_vertex, tl_uv, tr_uv, bl_uv, br_uv);
 
   // back
   tl.z = tr.z = bl.z = br.z *= -1.0f;
   normal.z *= -1.0f;
 
   put_quad(&cur_vertex, tl, tr, bl, br, *face_colors++, normal);
+  cur_vertex -= vertices_per_quad;
+  put_quad_uvs(&cur_vertex, tl_uv, tr_uv, bl_uv, br_uv);
 
   // top
   tl = V4(-mag,  mag, -mag, 1.0f);
@@ -428,12 +462,16 @@ Render_Position make_cube(Arena *render_data, RGBA_f32 *face_colors)
   normal = V4(0.0f, 1.0f, 0.0f, 1.0f);
 
   put_quad(&cur_vertex, tl, tr, bl, br, *face_colors++, normal);
+  cur_vertex -= vertices_per_quad;
+  put_quad_uvs(&cur_vertex, tl_uv, tr_uv, bl_uv, br_uv);
 
   // bottom
   tl.y = tr.y = bl.y = br.y *= -1.0f;
   normal.y *= -1.0f;
 
   put_quad(&cur_vertex, tl, tr, bl, br, *face_colors++, normal);
+  cur_vertex -= vertices_per_quad;
+  put_quad_uvs(&cur_vertex, tl_uv, tr_uv, bl_uv, br_uv);
 
   // left
   tl = V4(-mag,  mag, -mag, 1.0f);
@@ -443,12 +481,16 @@ Render_Position make_cube(Arena *render_data, RGBA_f32 *face_colors)
   normal = V4(-1.0f, 0.0f, 0.0f, 1.0f);
 
   put_quad(&cur_vertex, tl, tr, bl, br, *face_colors++, normal);
+  cur_vertex -= vertices_per_quad;
+  put_quad_uvs(&cur_vertex, tl_uv, tr_uv, bl_uv, br_uv);
 
   // right
   tl.x = tr.x = bl.x = br.x *= -1.0f;
   normal.x *= -1.0f;
 
   put_quad(&cur_vertex, tl, tr, bl, br, *face_colors++, normal);
+  cur_vertex -= vertices_per_quad;
+  put_quad_uvs(&cur_vertex, tl_uv, tr_uv, bl_uv, br_uv);
 
   return(rp);
 }
@@ -878,21 +920,23 @@ Render_Position make_rcube(Arena          *render_data,
 
       if (iter_count & 1)
       {
-        u32 quad_start = (iter_count - 1) * vertices_per_quad;
+        u32 quad_start = ((iter_count - 1) * vertices_per_quad) / 2;
         Vertex_Buffer_Element *tl = &cube_vertices[quad_start];
         Vertex_Buffer_Element *tr = &cube_vertices[quad_start + 2];
         Vertex_Buffer_Element *br = &cube_vertices[quad_start + vertices_per_quad - 1];
 
         V4_f32 center = scale(0.5f, add(tl->position, br->position));
+        V4_f32 x_axis = V4(subtract(tr->position._xyz, tl->position._xyz), 1.0f);
+        V4_f32 y_axis = V4(subtract(tr->position._xyz, br->position._xyz), 1.0f);
 
         for (u32 quad_vertex_index = 0;
              quad_vertex_index < vertices_per_quad;
              ++quad_vertex_index)
         {
-          Vertex_Buffer_Element *cur_vert = cube_vertices + quad_vertex_index;
+          Vertex_Buffer_Element *cur_vert = cube_vertices + quad_start + quad_vertex_index;
           cur_vert->res0 = center;
-          cur_vert->res1 = V4(subtract(tr->position._xyz, tl->position._xyz), 1.0f);
-          cur_vert->res2 = V4(subtract(tr->position._xyz, br->position._xyz), 1.0f);
+          cur_vert->res1 = x_axis;
+          cur_vert->res2 = y_axis;
         }
       }
 
@@ -928,14 +972,6 @@ Render_Position make_rcube(Arena          *render_data,
 
         if (intersection_result && (t < min_t))
         {
-          RGBA_f32 tri_color = rgba((mouse_pos_3d.x + 1.0f) / 2.0f,
-                                    (mouse_pos_3d.y + 1.0f) / 2.0f,
-                                    1.0f, 1.0f);
-
-          cube_vertices[0].color = tri_color;
-          cube_vertices[1].color = tri_color;
-          cube_vertices[2].color = tri_color;
-
           min_t        = t;
           face_normal  = &cube_vertices[0].normal;
           chosen_index = association_index;
@@ -1175,4 +1211,32 @@ Render_Position render_and_update_particles(Arena *render_data, Bucket_List **bu
   bucket_list_put_back(cur_list, put_back, put_back_index);
 
   return(rp);
+}
+
+internal void make_sdf_shape(u8 *alpha_buffer, u32 width, u32 height, float r)
+{
+  V2_f32 center = V2(width / 2.0f, height / 2.0f);
+  V2_f32 r_v2   = V2(r, r);
+
+  u32 offset = 40;
+  for (u32 row = offset; row < height - offset; ++row)
+  {
+    for (u32 col = offset; col < width - offset; ++col)
+    {
+      u32 buffer_pos = (row * width) + col;
+
+      V2_f32 pos = V2((f32) col, (f32) row);
+
+      V2_f32 pc  = subtract(pos, center);
+      pc.x = absf(pc.x);
+      pc.y = absf(pc.y);
+
+      V2_f32 d2 = add(subtract(pc, center), r_v2);
+      d2.x = max(d2.x, 0.0f);
+      d2.y = max(d2.y, 0.0f);
+
+      f32 value = sqrtf(squared_length(d2)) - r;
+      alpha_buffer[buffer_pos] = (u8) clamp(0, (1 - value) * 255.0f, 255.0f);
+    }
+  }
 }

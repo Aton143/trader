@@ -1,7 +1,8 @@
 #pragma pack_matrix(row_major)
-struct Vertex_Global_Data
+struct Global_Data
 {
-  float4   texture_dimensions;
+  float2   texture_dimensions;
+  float2   client_dimensions;
   float4x4 model;
   float4x4 view;
   float4x4 projection;
@@ -13,8 +14,8 @@ struct VS_Input
   float4 color:    IN1;
   float4 normal:   IN2;
   float4 uv:       IN3;
-  float4 center:   IN4;
 
+  float4 center:   IN4;
   float4 x_axis:   IN5;
   float4 y_axis:   IN6;
 };
@@ -31,7 +32,7 @@ struct PS_Input
   float4 y_axis:   YAXIS;
 };
 
-Vertex_Global_Data global_data;
+Global_Data global_data;
 Texture2D          global_texture: register(t0);
 TextureCube        cubemap:        register(t1);
 
@@ -74,12 +75,9 @@ float4 PS_Main(PS_Input input): SV_Target
 {
   float4 out_color;
 
-  float sdf = sdf_rounded_rect(input.position.xyz, input.center.xyz, input.x_axis, input.y_axis, 
-                               float2(0.125f * 1000, 0.125f * 1000), 10.0f);
-
   float alpha_sample = global_texture.Sample(global_sampler, input.uv).r;
   float3 combined    = float3(input.color.rgb) * alpha_sample;
-  out_color = /*(sdf == 0) ? */ float4(combined, alpha_sample);// : float4(0.0f, 0.0f, 0.0f, 0.0f);
+  out_color = (alpha_sample > 0.0f) ? float4(combined, alpha_sample) : float4(0.0f, 0.0f, 0.0f, 1.0f);
 
   out_color = pow(out_color, 1.0f / 2.2f);
   return out_color;
